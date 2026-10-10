@@ -1,0 +1,21 @@
+node_modules/
+.expo/
+dist/
+web-build/
+.idea/
+*.log
+
+# Native builds
+android/build/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/.cxx/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "177584215248",
+    "project_id": "happylokam-1c6f2",
+    "storage_bucket": "happylokam-1c6f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:177584215248:android:08ab6a5ff2e62da1413ad5",
+        "android_client_info": {
+          "package_name": "com.happylokam.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "177584215248-m5m12pr9geinp11le1ej5sgr0a8p1fa3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAqFMDugfiBGrSqAz289vk9QL0cgAMB1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "177584215248-m5m12pr9geinp11le1ej5sgr0a8p1fa3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
