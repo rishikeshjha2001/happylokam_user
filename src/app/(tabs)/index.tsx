@@ -1,2149 +1,1613 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
-  Image,
+  ScrollView,
   TouchableOpacity,
+  TextInput,
+  Image,
   Dimensions,
-  Animated,
-  FlatList,
   RefreshControl,
+  StatusBar,
+  Animated,
+  Platform,
+  Alert,
   BackHandler,
   Modal,
-  TextInput,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Bell,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Gift,
+  Camera,
+  Coffee,
+  Heart,
+  Star,
   MapPin,
   ChevronRight,
-  Star,
-  Calendar,
-  Flame,
-  Cake,
-  Sparkles,
-  Users,
-  Camera,
-  Music,
-  Utensils,
-  Flower2,
-  Gem,
-  Palette,
-  CheckCircle2,
-  X,
-  Lock,
-  Mail,
+  ChevronDown,
   ArrowRight,
-  ShieldCheck,
-  CreditCard,
-  Minus,
+  Flame,
+  Shield,
   Plus,
+  Ticket,
+  Menu,
   LogIn,
-  Layers,
-  Phone,
-  Clock,
-  User,
+  Calendar,
+  User as UserIcon,
+  Navigation,
+  X,
 } from 'lucide-react-native';
-import { router, useFocusEffect } from 'expo-router';
-import RoomDatabase, { RoomEvent, RoomVenue, RoomUser } from '../../services/roomDatabase';
-import CelebrationDialog, { DialogType } from '../../components/CelebrationDialog';
-import CelebrationParticles from '../../components/CelebrationParticles';
-import RazorpayCheckout from 'react-native-razorpay';
-import { API_BASE_URL } from '../../constants/api';
+import * as Location from 'expo-location';
+import { router } from 'expo-router';
+import Svg, { Defs, LinearGradient as SvgGradient, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { getHeroSlides, getVenues, getPackages, getUserWallet } from '../../services/api';
+import { DbHeroSlide, DbVenue, DbPackage } from '../../constants/databaseModels';
+import RoomDatabase from '../../services/roomDatabase';
+import {
+  AdminCustomSection,
+  getAdminCustomSections,
+} from '../../services/adminSections';
+import PaymentModal from '../../components/PaymentModal';
+import SidebarDrawer from '../../components/SidebarDrawer';
+import WalletModal from '../../components/WalletModal';
+import AdminSectionModal from '../../components/AdminSectionModal';
 
 const { width } = Dimensions.get('window');
 
-// Premium Celebration Categories
-const CELEBRATION_CATEGORIES = [
-  { id: 'all', name: 'All', icon: Sparkles, color: '#e11d48' },
-  { id: 'Dandiya', name: 'Dandiya & Garba', icon: Flame, color: '#f43f5e' },
-  { id: 'Birthday', name: 'Birthdays', icon: Cake, color: '#8b5cf6' },
-  { id: 'Wedding', name: 'Royal Weddings', icon: Gem, color: '#f59e0b' },
-  { id: 'Anniversary', name: 'Anniversaries', icon: Sparkles, color: '#ec4899' },
-  { id: 'Corporate', name: 'Corporate', icon: Users, color: '#3b82f6' },
+const QUICK_CATEGORIES = [
+  { id: 'q1', name: 'Weddings', icon: Sparkles, color: '#e11d48', bg: '#ffe4e6', border: '#fecdd3' },
+  { id: 'q2', name: 'Birthdays', icon: Gift, color: '#4f46e5', bg: '#e0e7ff', border: '#c7d2fe' },
+  { id: 'q3', name: 'Shoots', icon: Camera, color: '#db2777', bg: '#fce7f3', border: '#fbcfe8' },
+  { id: 'q4', name: 'Catering', icon: Coffee, color: '#d97706', bg: '#fef3c7', border: '#fde68a' },
 ];
 
-// Our Services Showcase
-const SERVICES = [
-  { id: 's1', title: 'Photography', subtitle: '4K Drone & Cinema', icon: Camera, color: '#e11d48' },
-  { id: 's2', title: 'Royal Venues', subtitle: 'Heritage Lawns', icon: Gem, color: '#8b5cf6' },
-  { id: 's3', title: 'Floral Decor', subtitle: 'Theme Backdrops', icon: Flower2, color: '#ec4899' },
-  { id: 's4', title: 'DJ & Sound', subtitle: 'Live Band & JBL', icon: Music, color: '#3b82f6' },
-  { id: 's5', title: 'Catering', subtitle: 'Gourmet Buffet', icon: Utensils, color: '#10b981' },
-  { id: 's6', title: 'Bridal Artistry', subtitle: 'Premium Styling', icon: Palette, color: '#f59e0b' },
-];
+export default function HomeTab() {
+  const insets = useSafeAreaInsets();
 
-const HERO_SLIDES = [
-  {
-    id: 's1',
-    category: 'All',
-    title: 'Enjoy Every Moment Of Your Life',
-    subtitle: 'From grand festival nights to joyous private parties, make every second count.',
-    image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop',
-    badge: 'LIVE CELEBRATION',
-    badgeColor: '#10b981',
-    badgeTextColor: '#ffffff',
-    titleColor: '#ffffff',
-    subtitleColor: '#e2e8f0',
-    ctaText: 'Explore Now',
-    ctaBg: '#10b981',
-    overlayBg: 'rgba(9, 11, 16, 0.72)',
-  },
-  {
-    id: 's2',
-    category: 'Wedding',
-    title: 'Stress-Free Celebrations',
-    subtitle: 'Royal venues, authentic catering & photography managed by celebration experts.',
-    image: require('../../../assets/wedding_1.jpg'),
-    badge: 'ROYAL WEDDINGS',
-    badgeColor: '#f59e0b',
-    badgeTextColor: '#000000',
-    titleColor: '#ffffff',
-    subtitleColor: '#fef3c7',
-    ctaText: 'Plan Event',
-    ctaBg: '#f59e0b',
-    overlayBg: 'rgba(28, 12, 3, 0.75)',
-  },
-  {
-    id: 's3',
-    category: 'Birthday',
-    title: 'Book Your Birthday',
-    subtitle: 'VIP theme decor, cakes, DJ line arrays & private banquet party halls in Patna.',
-    image: require('../../../assets/birthday_1.jpg'),
-    badge: 'VIP BASH',
-    badgeColor: '#8b5cf6',
-    badgeTextColor: '#ffffff',
-    titleColor: '#ffffff',
-    subtitleColor: '#ede9fe',
-    ctaText: 'Book Birthday',
-    ctaBg: '#8b5cf6',
-    overlayBg: 'rgba(20, 5, 38, 0.75)',
-  },
-  {
-    id: 's4',
-    category: 'Dandiya',
-    title: "HappyLokam: India's 1st Celebration Platform",
-    subtitle: '100% verified gate passes, instant QR entry & memorable festive experiences.',
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1200&auto=format&fit=crop',
-    badge: "INDIA'S #1 CELEBRATION OS",
-    badgeColor: '#e11d48',
-    badgeTextColor: '#ffffff',
-    titleColor: '#ffffff',
-    subtitleColor: '#ffe4e6',
-    ctaText: 'Get Passes',
-    ctaBg: '#e11d48',
-    overlayBg: 'rgba(38, 4, 16, 0.76)',
-  }
-];
+  const [slides, setSlides] = useState<DbHeroSlide[]>([]);
+  const [venues, setVenues] = useState<DbVenue[]>([]);
+  const [packages, setPackages] = useState<DbPackage[]>([]);
+  const [adminSections, setAdminSections] = useState<AdminCustomSection[]>([]);
+  const [userProfile, setUserProfile] = useState<{ name: string; email: string; balance: number } | null>(null);
 
-export default function HomeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [events, setEvents] = useState<RoomEvent[]>([]);
-  const [venues, setVenues] = useState<RoomVenue[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState('All India');
+  const [likedIds, setLikedIds] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [isOfflineCached, setIsOfflineCached] = useState(false);
-  const [user, setUser] = useState<RoomUser | null>(null);
 
-  // Hero Auto-Slider State
-  const sliderRef = useRef<ScrollView>(null);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  // Modals
+  const [checkoutItem, setCheckoutItem] = useState<any>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isWalletOpen, setWalletOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [detectingGps, setDetectingGps] = useState(false);
 
-  useEffect(() => {
-    fadeAnim.setValue(0.35);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [activeSlide]);
-
-  useEffect(() => {
-    let current = activeSlide;
-    const interval = setInterval(() => {
-      current = (current + 1) % HERO_SLIDES.length;
-      sliderRef.current?.scrollTo({ x: current * width, animated: true });
-      setActiveSlide(current);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [activeSlide]);
-
-  // Custom Celebration Dialog State
-  const [dialogConfig, setDialogConfig] = useState<{
-    visible: boolean;
-    type: DialogType;
-    badgeText?: string;
-    title: string;
-    message: string;
-    confirmText?: string;
-    cancelText?: string;
-    onConfirm: () => void;
-    onCancel?: () => void;
-  }>({
-    visible: false,
-    type: 'exit',
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
-
-  // Booking Auth Modal State
-  const [authModalVisible, setAuthModalVisible] = useState(false);
-  const [selectedTargetEvent, setSelectedTargetEvent] = useState<RoomEvent | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authName, setAuthName] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-
-  // Ticket Tiers State
-  type TicketTierKey = 'single' | 'couple' | 'family4' | 'family6' | 'group5' | 'child';
-  const TICKET_TIERS_CONFIG: Array<{ key: TicketTierKey; name: string; tag: string; icon: string }> = [
-    { key: 'single', name: 'Single Pass', tag: '1 Adult', icon: '👤' },
-    { key: 'couple', name: 'Couple Pass', tag: 'Pair (2)', icon: '👫' },
-    { key: 'family4', name: 'Family (4)', tag: '4 People', icon: '👨‍👩‍👧‍👦' },
-    { key: 'family6', name: 'Family (6)', tag: '6 People', icon: '👨‍👩‍👧‍👦+2' },
-    { key: 'group5', name: 'Group (5)', tag: '5 Adults', icon: '👥' },
-    { key: 'child', name: 'Child Pass', tag: 'Kids (5-12)', icon: '🧒' },
+  const CITIES_LIST = [
+    'All India',
+    'Patna',
+    'Hyderabad',
+    'Mumbai',
+    'Delhi NCR',
+    'Bengaluru',
+    'Pune',
+    'Jaipur',
+    'Kolkata',
+    'Chennai',
+    'Ahmedabad',
+    'Lucknow',
+    'Chandigarh',
+    'Varanasi',
   ];
 
-  const getEventTierPrice = (event: RoomEvent, tier: TicketTierKey): number => {
-    const baseNumPrice = parseInt(String(event.price).replace(/[^0-9]/g, '')) || 0;
-    if (event.ticketTiers && event.ticketTiers[tier] !== undefined) {
-      return Number(event.ticketTiers[tier]) || baseNumPrice;
-    }
-    switch (tier) {
-      case 'couple': return Math.round(baseNumPrice * 1.8);
-      case 'family4': return Math.round(baseNumPrice * 3.4);
-      case 'family6': return Math.round(baseNumPrice * 4.8);
-      case 'group5': return Math.round(baseNumPrice * 4.2);
-      case 'child': return Math.round(baseNumPrice * 0.5);
-      default: return baseNumPrice;
+  const handleDetectGps = async () => {
+    try {
+      setDetectingGps(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Location Permission', 'Please enable location permissions or choose your city manually.');
+        setDetectingGps(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      const cityName = address?.city || address?.district || address?.subregion || 'Patna';
+      setSelectedCity(cityName);
+      await RoomDatabase.saveLocation(cityName);
+      setIsLocationModalOpen(false);
+    } catch (e) {
+      Alert.alert('GPS Notice', 'Could not detect location automatically. Please select your city manually.');
+    } finally {
+      setDetectingGps(false);
     }
   };
 
-  // Payment Modal State
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [pendingBookingEvent, setPendingBookingEvent] = useState<RoomEvent | null>(null);
-  const [checkoutTicketCount, setCheckoutTicketCount] = useState<number>(1);
-  const [selectedTierKey, setSelectedTierKey] = useState<TicketTierKey>('single');
-  const [contactPhoneNumber, setContactPhoneNumber] = useState('');
+  const handleSelectCity = async (cityName: string) => {
+    setSelectedCity(cityName);
+    await RoomDatabase.saveLocation(cityName);
+    setIsLocationModalOpen(false);
+  };
 
-  // Celebration Dates (11 Oct to 18 Oct 2026)
-  const CELEBRATION_DATES = [
-    { id: '11', day: 'SUN', dayNum: '11', full: '11 Oct 2026' },
-    { id: '12', day: 'MON', dayNum: '12', full: '12 Oct 2026' },
-    { id: '13', day: 'TUE', dayNum: '13', full: '13 Oct 2026' },
-    { id: '14', day: 'WED', dayNum: '14', full: '14 Oct 2026' },
-    { id: '15', day: 'THU', dayNum: '15', full: '15 Oct 2026' },
-    { id: '16', day: 'FRI', dayNum: '16', full: '16 Oct 2026' },
-    { id: '17', day: 'SAT', dayNum: '17', full: '17 Oct 2026' },
-    { id: '18', day: 'SUN', dayNum: '18', full: '18 Oct 2026' },
-  ];
-  const [selectedCelebrationDate, setSelectedCelebrationDate] = useState('all');
-
-  // Refresh user session on screen focus
-  useFocusEffect(
-    useCallback(() => {
-      const fetchUser = async () => {
-        const session = await RoomDatabase.getUserSession();
-        setUser(session);
-        if (session?.phone) {
-          setContactPhoneNumber(session.phone);
-        }
-      };
-      fetchUser();
-
-      const onBackPress = () => {
-        setDialogConfig({
-          visible: true,
-          type: 'exit',
-          title: 'Exit happylokam?',
-          message: 'Close the celebration app?',
-          confirmText: 'Exit App',
-          cancelText: 'Stay',
-          onConfirm: () => {
-            setDialogConfig((prev) => ({ ...prev, visible: false }));
-            BackHandler.exitApp();
-          },
-        });
-        return true;
-      };
-
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => subscription.remove();
-    }, [])
-  );
+  // Hero animation
+  const slideOpacity = useRef(new Animated.Value(1)).current;
 
   const loadData = async () => {
     try {
-      // Step A: Load from Room Database
-      const cachedEvents = await RoomDatabase.getEvents();
-      const cachedVenues = await RoomDatabase.getVenues();
-      if (cachedEvents.length > 0) {
-        setEvents(cachedEvents);
-        setIsOfflineCached(true);
-        setLoading(false);
-      }
-      if (cachedVenues.length > 0) {
-        setVenues(cachedVenues);
-      }
-
-      // Step B: Fetch live genuine server data
-      const [eventsRes, listingsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/events`).catch(() => null),
-        fetch(`${API_BASE_URL}/listings`).catch(() => null),
+      const [heroData, venueData, pkgData, session, customSecs, savedLoc] = await Promise.all([
+        getHeroSlides(),
+        getVenues(),
+        getPackages(),
+        RoomDatabase.getUserSession(),
+        getAdminCustomSections(),
+        RoomDatabase.getLocation(),
       ]);
-
-      if (eventsRes && eventsRes.ok) {
-        const eventsJson = await eventsRes.json();
-        if (eventsJson.success && Array.isArray(eventsJson.data)) {
-          const formattedEvents: RoomEvent[] = eventsJson.data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            category: item.category,
-            location: item.location,
-            date: new Date(item.date).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            }),
-            price: item.price ? `₹${item.price}` : 'Free',
-            ticketTiers: item.ticketTiers || {
-              single: item.price || 0,
-              couple: Math.round((item.price || 0) * 1.8),
-              family4: Math.round((item.price || 0) * 3.4),
-              family6: Math.round((item.price || 0) * 4.8),
-              group5: Math.round((item.price || 0) * 4.2),
-              child: Math.round((item.price || 0) * 0.5),
-            },
-            availableTickets: item.ticketsLeft ?? item.totalTickets,
-            image: item.imageUrl || 'https://images.unsplash.com/photo-1604928141064-207cea6f571f?q=80&w=800',
-            rating: 4.9,
-            featured: true,
-            syncTimestamp: Date.now(),
-          }));
-
-          setEvents(formattedEvents);
-          await RoomDatabase.saveEvents(formattedEvents);
-          setIsOfflineCached(false);
-        }
+      setSlides(heroData);
+      setVenues(venueData);
+      setPackages(pkgData);
+      setAdminSections(customSecs);
+      if (savedLoc) {
+        setSelectedCity(savedLoc);
       }
-
-      if (listingsRes && listingsRes.ok) {
-        const listingsJson = await listingsRes.json();
-        if (listingsJson.success && Array.isArray(listingsJson.data)) {
-          const formattedVenues: RoomVenue[] = listingsJson.data.map((item: any) => ({
-            id: item.id,
-            title: item.name,
-            category: 'Venue',
-            location: `${item.city || 'Patna'}, Bihar`,
-            price: item.price ? `₹${item.price}/event` : 'Price on request',
-            rating: 4.9,
-            image: item.images?.[0] || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=800',
-            syncTimestamp: Date.now(),
-          }));
-
-          setVenues(formattedVenues);
-          await RoomDatabase.saveVenues(formattedVenues);
-        }
+      if (session && session.name) {
+        setUserProfile({
+          name: session.name,
+          email: session.email || '',
+          balance: session.walletBalance || 0,
+        });
+      } else {
+        setUserProfile(null);
       }
     } catch (e) {
-      console.warn('Error loading celebration data:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.warn('Home data load error:', e);
     }
   };
 
   useEffect(() => {
     loadData();
+
+    // Hardware back press listener on Home screen with confirmation
+    const backAction = () => {
+      Alert.alert(
+        'Exit HappyLokam? 🏰',
+        'Are you sure you want to exit the application?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes, Exit', style: 'destructive', onPress: () => BackHandler.exitApp() },
+        ]
+      );
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
   }, []);
 
-  const onRefresh = () => {
+  // Slide rotation timer
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const timer = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(slideOpacity, { toValue: 0.35, duration: 280, useNativeDriver: true }),
+        Animated.timing(slideOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
+      ]).start();
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadData();
+    await loadData();
+    setRefreshing(false);
   };
 
-  // Auth Guard on Booking
-  const handleBookingPress = async (event: RoomEvent) => {
-    const isAuthed = await RoomDatabase.isAuthenticated();
-    setCheckoutTicketCount(1);
-    setSelectedTierKey('single');
-    const session = await RoomDatabase.getUserSession();
-    if (session?.phone) {
-      setContactPhoneNumber(session.phone);
-    }
-    if (!isAuthed) {
-      setSelectedTargetEvent(event);
-      setAuthModalVisible(true);
-    } else {
-      setPendingBookingEvent(event);
-      setPaymentModalVisible(true);
-    }
+  const toggleLike = (id: string) => {
+    setLikedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   };
 
-  const handlePaymentConfirm = async () => {
-    if (!pendingBookingEvent) return;
-    const event = pendingBookingEvent;
-    setPaymentProcessing(true);
-    
-    setTimeout(async () => {
-      const tierUnitPrice = getEventTierPrice(event, selectedTierKey);
-      const subtotal = tierUnitPrice * checkoutTicketCount;
-      const transactionFee = Number((subtotal * 0.02).toFixed(2));
-      const feeGst = Number((transactionFee * 0.18).toFixed(2));
-      const eventGst = subtotal > 500 ? Number((subtotal * 0.18).toFixed(2)) : 0;
-      const totalAmount = Math.max(1, Math.round(subtotal + transactionFee + feeGst + eventGst));
-      const activeTierObj = TICKET_TIERS_CONFIG.find(t => t.key === selectedTierKey) || TICKET_TIERS_CONFIG[0];
-      const tierName = activeTierObj.name;
-
-      // Use the account's real delivery number; never substitute a fake number.
-      let phoneToUse = contactPhoneNumber.replace(/\D/g, '');
-      const session = await RoomDatabase.getUserSession();
-      if (!phoneToUse && session?.phone) {
-        phoneToUse = String(session.phone).replace(/\D/g, '');
-      }
-      if (!session?.token) {
-        setPaymentProcessing(false);
-        setDialogConfig({ visible: true, type: 'danger', title: 'Sign in required', message: 'Please sign in before making a payment.', confirmText: 'OK', onConfirm: () => setDialogConfig(prev => ({ ...prev, visible: false })) });
-        return;
-      }
-      if (!phoneToUse || phoneToUse.length < 10) {
-        setPaymentProcessing(false);
-        setDialogConfig({ visible: true, type: 'danger', title: 'Mobile number required', message: 'Add a valid mobile number to your profile before payment.', confirmText: 'OK', onConfirm: () => setDialogConfig(prev => ({ ...prev, visible: false })) });
-        return;
-      }
-
-      try {
-          const orderRes = await fetch(`${API_BASE_URL}/payments/create-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
-            body: JSON.stringify({ amount: totalAmount, currency: 'INR' }),
-          });
-
-          const orderData = await orderRes.json();
-          const orderId = orderRes.ok && orderData.success && orderData.data?.id ? orderData.data.id : undefined;
-          if (!orderId) throw new Error(orderData.message || 'Could not create a secure payment order.');
-
-          const options: any = {
-            description: `${checkoutTicketCount}x ${tierName} - ${event.title}`,
-            image: 'https://happylokam.com/logo.png',
-            currency: 'INR',
-            key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6',
-            amount: totalAmount * 100,
-            name: 'HappyLokam Celebrations',
-            order_id: orderId,
-            prefill: {
-              email: session.email || 'user@happylokam.com',
-              contact: phoneToUse,
-              name: session.name || 'Celebration Lover'
-            },
-            readonly: {
-              contact: true,
-              email: true,
-              name: true,
-            },
-            theme: { color: '#e11d48' }
-          };
-
-          const paymentResponse = await RazorpayCheckout.open(options);
-          
-          if (!paymentResponse.razorpay_payment_id) throw new Error('Payment cancelled');
-
-          const bookingRes = await fetch(`${API_BASE_URL}/events/book`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
-            body: JSON.stringify({
-              userId: session.id,
-              eventId: event.id,
-              date: new Date(event.date).toISOString(),
-              totalAmount: totalAmount,
-              tickets: checkoutTicketCount,
-              ticketsCount: checkoutTicketCount,
-              tierType: selectedTierKey.toUpperCase(),
-              tierName: tierName,
-              paymentId: paymentResponse.razorpay_payment_id,
-              orderId: paymentResponse.razorpay_order_id,
-              signature: paymentResponse.razorpay_signature
-            }),
-          });
-          
-          const data = await bookingRes.json();
-          const bookingId = bookingRes.ok && data.success && data.data?.id ? data.data.id : undefined;
-          if (!bookingId) throw new Error(data.message || 'Payment was received but the pass could not be confirmed.');
-
-          await RoomDatabase.saveBooking({
-            id: bookingId,
-            title: event.title,
-            category: event.category,
-            date: event.date,
-            amount: totalAmount,
-            status: 'CONFIRMED',
-            tierType: selectedTierKey.toUpperCase(),
-            tierName,
-            ticketsCount: checkoutTicketCount,
-            qrCode: data.data?.qrCode || `HL-TKT:${bookingId}`,
-            createdAt: data.data?.createdAt || new Date().toISOString(),
-            serverVerified: true,
-          });
-
-          setPaymentProcessing(false);
-          setPaymentModalVisible(false);
-          setPendingBookingEvent(null);
-          setDialogConfig({
-            visible: true,
-            type: 'success',
-            title: 'Pass Confirmed! 🎉',
-            message: `Your verified celebration pass #${bookingId} is secured in your tickets.`,
-            confirmText: 'View Pass',
-            cancelText: 'Keep Browsing',
-            onConfirm: () => {
-              setDialogConfig((prev) => ({ ...prev, visible: false }));
-              router.push('/(tabs)/bookings');
-            },
-          });
-        } catch (e: any) {
-          console.warn('Payment or backend sync failed', e);
-          setPaymentProcessing(false);
-          setPaymentModalVisible(false);
-          
-          const errStr = typeof e === 'string' ? e : (e?.description || e?.message || '');
-          const isCancelled = 
-            e?.code === 0 || 
-            e?.code === 2 || 
-            errStr.includes('cancelled') || 
-            errStr.includes('payment_error');
-
-          if (isCancelled) {
-            setDialogConfig({
-              visible: true,
-              type: 'cancelled',
-              badgeText: 'PAYMENT CANCELLED',
-              title: 'Payment Cancelled',
-              message: 'No amount was deducted. You can book anytime.',
-              confirmText: 'Got It',
-              onConfirm: () => setDialogConfig(prev => ({ ...prev, visible: false })),
-            });
-          } else {
-            setDialogConfig({
-              visible: true,
-              type: 'error',
-              badgeText: 'PAYMENT NOTICE',
-              title: 'Payment Incomplete',
-              message: 'Transaction could not be completed. Please try again.',
-              confirmText: 'OK',
-              onConfirm: () => setDialogConfig(prev => ({ ...prev, visible: false }))
-            });
-          }
-        }
-    }, 1800);
+  const handleOpenDetail = (item: any) => {
+    router.push({
+      pathname: '/item-detail',
+      params: {
+        id: item.id,
+        title: item.title || item.name || '',
+        subtitle: item.subtitle || '',
+        location: item.location || item.city || '',
+        price: String(item.price || ''),
+        image: item.image || item.imageUrl || '',
+        itemType: item.itemType || (item.type?.toLowerCase().includes('ticket') ? 'TICKET' : 'BOOKING'),
+        cornerTag: item.cornerTag || item.tag || '',
+        rating: String(item.rating || 4.9),
+        description: item.description || '',
+      },
+    });
   };
 
-  const handleAuthSubmit = async () => {
-    if (!authEmail || !authPassword) {
-      setDialogConfig({
-        visible: true,
-        type: 'danger',
-        title: 'Missing Details',
-        message: 'Please enter your email and password.',
-        confirmText: 'OK',
-        onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
-      });
+  const handleBookNow = async (item: any) => {
+    const authed = await RoomDatabase.isAuthenticated();
+    if (!authed) {
+      Alert.alert(
+        'Login Required 🔐',
+        'Please log in or create an account to book your celebration pass and receive your digital ticket.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Log In Now',
+            onPress: () => router.push('/login'),
+          },
+        ]
+      );
       return;
     }
-
-    setAuthLoading(true);
-    try {
-      const endpoint =
-        authMode === 'login'
-          ? `${API_BASE_URL}/auth/login`
-          : `${API_BASE_URL}/auth/register`;
-
-      const bodyData =
-        authMode === 'login'
-          ? { email: authEmail, password: authPassword }
-          : { name: authName || 'Celebration Lover', email: authEmail, password: authPassword };
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.token) {
-        const newSession: RoomUser = {
-          id: data.user?.id || 'u_' + Date.now(),
-          name: data.user?.name || authName || 'Guest User',
-          email: authEmail,
-          phone: data.user?.phone || undefined,
-          role: data.user?.role || 'USER',
-          token: data.token,
-          lastLogin: Date.now(),
-        };
-        await RoomDatabase.saveUserSession(newSession);
-        setUser(newSession);
-        if (data.user?.phone) {
-          setContactPhoneNumber(data.user.phone);
-        }
-        setAuthModalVisible(false);
-
-        if (selectedTargetEvent) {
-          setPendingBookingEvent(selectedTargetEvent);
-          setSelectedTargetEvent(null);
-          setPaymentModalVisible(true);
-        }
-      } else {
-        setDialogConfig({
-          visible: true,
-          type: 'danger',
-          title: 'Sign In Failed',
-          message: data.message || 'Incorrect credentials. Please try again.',
-          confirmText: 'Try Again',
-          onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
-        });
-      }
-    } catch {
-      setDialogConfig({
-        visible: true,
-        type: 'danger',
-        title: 'Connection Issue',
-        message: 'Check your internet connection.',
-        confirmText: 'OK',
-        onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
-      });
-    } finally {
-      setAuthLoading(false);
-    }
+    setCheckoutItem(item);
   };
 
-  const filteredEvents = events.filter((event) => {
-    const matchesCategory = selectedCategory === 'all' ||
-      event.category?.toLowerCase() === selectedCategory.toLowerCase() ||
-      event.category?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-      selectedCategory.toLowerCase().includes(event.category?.toLowerCase() || '') ||
-      event.title?.toLowerCase().includes(selectedCategory.toLowerCase());
-    const matchesDate = selectedCelebrationDate === 'all' || event.date === selectedCelebrationDate;
-    return matchesCategory && matchesDate;
-  });
+  const activeHero = slides[currentSlide] || {
+    title: 'Summer Wedding Fiesta',
+    subtitle: 'Flat 20% off on premium venues',
+    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+    badge: 'Featured',
+  };
+
+  // Convert raw descriptions to clean, punchy taglines for the vignette
+  const getCleanTagline = (hero: DbHeroSlide) => {
+    if (hero.subtitle && hero.subtitle.length < 50) return hero.subtitle;
+    if (hero.badge?.toLowerCase().includes('birthday')) return 'All-inclusive birthday bashes from ₹25k';
+    if (hero.badge?.toLowerCase().includes('sacred') || hero.badge?.toLowerCase().includes('wedding'))
+      return 'Flat 20% off on grand royal mandaps';
+    return hero.subtitle || 'Experience grandeur like never before';
+  };
+
+  // Safe area top for status bar clearance (ensures greeting header is never cut off)
+  const headerTopPadding = Math.max(insets.top + 10, 48);
+  const heroBannerHeight = 410 + Math.max(insets.top, 24);
+
+  // Safe area bottom for 3-button < o [] navigation and bottom dock
+  const contentBottomPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#090b10" />
-
-      {/* Ambient background glows */}
-      <View style={styles.glowAuraLeft} />
-      <View style={styles.glowAuraRight} />
-
-      {/* Modern Top Header with Sign In & Profile Indicator */}
-      <View style={styles.header}>
-        <View>
-          <View style={styles.brandRow}>
-            <Text style={styles.brandLogo}>happylokam</Text>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>CELEBRATION OS</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={styles.locationContainer}
-            onPress={() => router.push('/(tabs)/explore')}
-            activeOpacity={0.8}
-          >
-            <MapPin size={13} color="#f43f5e" />
-            <Text style={styles.locationText}>Patna, Bihar</Text>
-            <ChevronRight size={13} color="#94a3b8" />
-            {isOfflineCached && (
-              <View style={styles.offlinePill}>
-                <Text style={styles.offlineText}>Cached</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {!user ? (
-          <TouchableOpacity
-            style={styles.headerSignInBtn}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.88}
-          >
-            <LogIn size={15} color="#ffffff" />
-            <Text style={styles.headerSignInText}>Sign In / Register</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.profileBtn}
-            onPress={() => router.push('/(tabs)/profile')}
-            activeOpacity={0.85}
-          >
-            <View style={styles.userBadge}>
-              <Text style={styles.userBadgeText}>{user.name.split(' ')[0]}</Text>
-            </View>
-            <Image
-              source={{
-                uri: user.email
-                  ? `https://api.dicebear.com/7.x/notionists/png?seed=${encodeURIComponent(user.email)}`
-                  : 'https://api.dicebear.com/7.x/notionists/png?seed=happylokam',
-              }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e11d48" />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e11d48" />}
       >
-        {/* Premium Celebration Slider (Tapping Navigates to Explore) */}
-        <View style={{ marginBottom: 16 }}>
-          <ScrollView 
-            ref={sliderRef}
-            horizontal 
-            pagingEnabled 
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={width}
-            decelerationRate="fast"
-            onMomentumScrollEnd={(e) => {
-               const slide = Math.round(e.nativeEvent.contentOffset.x / width);
-               setActiveSlide(slide);
-            }}
-          >
-            {HERO_SLIDES.map((slide) => (
-              <View key={slide.id} style={{ width, paddingHorizontal: 16 }}>
-                <TouchableOpacity
-                  activeOpacity={0.92}
-                  style={styles.premiumBanner}
-                  onPress={() => router.push('/(tabs)/explore')}
-                >
-                  <Image source={typeof slide.image === 'string' ? { uri: slide.image } : slide.image} style={styles.premiumImage} />
-                  <View style={[styles.premiumGradient, { backgroundColor: slide.overlayBg }]}>
-                    <View style={[styles.premiumTopBadge, { backgroundColor: slide.badgeColor }]}>
-                      <Flame size={13} color={slide.badgeTextColor} />
-                      <Text style={[styles.premiumTopBadgeText, { color: slide.badgeTextColor }]}>{slide.badge}</Text>
-                    </View>
+        {/* ========================================== */}
+        {/* HERO SLIDER WITH INTEGRATED HEADER         */}
+        {/* ========================================== */}
+        <View style={[styles.heroBanner, { height: heroBannerHeight }]}>
+          {/* Background Image */}
+          <Animated.Image
+            source={{ uri: activeHero.image }}
+            style={[styles.heroImage, { opacity: slideOpacity }]}
+          />
 
-                    <Animated.View style={[styles.heroTextContainer, { opacity: fadeAnim }]}>
-                      <Text style={[styles.premiumTitle, { color: slide.titleColor }]} numberOfLines={2}>
-                        {slide.title}
-                      </Text>
-                      <Text style={[styles.premiumSubtitle, { color: slide.subtitleColor }]} numberOfLines={2}>
-                        {slide.subtitle}
-                      </Text>
-                    </Animated.View>
-
-                    <View style={styles.premiumActionRow}>
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => router.push('/(tabs)/explore')}
-                        style={[styles.premiumCtaBtn, { backgroundColor: slide.ctaBg }]}
-                      >
-                        <Text style={styles.premiumCtaText}>{slide.ctaText}</Text>
-                        <ChevronRight size={16} color="#ffffff" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.paginationRow}>
-             {HERO_SLIDES.map((_, i) => (
-                <View key={i} style={[styles.dot, i === activeSlide ? styles.activeDot : null]} />
-             ))}
+          {/* Accurate Cinematic Vignette */}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Svg height="100%" width="100%">
+              <Defs>
+                <RadialGradient id="cinematicVignette" cx="50%" cy="40%" rx="65%" ry="65%">
+                  <Stop offset="0%" stopColor="#000000" stopOpacity="0" />
+                  <Stop offset="60%" stopColor="#000000" stopOpacity="0.22" />
+                  <Stop offset="100%" stopColor="#000000" stopOpacity="0.78" />
+                </RadialGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#cinematicVignette)" />
+            </Svg>
           </View>
-        </View>
 
-        {/* Celebration Categories Filter */}
-        <View style={styles.categoriesSection}>
-          <Text style={styles.sectionHeading}>Celebrations</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesRow}>
-            {CELEBRATION_CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-              const IconComp = cat.icon;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    isSelected && styles.categoryChipSelected,
-                  ]}
-                  onPress={() => setSelectedCategory(cat.id)}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[
-                      styles.categoryIconCircle,
-                      { backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : 'rgba(244, 63, 94, 0.12)' },
-                    ]}
-                  >
-                    <IconComp size={15} color={isSelected ? '#ffffff' : '#f43f5e'} />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      isSelected && styles.categoryChipTextSelected,
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* Celebration Dates Filter Strip (11 - 18 Oct 2026) */}
-        <View style={styles.dateFilterSection}>
-          <View style={styles.dateFilterHeader}>
-            <Calendar size={14} color="#f43f5e" />
-            <Text style={styles.dateFilterHeading}>Dandiya Nights (11 – 18 Oct)</Text>
+          {/* Smooth Soft Gradient Transition at Bottom */}
+          <View style={styles.heroBottomGradient} pointerEvents="none">
+            <Svg height="100%" width="100%">
+              <Defs>
+                <SvgGradient id="heroSoftFade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor="#0f172a" stopOpacity="0" />
+                  <Stop offset="45%" stopColor="#0f172a" stopOpacity="0.2" />
+                  <Stop offset="75%" stopColor="#0f172a" stopOpacity="0.5" />
+                  <Stop offset="100%" stopColor="#0f172a" stopOpacity="0.82" />
+                </SvgGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroSoftFade)" />
+            </Svg>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateFilterRow}>
+
+          {/* Integrated Header at the top of Hero (Clear of Status Bar) */}
+          <View style={[styles.integratedHeader, { top: headerTopPadding }]}>
+            {/* Left: Menu button */}
             <TouchableOpacity
-              style={[
-                styles.dateFilterChip,
-                selectedCelebrationDate === 'all' && styles.dateFilterChipActive,
-              ]}
-              onPress={() => setSelectedCelebrationDate('all')}
+              style={styles.menuBtn}
+              onPress={() => setSidebarOpen(true)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.dateFilterChipText, selectedCelebrationDate === 'all' && styles.dateFilterChipTextActive]}>All dates</Text>
+              <Menu size={22} color="#ffffff" strokeWidth={2.4} />
             </TouchableOpacity>
-            {CELEBRATION_DATES.map((d) => {
-              const isSelected = selectedCelebrationDate === d.full;
-              return (
+
+            {/* Center: Location Pill */}
+            <TouchableOpacity
+              style={styles.locationHeaderBtn}
+              onPress={() => setIsLocationModalOpen(true)}
+              activeOpacity={0.85}
+            >
+              <MapPin size={12} color="#f43f5e" />
+              <Text style={styles.locationHeaderBtnText} numberOfLines={1}>
+                {selectedCity}
+              </Text>
+              <ChevronDown size={12} color="#ffffff" />
+            </TouchableOpacity>
+
+            {/* Right: User Name if logged in, or Sign In button if guest */}
+            <View style={styles.headerRightActions}>
+              {userProfile && userProfile.name ? (
                 <TouchableOpacity
-                  key={d.id}
-                  style={[
-                    styles.dateFilterChip,
-                    isSelected && styles.dateFilterChipActive,
-                  ]}
-                  onPress={() => setSelectedCelebrationDate(d.full)}
+                  style={styles.userHeaderBtn}
+                  onPress={() => router.push('/(tabs)/profile')}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.dateFilterChipText, isSelected && styles.dateFilterChipTextActive]}>{d.dayNum} Oct</Text>
+                  <View style={styles.userHeaderAvatar}>
+                    <UserIcon size={13} color="#ffffff" />
+                  </View>
+                  <Text style={styles.userHeaderBtnText} numberOfLines={1}>
+                    {userProfile.name.split(' ')[0]}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.signInHeaderBtn}
+                  onPress={() => router.push('/login')}
+                  activeOpacity={0.85}
+                >
+                  <LogIn size={13} color="#ffffff" />
+                  <Text style={styles.signInHeaderBtnText}>Sign In</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.bellBtn}
+                onPress={() => router.push('/notifications')}
+                activeOpacity={0.8}
+              >
+                <Bell size={18} color="#ffffff" />
+                <View style={styles.bellAlertDot} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Hero Bottom Vignette Content with Punchy Tagline */}
+          <View style={styles.heroContentBox}>
+            <View style={styles.featuredBadge}>
+              <Flame size={12} color="#ffffff" />
+              <Text style={styles.featuredBadgeText}>{activeHero.badge || 'FEATURED OFFER'}</Text>
+            </View>
+
+            <Text style={styles.heroTitle} numberOfLines={2}>
+              {activeHero.title}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.heroSubRow}
+              onPress={() => router.push('/(tabs)/explore')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.heroSubtitle}>{getCleanTagline(activeHero)}</Text>
+              <View style={styles.heroArrowCircle}>
+                <ArrowRight size={13} color="#ffffff" strokeWidth={2.5} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ========================================== */}
+        {/* OVERLAPPING SEARCH BAR                    */}
+        {/* ========================================== */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBox}>
+            <View style={styles.searchIconBox}>
+              <Search size={20} color="#e11d48" />
+            </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search wedding, birthday, pandit, catering..."
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={() =>
+                router.push({
+                  pathname: '/(tabs)/explore',
+                  params: searchQuery.trim() ? { search: searchQuery.trim() } : {},
+                })
+              }
+            />
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/explore',
+                  params: searchQuery.trim() ? { search: searchQuery.trim() } : {},
+                })
+              }
+              activeOpacity={0.75}
+            >
+              <SlidersHorizontal size={18} color="#475569" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Smart Advanced Search Keyword / Category Chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityPillScroll}>
+            {[
+              { label: '✨ All Categories', query: '', category: 'All' },
+              { label: '👑 Wedding Mandaps', query: 'wedding', category: 'Weddings' },
+              { label: '🎂 Birthday Themes', query: 'birthday', category: 'Birthdays' },
+              { label: '🔥 Vedic Pandit', query: 'pandit', category: 'Pandit' },
+              { label: '🍽️ Catering Feasts', query: 'catering', category: 'Catering' },
+              { label: '🎨 Haldi & Decor', query: 'decor', category: 'Decor' },
+              { label: '🏰 Luxury Venues', query: 'venue', category: 'Venues' },
+              { label: '📸 Photo Shoots', query: 'shoot', category: 'Photography' },
+            ].map((chip) => {
+              const active = searchQuery.toLowerCase() === chip.query.toLowerCase() || (chip.query === '' && !searchQuery);
+              return (
+                <TouchableOpacity
+                  key={chip.label}
+                  style={[styles.cityChip, active && styles.cityChipActive]}
+                  onPress={() => {
+                    setSearchQuery(chip.query);
+                    router.push({
+                      pathname: '/(tabs)/explore',
+                      params: chip.category !== 'All' ? { category: chip.category, search: chip.query } : {},
+                    });
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Sparkles size={11} color={active ? '#ffffff' : '#e11d48'} />
+                  <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>{chip.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
         </View>
 
-        {/* Live Admin Events Showcase */}
+        {/* ========================================== */}
+        {/* QUICK CATEGORIES ROW                      */}
+        {/* ========================================== */}
+        <View style={styles.quickCatRow}>
+          {QUICK_CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={styles.quickCatItem}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/explore',
+                  params: { category: cat.name },
+                })
+              }
+              activeOpacity={0.8}
+            >
+              <View style={[styles.quickCatIconBox, { backgroundColor: cat.bg, borderColor: cat.border }]}>
+                <cat.icon size={24} color={cat.color} />
+              </View>
+              <Text style={styles.quickCatName}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+
+        {/* ========================================== */}
+        {/* HORIZONTAL SECTION: PREMIUM VENUES        */}
+        {/* ========================================== */}
         <View style={styles.sectionHeaderRow}>
           <View>
-            <Text style={styles.sectionHeading}>Live Events & Passes</Text>
-            <Text style={styles.sectionSub}>Real-time verified inventory</Text>
+            <Text style={styles.sectionTitle}>Premium Venues</Text>
+            <Text style={styles.sectionSubtitle}>Handpicked luxury locations</Text>
           </View>
           <TouchableOpacity
-            style={styles.seeAllBtn}
+            style={styles.viewAllRow}
             onPress={() => router.push('/(tabs)/explore')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.seeAllText}>Explore all</Text>
-            <ChevronRight size={15} color="#e11d48" />
+            <Text style={styles.viewAllText}>View All</Text>
+            <ChevronRight size={14} color="#e11d48" />
           </TouchableOpacity>
         </View>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#e11d48" />
-            <Text style={styles.loadingText}>Syncing Room Database...</Text>
-          </View>
-        ) : filteredEvents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Sparkles size={32} color="#f43f5e" />
-            <Text style={styles.emptyStateTitle}>No events in this category</Text>
-            <Text style={styles.emptyStateSub}>Switch category or pull down to refresh</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredEvents}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.eventsScrollList}
-            snapToInterval={width * 0.78 + 16}
-            decelerationRate="fast"
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.celebrationCard}
-                activeOpacity={0.92}
-                onPress={() => handleBookingPress(item)}
-              >
-                <Image source={{ uri: item.image }} style={styles.cardImage} />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalList}
+        >
+          {venues.map((venue) => {
+            const isLiked = likedIds.includes(venue.id);
+            return (
+              <View key={venue.id} style={styles.horizontalCard}>
+                {/* Image & Wishlist Button */}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => handleOpenDetail(venue)}
+                  style={styles.cardImageContainer}
+                >
+                  <Image source={{ uri: venue.image }} style={styles.cardImage} />
+                  <View style={styles.cardImageOverlay} />
 
-                <View style={styles.cardTagPill}>
-                  <Text style={styles.cardTagText}>{item.category || 'Celebration'}</Text>
-                </View>
+                  <TouchableOpacity
+                    style={styles.likeBtn}
+                    onPress={() => toggleLike(venue.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Heart
+                      size={15}
+                      color={isLiked ? '#e11d48' : '#475569'}
+                      fill={isLiked ? '#e11d48' : 'transparent'}
+                    />
+                  </TouchableOpacity>
 
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-
-                  <View style={styles.metaRow}>
-                    <Calendar size={13} color="#94a3b8" />
-                    <Text style={styles.metaText}>{item.date}</Text>
+                  <View style={styles.ratingBadge}>
+                    <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                    <Text style={styles.ratingText}>{venue.rating}</Text>
                   </View>
+                </TouchableOpacity>
 
-                  <View style={styles.metaRow}>
-                    <MapPin size={13} color="#94a3b8" />
-                    <Text style={styles.metaText} numberOfLines={1}>
-                      {item.location}
+                {/* Card Info */}
+                <View style={styles.cardContent}>
+                  <TouchableOpacity onPress={() => handleOpenDetail(venue)} activeOpacity={0.85}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>
+                      {venue.title}
+                    </Text>
+                  </TouchableOpacity>
+                  <View style={styles.locationRow}>
+                    <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {venue.location}
                     </Text>
                   </View>
 
                   <View style={styles.cardFooter}>
-                    <View>
-                      <Text style={styles.priceLabel}>Starting from</Text>
-                      <Text style={styles.cardPrice}>₹{getEventTierPrice(item, 'single')}</Text>
+                    <View style={styles.typePill}>
+                      <Text style={styles.typePillText}>{venue.type}</Text>
                     </View>
-
-                    <TouchableOpacity
-                      style={styles.bookPassBtn}
-                      onPress={() => handleBookingPress(item)}
-                    >
-                      <Text style={styles.bookPassText}>Book Now</Text>
-                      <ArrowRight size={13} color="#ffffff" />
-                    </TouchableOpacity>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.startsAtText}>Starts at</Text>
+                      <Text style={styles.priceValue}>{venue.price}</Text>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        )}
 
-        {/* Our Services Section */}
-        <View style={styles.sectionHeaderRow}>
-          <View>
-            <Text style={styles.sectionHeading}>Celebration Services</Text>
-            <Text style={styles.sectionSub}>Everything you need for a memorable celebration</Text>
-          </View>
-        </View>
-
-        <View style={styles.servicesGrid}>
-          {SERVICES.map((srv) => {
-            const SrvIcon = srv.icon;
-            return (
-              <TouchableOpacity
-                key={srv.id}
-                style={styles.serviceItemCard}
-                activeOpacity={0.88}
-                onPress={() => router.push('/(tabs)/explore')}
-              >
-                <View style={[styles.serviceIconContainer, { backgroundColor: 'rgba(225, 29, 72, 0.12)' }]}>
-                  <SrvIcon size={22} color="#f43f5e" />
+                  {/* Direct "Book Now" Button */}
+                  <TouchableOpacity
+                    style={styles.cardBookNowBtn}
+                    onPress={() => handleBookNow(venue)}
+                    activeOpacity={0.85}
+                  >
+                    <Ticket size={13} color="#ffffff" />
+                    <Text style={styles.cardBookNowText}>Book Now</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.serviceItemTitle}>{srv.title}</Text>
-                <Text style={styles.serviceItemSub} numberOfLines={2}>
-                  {srv.subtitle}
-                </Text>
-              </TouchableOpacity>
+              </View>
             );
           })}
-        </View>
+        </ScrollView>
 
-        {/* Featured Venues Section */}
-        {venues.length > 0 && (
-          <>
+        {/* ========================================== */}
+        {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
+        {/* ========================================== */}
+        {adminSections.map((sec) => (
+          <View key={sec.id} style={{ marginTop: 22 }}>
             <View style={styles.sectionHeaderRow}>
               <View>
-                <Text style={styles.sectionHeading}>Royal Venues & Lawns</Text>
-                <Text style={styles.sectionSub}>Curated banquet halls in Patna</Text>
+                {sec.tag && (
+                  <View style={styles.secCustomTagPill}>
+                    <Text style={styles.secCustomTagText}>{sec.tag}</Text>
+                  </View>
+                )}
+                <Text style={styles.sectionTitle}>{sec.title}</Text>
+                <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
               </View>
+              <TouchableOpacity
+                style={styles.viewAllRow}
+                onPress={() => router.push('/(tabs)/explore')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight size={14} color="#e11d48" />
+              </TouchableOpacity>
             </View>
 
-            {venues.map((v) => (
-              <TouchableOpacity
-                key={v.id}
-                style={styles.venueFullCard}
-                activeOpacity={0.92}
-                onPress={() => router.push('/(tabs)/explore')}
-              >
-                <Image source={{ uri: v.image }} style={styles.venueFullImage} />
-                <View style={styles.venueOverlay}>
-                  <View style={styles.venueRatingPill}>
-                    <Star size={11} color="#fbbf24" fill="#fbbf24" />
-                    <Text style={styles.venueRatingText}>4.9 Top Rated</Text>
-                  </View>
-                  <Text style={styles.venueFullTitle}>{v.title}</Text>
-                  <View style={styles.venueLocationRow}>
-                    <MapPin size={13} color="#ffffff" />
-                    <Text style={styles.venueLocationText}>{v.location}</Text>
-                  </View>
-                  <Text style={styles.venueFullPrice}>Starts from {v.price}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {sec.items.map((it) => {
+                const isLiked = likedIds.includes(it.id);
+                return (
+                  <View key={it.id} style={styles.horizontalCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/item-detail',
+                          params: {
+                            id: it.id,
+                            title: it.title,
+                            subtitle: it.subtitle,
+                            price: String(it.price),
+                            image: it.image,
+                            type: it.itemType || it.type,
+                            cornerTag: it.cornerTag,
+                            location: it.location,
+                          },
+                        })
+                      }
+                      style={styles.cardImageContainer}
+                    >
+                      <Image source={{ uri: it.image }} style={styles.cardImage} />
+                      <View style={styles.cardImageOverlay} />
 
-        <View style={{ height: 120 }} />
+                      {it.cornerTag ? (
+                        <View style={styles.cardCornerTagBadge}>
+                          <Text style={styles.cardCornerTagText}>{it.cornerTag.toUpperCase()}</Text>
+                        </View>
+                      ) : null}
+
+                      <TouchableOpacity
+                        style={styles.likeBtn}
+                        onPress={() => toggleLike(it.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Heart
+                          size={15}
+                          color={isLiked ? '#e11d48' : '#475569'}
+                          fill={isLiked ? '#e11d48' : 'transparent'}
+                        />
+                      </TouchableOpacity>
+
+                      <View style={styles.ratingBadge}>
+                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                        <Text style={styles.ratingText}>{it.rating}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.cardContent}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/item-detail',
+                            params: {
+                              id: it.id,
+                              title: it.title,
+                              subtitle: it.subtitle,
+                              price: String(it.price),
+                              image: it.image,
+                              type: it.itemType || it.type,
+                              cornerTag: it.cornerTag,
+                              location: it.location,
+                            },
+                          })
+                        }
+                      >
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {it.title}
+                        </Text>
+                        {it.location && (
+                          <View style={styles.locationRow}>
+                            <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
+                            <Text style={styles.locationText} numberOfLines={1}>
+                              {it.location}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+
+                      <View style={styles.cardFooter}>
+                        <View style={[styles.typePill, { backgroundColor: it.itemType === 'TICKET' ? '#fef3c7' : '#e0e7ff' }]}>
+                          <Text style={[styles.typePillText, { color: it.itemType === 'TICKET' ? '#b45309' : '#3730a3' }]}>
+                            {it.itemType === 'TICKET' ? '🎫 TICKET' : '📅 BOOKING'}
+                          </Text>
+                        </View>
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.startsAtText}>{it.itemType === 'TICKET' ? 'Per Ticket' : 'From'}</Text>
+                          <Text style={styles.priceValue}>
+                            {typeof it.price === 'number' ? `₹${it.price.toLocaleString('en-IN')}` : it.price}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Direct "Book / Get Ticket" Button */}
+                      <TouchableOpacity
+                        style={styles.cardBookNowBtn}
+                        onPress={() => handleBookNow(it)}
+                        activeOpacity={0.85}
+                      >
+                        {it.itemType === 'TICKET' ? <Ticket size={13} color="#ffffff" /> : <Calendar size={13} color="#ffffff" />}
+                        <Text style={styles.cardBookNowText}>
+                          {it.itemType === 'TICKET' ? 'Get Ticket Pass' : 'Reserve Booking'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ))}
+
+        {/* ========================================== */}
+        {/* HORIZONTAL SECTION: CURATED PACKAGES      */}
+        {/* ========================================== */}
+        <View style={[styles.sectionHeaderRow, { marginTop: 22 }]}>
+          <View>
+            <Text style={styles.sectionTitle}>Curated Packages</Text>
+            <Text style={styles.sectionSubtitle}>All-inclusive celebrations</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.viewAllRow}
+            onPress={() => router.push('/(tabs)/explore')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <ChevronRight size={14} color="#e11d48" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalList}
+        >
+          {packages.map((pkg) => {
+            const isLiked = likedIds.includes(pkg.id);
+            return (
+              <View key={pkg.id} style={styles.horizontalCard}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => handleOpenDetail(pkg)}
+                  style={styles.cardImageContainer}
+                >
+                  <Image source={{ uri: pkg.image }} style={styles.cardImage} />
+                  <View style={styles.cardImageOverlay} />
+
+                  <TouchableOpacity
+                    style={styles.likeBtn}
+                    onPress={() => toggleLike(pkg.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Heart
+                      size={15}
+                      color={isLiked ? '#e11d48' : '#475569'}
+                      fill={isLiked ? '#e11d48' : 'transparent'}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={styles.ratingBadge}>
+                    <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                    <Text style={styles.ratingText}>{pkg.rating}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.cardContent}>
+                  <TouchableOpacity onPress={() => handleOpenDetail(pkg)} activeOpacity={0.85}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>
+                      {pkg.title}
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.tagsText} numberOfLines={1}>
+                    {pkg.tags.join(' • ')}
+                  </Text>
+
+                  <View style={styles.cardFooter}>
+                    <View style={styles.typePill}>
+                      <Text style={styles.typePillText}>{pkg.type}</Text>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.startsAtText}>Starts at</Text>
+                      <Text style={styles.priceValue}>{pkg.price}</Text>
+                    </View>
+                  </View>
+
+                  {/* Direct "Book Now" Button */}
+                  <TouchableOpacity
+                    style={styles.cardBookNowBtn}
+                    onPress={() => handleBookNow(pkg)}
+                    activeOpacity={0.85}
+                  >
+                    <Ticket size={13} color="#ffffff" />
+                    <Text style={styles.cardBookNowText}>Book Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
       </ScrollView>
 
-      {/* Animated Booking Auth Modal */}
-      <Modal
-        visible={authModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAuthModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}>
-                <ShieldCheck size={20} color="#e11d48" />
-                <Text style={styles.modalTitle}>Sign In to Book</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setAuthModalVisible(false)}
-              >
-                <X size={18} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalSubtitle}>
-              Please sign in to reserve celebration passes.
-            </Text>
-
-            <View style={styles.authToggle}>
-              <TouchableOpacity
-                style={[styles.toggleBtn, authMode === 'login' && styles.toggleBtnActive]}
-                onPress={() => setAuthMode('login')}
-              >
-                <Text style={[styles.toggleText, authMode === 'login' && styles.toggleTextActive]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleBtn, authMode === 'signup' && styles.toggleBtnActive]}
-                onPress={() => setAuthMode('signup')}
-              >
-                <Text style={[styles.toggleText, authMode === 'signup' && styles.toggleTextActive]}>
-                  Register
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {authMode === 'signup' && (
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Rishi Kumar"
-                  placeholderTextColor="#64748b"
-                  value={authName}
-                  onChangeText={setAuthName}
-                />
-              </View>
-            )}
-
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="user@example.com"
-                placeholderTextColor="#64748b"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={authEmail}
-                onChangeText={setAuthEmail}
-              />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="••••••••"
-                placeholderTextColor="#64748b"
-                secureTextEntry
-                value={authPassword}
-                onChangeText={setAuthPassword}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.authSubmitBtn}
-              onPress={handleAuthSubmit}
-              disabled={authLoading}
-            >
-              {authLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.authSubmitText}>
-                  {authMode === 'login' ? 'Sign In & Reserve' : 'Create Account'}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.fullScreenAuthLink}
-              onPress={() => {
-                setAuthModalVisible(false);
-                router.push('/login');
-              }}
-            >
-              <Text style={styles.fullScreenAuthText}>Or open dedicated sign-in screen</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Payment Checkout Modal with Thumb Zone UX Law */}
-      <Modal
-        visible={paymentModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => !paymentProcessing && setPaymentModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.checkoutSheetContainer}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}>
-                <CreditCard size={20} color="#e11d48" />
-                <Text style={styles.modalTitle}>Secure Checkout</Text>
-              </View>
-              {!paymentProcessing && (
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={() => setPaymentModalVisible(false)}
-                >
-                  <X size={18} color="#94a3b8" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {pendingBookingEvent && (() => {
-              const tierUnitPrice = getEventTierPrice(pendingBookingEvent, selectedTierKey);
-              const subtotal = tierUnitPrice * checkoutTicketCount;
-              const transactionFee = Number((subtotal * 0.02).toFixed(2));
-              const feeGst = Number((transactionFee * 0.18).toFixed(2));
-              const eventGst = subtotal > 500 ? Number((subtotal * 0.18).toFixed(2)) : 0;
-              const totalAmount = Math.max(1, Math.round(subtotal + transactionFee + feeGst + eventGst));
-              const activeTierObj = TICKET_TIERS_CONFIG.find(t => t.key === selectedTierKey) || TICKET_TIERS_CONFIG[0];
-
-              return (
-                <>
-                  <ScrollView showsVerticalScrollIndicator={false} style={styles.checkoutScrollArea}>
-                    <Text style={styles.checkoutEventTitle}>{pendingBookingEvent.title}</Text>
-                    <Text style={styles.checkoutEventDate}>
-                      📅 {pendingBookingEvent.date} • 📍 {pendingBookingEvent.location}
-                    </Text>
-
-                    {/* CELEBRATION TIME */}
-                    <View style={styles.timingCard}>
-                      <Clock size={14} color="#fbbf24" />
-                      <Text style={styles.timingCardText}>
-                        Celebration Timing: 06:30 PM - 11:30 PM (Entry starts 06:00 PM)
-                      </Text>
-                    </View>
-
-                    {/* 1. CHOOSE TICKET TIER */}
-                    <Text style={[styles.checkoutSectionLabel, { marginTop: 14 }]}>Select Ticket Tier</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
-                      {TICKET_TIERS_CONFIG.map((tier) => {
-                        const isSelected = selectedTierKey === tier.key;
-                        const price = getEventTierPrice(pendingBookingEvent, tier.key);
-                        return (
-                          <TouchableOpacity
-                            key={tier.key}
-                            onPress={() => setSelectedTierKey(tier.key)}
-                            activeOpacity={0.8}
-                            style={[styles.tierPill, isSelected && styles.tierPillActive]}
-                          >
-                            <Text style={styles.tierPillIcon}>{tier.icon} {tier.tag}</Text>
-                            <Text style={[styles.tierPillName, isSelected && styles.tierPillNameActive]}>
-                              {tier.name}
-                            </Text>
-                            <Text style={[styles.tierPillPrice, isSelected && styles.tierPillPriceActive]}>
-                              ₹{price}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-
-                    {/* 2. PASS QUANTITY COUNTER */}
-                    <Text style={styles.checkoutSectionLabel}>Number of Passes</Text>
-                    <View style={styles.quantityRow}>
-                      <View>
-                        <Text style={styles.quantityLabel}>{activeTierObj.name}</Text>
-                        <Text style={{ fontSize: 11, color: '#94a3b8' }}>₹{tierUnitPrice} per pass</Text>
-                      </View>
-                      <View style={styles.quantityControls}>
-                        <TouchableOpacity
-                          style={styles.qtyBtn}
-                          onPress={() => setCheckoutTicketCount((c) => Math.max(1, c - 1))}
-                        >
-                          <Minus size={16} color="#ffffff" />
-                        </TouchableOpacity>
-                        <Text style={styles.qtyValue}>{checkoutTicketCount}</Text>
-                        <TouchableOpacity
-                          style={styles.qtyBtn}
-                          onPress={() => setCheckoutTicketCount((c) => Math.min(10, c + 1))}
-                        >
-                          <Plus size={16} color="#ffffff" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* 3. CONTACT PHONE NUMBER (PREVENTS RAZORPAY PROMPT!) */}
-                    <Text style={styles.checkoutSectionLabel}>WhatsApp & Pass Delivery Phone</Text>
-                    <View style={styles.phoneInputRow}>
-                      <Phone size={18} color="#e11d48" style={{ marginRight: 8 }} />
-                      <TextInput
-                        value={contactPhoneNumber}
-                        onChangeText={setContactPhoneNumber}
-                        placeholder="10-digit mobile number"
-                        placeholderTextColor="#64748b"
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                        style={styles.phoneInput}
-                      />
-                    </View>
-                    <Text style={styles.phoneHint}>
-                      Pass QR code and instant confirmation will be sent here.
-                    </Text>
-
-                    {/* 4. PRICE BREAKDOWN */}
-                    <View style={styles.breakdownCard}>
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>{checkoutTicketCount}x {activeTierObj.name} (₹{tierUnitPrice})</Text>
-                        <Text style={styles.summaryValue}>₹{subtotal}</Text>
-                      </View>
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Platform Fee (2%)</Text>
-                        <Text style={styles.summaryValue}>₹{transactionFee}</Text>
-                      </View>
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>GST on Fee (18%)</Text>
-                        <Text style={styles.summaryValue}>₹{feeGst}</Text>
-                      </View>
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Celebration GST (18% on &gt; ₹500)</Text>
-                        <Text style={styles.summaryValue}>
-                          {eventGst > 0 ? `₹${eventGst}` : '₹0 (Exempt)'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={{ height: 20 }} />
-                  </ScrollView>
-
-                  {/* STICKY BOTTOM ACTION BAR (Thumb Zone UX Law) */}
-                  <View style={styles.stickyThumbBar}>
-                    <View style={styles.thumbPriceBlock}>
-                      <Text style={styles.thumbTierText}>{activeTierObj.name} • {checkoutTicketCount}x</Text>
-                      <Text style={styles.thumbTotalAmount}>₹{totalAmount}</Text>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.thumbPayBtn}
-                      onPress={handlePaymentConfirm}
-                      disabled={paymentProcessing}
-                      activeOpacity={0.88}
-                    >
-                      {paymentProcessing ? (
-                        <ActivityIndicator color="#ffffff" />
-                      ) : (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={styles.thumbPayBtnText}>Book Now</Text>
-                          <ArrowRight size={18} color="#ffffff" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </>
-              );
-            })()}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Dedicated Authentication Modal (Prompted before Booking if guest) */}
-      <Modal
-        visible={authModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAuthModalVisible(false)}
-      >
-        <View style={styles.authModalBackdrop}>
-          <View style={styles.authModalCard}>
-            <View style={styles.authModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={18} color="#e11d48" />
-                <Text style={styles.authModalTitle}>Sign In to Book Passes</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setAuthModalVisible(false)}
-                style={styles.modalCloseBtn}
-              >
-                <X size={18} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.authModalSubtitle}>
-              Celebration gate passes and verified QR codes are linked directly to your account.
-            </Text>
-
-            {/* Direct Navigation Action Buttons */}
-            <View style={{ gap: 10, marginVertical: 12 }}>
-              <TouchableOpacity
-                style={styles.authPrimaryBtn}
-                onPress={() => {
-                  setAuthModalVisible(false);
-                  router.push('/login');
-                }}
-                activeOpacity={0.88}
-              >
-                <LogIn size={16} color="#ffffff" />
-                <Text style={styles.authPrimaryBtnText}>Sign In to Your Account</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.authSecondaryBtn}
-                onPress={() => {
-                  setAuthModalVisible(false);
-                  router.push('/signup');
-                }}
-                activeOpacity={0.88}
-              >
-                <User size={16} color="#f43f5e" />
-                <Text style={styles.authSecondaryBtnText}>Create New Account (Sign Up)</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* In-Sheet Quick Sign In */}
-            <View style={styles.authOrRow}>
-              <View style={styles.authOrLine} />
-              <Text style={styles.authOrText}>OR QUICK SIGN IN</Text>
-              <View style={styles.authOrLine} />
-            </View>
-
-            <View style={styles.quickAuthInputs}>
-              <TextInput
-                placeholder="Email address"
-                placeholderTextColor="#64748b"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={authEmail}
-                onChangeText={setAuthEmail}
-                style={styles.authInputField}
-              />
-              <TextInput
-                placeholder="Password"
-                placeholderTextColor="#64748b"
-                secureTextEntry
-                value={authPassword}
-                onChangeText={setAuthPassword}
-                style={styles.authInputField}
-              />
-              <TouchableOpacity
-                style={styles.quickSubmitBtn}
-                onPress={handleAuthSubmit}
-                disabled={authLoading}
-                activeOpacity={0.88}
-              >
-                {authLoading ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : (
-                  <Text style={styles.quickSubmitBtnText}>Sign In & Continue Booking</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Custom Designed Celebration Dialog */}
-      <CelebrationDialog
-        visible={dialogConfig.visible}
-        type={dialogConfig.type}
-        badgeText={dialogConfig.badgeText}
-        title={dialogConfig.title}
-        message={dialogConfig.message}
-        confirmText={dialogConfig.confirmText}
-        cancelText={dialogConfig.cancelText}
-        onConfirm={dialogConfig.onConfirm}
-        onCancel={dialogConfig.onCancel || (() => setDialogConfig((prev) => ({ ...prev, visible: false })))}
+      {/* Review Booking / Payment Modal */}
+      <PaymentModal
+        visible={!!checkoutItem}
+        item={checkoutItem}
+        onClose={() => setCheckoutItem(null)}
+        onSuccess={() => {
+          setCheckoutItem(null);
+          router.push('/(tabs)/bookings');
+        }}
       />
-    </SafeAreaView>
+
+      {/* Sidebar Drawer */}
+      <SidebarDrawer
+        visible={isSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onOpenWallet={() => setWalletOpen(true)}
+        user={{
+          name: (userProfile?.name || 'Guest User').replace(' ✨', ''),
+          email: userProfile?.email || '',
+        }}
+      />
+
+      {/* Wallet Modal */}
+      <WalletModal
+        visible={isWalletOpen}
+        onClose={() => setWalletOpen(false)}
+        balance={userProfile?.balance || 0}
+      />
+
+      {/* Admin Section Manager Modal */}
+      <AdminSectionModal
+        visible={isAdminModalOpen}
+        sections={adminSections}
+        onClose={() => setIsAdminModalOpen(false)}
+        onSectionsUpdated={(updated) => setAdminSections(updated)}
+      />
+
+      {/* Location Selector Modal */}
+      <Modal
+        visible={isLocationModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsLocationModalOpen(false)}
+      >
+        <View style={styles.locModalOverlay}>
+          <View style={styles.locModalContent}>
+            <View style={styles.locModalHeader}>
+              <View>
+                <Text style={styles.locModalTitle}>Select Your Location</Text>
+                <Text style={styles.locModalSubtitle}>Choose GPS detection or select your city</Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsLocationModalOpen(false)} style={styles.locModalClose}>
+                <X size={18} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* GPS Auto-Detect Button */}
+            <TouchableOpacity
+              style={styles.gpsDetectBtn}
+              onPress={handleDetectGps}
+              disabled={detectingGps}
+              activeOpacity={0.85}
+            >
+              <Navigation size={18} color="#ffffff" />
+              {detectingGps ? (
+                <ActivityIndicator size="small" color="#ffffff" style={{ marginLeft: 8 }} />
+              ) : (
+                <Text style={styles.gpsDetectBtnText}>Detect Location via GPS</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.locDividerText}>OR SELECT MANUALLY</Text>
+
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              <View style={styles.cityGrid}>
+                {CITIES_LIST.map((city) => {
+                  const isSelected = selectedCity === city;
+                  return (
+                    <TouchableOpacity
+                      key={city}
+                      style={[styles.cityItem, isSelected && styles.cityItemActive]}
+                      onPress={() => handleSelectCity(city)}
+                      activeOpacity={0.75}
+                    >
+                      <MapPin size={14} color={isSelected ? '#ffffff' : '#e11d48'} />
+                      <Text style={[styles.cityItemText, isSelected && styles.cityItemTextActive]}>
+                        {city}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#090b10' },
-
-  glowAuraLeft: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(225, 29, 72, 0.12)',
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc', // Slate-50
   },
-  glowAuraRight: {
-    position: 'absolute',
-    top: 250,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(244, 63, 94, 0.08)',
+  scrollContent: {
+    flexGrow: 1,
   },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 14,
-    backgroundColor: '#090b10',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1c2333',
-  },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandLogo: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#e11d48',
-    letterSpacing: -0.5,
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(225, 29, 72, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(225, 29, 72, 0.35)',
-    gap: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#e11d48',
-  },
-  liveText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#f43f5e',
-    letterSpacing: 0.8,
-  },
-  locationContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
-  locationText: { fontSize: 13, fontWeight: '700', color: '#cbd5e1' },
-  offlinePill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  offlineText: { fontSize: 10, fontWeight: '700', color: '#fbbf24' },
-
-  headerSignInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#e11d48',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  headerSignInText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
-
-  profileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  userBadge: {
-    backgroundColor: '#121622',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  userBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#121622', borderWidth: 2, borderColor: '#f43f5e' },
-
-  scrollContent: { paddingBottom: 30 },
-  paginationRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#252d3d',
-  },
-  activeDot: {
-    width: 18,
-    backgroundColor: '#e11d48',
-  },
-
-  // Premium Hero Banner
-  premiumBanner: {
-    marginTop: 16,
-    height: 250,
-    borderRadius: 26,
+  // Hero Section
+  heroBanner: {
+    width: '100%',
+    backgroundColor: '#0f172a',
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: '#1c2333',
+    position: 'relative',
   },
-  premiumImage: { width: '100%', height: '100%', position: 'absolute' },
-  premiumGradient: {
-    ...StyleSheet.absoluteFill,
-    padding: 20,
+  heroImage: {
+    ...(StyleSheet.absoluteFill as any),
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  heroDarkOverlay: {
+    ...(StyleSheet.absoluteFill as any),
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+  },
+  heroRadialVignette: {
+    display: 'none',
+  },
+  heroBottomGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 250,
+    backgroundColor: 'transparent',
+  },
+  integratedHeader: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 20,
   },
-  heroTextContainer: { marginVertical: 4 },
-  premiumTopBadge: {
+  menuBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  locationHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 7,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    gap: 5,
+    maxWidth: width * 0.4,
+  },
+  locationHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  locModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  locModalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  locModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  locModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  locModalSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  locModalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gpsDetectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e11d48',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  gpsDetectBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  locDividerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  cityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingBottom: 20,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
     gap: 6,
   },
-  premiumTopBadgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
-  premiumTitle: {
-    fontSize: 21,
-    fontWeight: '900',
-    lineHeight: 27,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+  cityItemActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
   },
-  premiumSubtitle: {
+  cityItemText: {
     fontSize: 13,
     fontWeight: '600',
-    lineHeight: 18,
-    marginTop: 5,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    color: '#334155',
   },
-  premiumActionRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 4 },
-  premiumCtaBtn: {
+  cityItemTextActive: {
+    color: '#ffffff',
+  },
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 30,
-    gap: 4,
-  },
-  premiumCtaText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
-
-  // Categories Section
-  categoriesSection: { marginTop: 20 },
-  sectionHeading: { fontSize: 18, fontWeight: '800', color: '#ffffff', paddingHorizontal: 20 },
-  sectionSub: { fontSize: 12, color: '#94a3b8', fontWeight: '500', paddingHorizontal: 20, marginTop: 2 },
-  categoriesRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#121622',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1c2333',
     gap: 8,
   },
-  categoryChipSelected: {
-    backgroundColor: '#e11d48',
-    borderColor: '#e11d48',
-  },
-  categoryIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryChipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-  categoryChipTextSelected: { color: '#ffffff' },
-
-  // Date Filter Strip
-  dateFilterSection: {
-    marginTop: 14,
-    paddingHorizontal: 20,
-  },
-  dateFilterHeader: {
+  userHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
-  dateFilterHeading: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#e2e8f0',
-    letterSpacing: 0.2,
-  },
-  dateFilterRow: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  dateFilterChip: {
+  userHeaderAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#e11d48',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121622',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-    minWidth: 72,
   },
-  dateFilterChipActive: {
+  userHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  signInHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: '#e11d48',
-    borderColor: '#e11d48',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  dateFilterChipText: { fontSize: 12, fontWeight: '800', color: '#94a3b8' },
-  dateFilterChipTextActive: { color: '#ffffff' },
-  dateFilterChipDay: { fontSize: 10, fontWeight: '700', color: '#94a3b8', letterSpacing: 0.5 },
-  dateFilterChipDayActive: { color: '#ffffff' },
-  dateFilterChipNum: { fontSize: 18, fontWeight: '900', color: '#cbd5e1', marginTop: 1 },
-  dateFilterChipNumActive: { color: '#ffffff' },
-  dateFilterChipMonth: { fontSize: 9, fontWeight: '700', color: '#64748b', letterSpacing: 0.8 },
-  dateFilterChipMonthActive: { color: 'rgba(255,255,255,0.8)' },
+  signInHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  bellBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    position: 'relative',
+  },
+  bellAlertDot: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#e11d48',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  heroContentBox: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    zIndex: 15,
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(225, 29, 72, 0.95)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    gap: 5,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(254, 205, 211, 0.3)',
+  },
+  featuredBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+    lineHeight: 33,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  heroSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.95)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  heroArrowCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  // Section Header Row
+  // Overlapping Search
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginTop: -24,
+    zIndex: 30,
+    marginBottom: 20,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  searchIconBox: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+
+  // Quick Categories
+  quickCatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginBottom: 22,
+  },
+  quickCatItem: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickCatIconBox: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  quickCatName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+
+  // Admin Banner
+  adminBannerContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0f172a',
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  adminBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  adminIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#e11d48',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#ffffff',
+  },
+  adminBannerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94a3b8',
+    marginTop: 1,
+  },
+  adminAddPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 4,
+  },
+  adminAddPillText: {
+    color: '#e11d48',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+
+  // Section Headers
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: 20,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  seeAllText: { fontSize: 13, fontWeight: '700', color: '#f43f5e' },
-
-  // Events List
-  eventsScrollList: { paddingHorizontal: 16, paddingVertical: 8 },
-  celebrationCard: {
-    width: width * 0.78,
-    backgroundColor: '#121622',
-    borderRadius: 20,
-    marginRight: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  cardImage: { width: '100%', height: 160 },
-  cardTagPill: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: 'rgba(9, 11, 16, 0.85)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(225, 29, 72, 0.4)',
-  },
-  cardTagText: { color: '#f43f5e', fontSize: 11, fontWeight: '800' },
-  cardBody: { padding: 14 },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#ffffff', marginBottom: 8, minHeight: 40 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  metaText: { fontSize: 12, color: '#94a3b8', fontWeight: '500', flex: 1 },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#1c2333',
-  },
-  priceLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
-  cardPrice: { fontSize: 18, fontWeight: '900', color: '#ffffff' },
-  bookPassBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e11d48',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-    gap: 4,
-  },
-  bookPassText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-
-  // Services Grid
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    marginTop: 10,
-    justifyContent: 'space-between',
-  },
-  serviceItemCard: {
-    width: '48%',
-    backgroundColor: '#121622',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  serviceIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  serviceItemTitle: { fontSize: 14, fontWeight: '800', color: '#ffffff' },
-  serviceItemSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
-
-  // Venues Full Card
-  venueFullCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    height: 190,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  venueFullImage: { width: '100%', height: '100%' },
-  venueOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(9, 11, 16, 0.65)',
-    padding: 16,
-    justifyContent: 'flex-end',
-  },
-  venueRatingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#1c2333',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    gap: 4,
-    marginBottom: 6,
-  },
-  venueRatingText: { fontSize: 11, fontWeight: '800', color: '#fbbf24' },
-  venueFullTitle: { color: '#ffffff', fontSize: 18, fontWeight: '800' },
-  venueLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  venueLocationText: { color: '#cbd5e1', fontSize: 12, fontWeight: '500' },
-  venueFullPrice: { color: '#f43f5e', fontSize: 13, fontWeight: '700', marginTop: 4 },
-
-  loadingContainer: { padding: 40, alignItems: 'center' },
-  loadingText: { marginTop: 10, color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-  emptyState: { padding: 40, alignItems: 'center' },
-  emptyStateTitle: { marginTop: 12, fontSize: 15, fontWeight: '700', color: '#ffffff' },
-  emptyStateSub: { marginTop: 4, fontSize: 12, color: '#94a3b8' },
-
-  // Modal Backdrop
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#121622',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1c2333',
+    marginBottom: 12,
   },
-  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  modalCloseBtn: { padding: 6, backgroundColor: '#1a202e', borderRadius: 20 },
-  modalSubtitle: { fontSize: 13, color: '#94a3b8', marginBottom: 14, marginTop: 4 },
-
-  authToggle: {
+  secCustomTagPill: {
+    backgroundColor: '#fff1f2',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  secCustomTagText: {
+    color: '#e11d48',
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 2,
+  },
+  viewAllRow: {
     flexDirection: 'row',
-    backgroundColor: '#090b10',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  toggleBtnActive: { backgroundColor: '#e11d48' },
-  toggleText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-  toggleTextActive: { color: '#ffffff' },
-  inputWrapper: { marginBottom: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#cbd5e1', marginBottom: 4 },
-  textInput: {
-    backgroundColor: '#090b10',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#ffffff',
-  },
-  authSubmitBtn: {
-    backgroundColor: '#e11d48',
-    borderRadius: 14,
-    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 10,
+    gap: 2,
+    paddingBottom: 2,
   },
-  authSubmitText: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
-  fullScreenAuthLink: { marginTop: 14, alignItems: 'center' },
-  fullScreenAuthText: { color: '#f43f5e', fontSize: 12, fontWeight: '600' },
-
-  // Checkout Sheet with Thumb Zone UX
-  checkoutSheetContainer: {
-    backgroundColor: '#121622',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  checkoutScrollArea: { paddingHorizontal: 20, paddingTop: 14 },
-  checkoutEventTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff', marginBottom: 4 },
-  checkoutEventDate: { fontSize: 13, color: '#94a3b8', marginBottom: 16 },
-
-  checkoutSectionLabel: {
-    fontSize: 13,
+  viewAllText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#cbd5e1',
-    marginTop: 14,
-    marginBottom: 10,
+    color: '#e11d48',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
 
-  tierPill: {
-    backgroundColor: '#090b10',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: '#1c2333',
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  tierPillActive: {
-    borderColor: '#e11d48',
-    backgroundColor: 'rgba(225, 29, 72, 0.15)',
-  },
-  tierPillIcon: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginBottom: 4 },
-  tierPillName: { fontSize: 12, fontWeight: '700', color: '#cbd5e1' },
-  tierPillNameActive: { color: '#ffffff' },
-  tierPillPrice: { fontSize: 15, fontWeight: '900', color: '#cbd5e1', marginTop: 2 },
-  tierPillPriceActive: { color: '#f43f5e' },
-
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#090b10',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  quantityLabel: { fontSize: 14, fontWeight: '700', color: '#ffffff' },
-  quantityControls: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  qtyBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#1a202e',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#252d3d',
-  },
-  qtyValue: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
-
-  phoneInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#090b10',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  phoneInput: { flex: 1, fontSize: 14, color: '#ffffff' },
-  phoneHint: { fontSize: 11, color: '#94a3b8', marginTop: 4 },
-
-  breakdownCard: {
-    backgroundColor: '#090b10',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  summaryLabel: { fontSize: 12, color: '#94a3b8' },
-  summaryValue: { fontSize: 12, fontWeight: '700', color: '#cbd5e1' },
-
-  // Sticky Thumb Zone Bar (Follows UX thumb law)
-  stickyThumbBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0d1117',
+  // Horizontal Card
+  horizontalList: {
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#1c2333',
+    gap: 14,
+    paddingBottom: 8,
   },
-  thumbPriceBlock: { justifyContent: 'center' },
-  thumbTierText: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
-  thumbTotalAmount: { fontSize: 22, fontWeight: '900', color: '#ffffff' },
-  thumbPayBtn: {
+  horizontalCard: {
+    width: 275,
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  cardImageContainer: {
+    width: '100%',
+    height: 155,
+    position: 'relative',
+    backgroundColor: '#f1f5f9',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  cardImageOverlay: {
+    ...(StyleSheet.absoluteFill as any),
+    backgroundColor: 'rgba(15, 23, 42, 0.15)',
+  },
+  likeBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  ratingBadge: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e11d48',
-    paddingHorizontal: 22,
-    height: 48,
-    borderRadius: 14,
-    shadowColor: '#e11d48',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  thumbPayBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
-
-  // Date Selector Styles
-  dateSelectorHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  selectedDateBadge: {
-    backgroundColor: 'rgba(225, 29, 72, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(225, 29, 72, 0.35)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  selectedDateBadgeText: {
+  ratingText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#f43f5e',
+    fontWeight: '900',
+    color: '#0f172a',
   },
-  dateSelectorRow: {
-    gap: 8,
-    paddingBottom: 4,
+  cardContent: {
+    padding: 14,
   },
-  dateChip: {
-    backgroundColor: '#121622',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    minWidth: 54,
-  },
-  dateChipActive: {
-    backgroundColor: '#e11d48',
-    borderColor: '#e11d48',
-  },
-  dateChipDay: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-  },
-  dateChipDayActive: {
-    color: '#ffffff',
-  },
-  dateChipNum: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#ffffff',
-    marginVertical: 1,
+    color: '#0f172a',
+    letterSpacing: -0.2,
+    marginBottom: 4,
   },
-  dateChipNumActive: {
-    color: '#ffffff',
-  },
-  dateChipMonth: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#f43f5e',
-    textTransform: 'uppercase',
-  },
-  dateChipMonthActive: {
-    color: '#ffe4e6',
-  },
-  timingCard: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginTop: 10,
-    marginBottom: 4,
-    gap: 8,
+    marginBottom: 10,
   },
-  timingCardText: {
+  locationText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#fef3c7',
+    fontWeight: '600',
+    color: '#64748b',
     flex: 1,
   },
-
-  // Auth Modal Styles
-  authModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  tagsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 10,
   },
-  authModalCard: {
-    width: '100%',
-    backgroundColor: '#0f1420',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#1c2333',
-    shadowColor: '#e11d48',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  authModalHeader: {
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginBottom: 10,
   },
-  authModalTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-  authModalSubtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  authPrimaryBtn: {
-    backgroundColor: '#e11d48',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 13,
-    borderRadius: 14,
-    gap: 8,
-  },
-  authPrimaryBtnText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  authSecondaryBtn: {
-    backgroundColor: 'rgba(225, 29, 72, 0.1)',
+  typePill: {
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(225, 29, 72, 0.4)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 14,
-    gap: 8,
+    borderColor: '#e2e8f0',
   },
-  authSecondaryBtnText: {
-    color: '#f43f5e',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  authOrRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 14,
-    gap: 10,
-  },
-  authOrLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#1c2333',
-  },
-  authOrText: {
+  typePillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748b',
-    letterSpacing: 1,
+    color: '#475569',
+    textTransform: 'uppercase',
   },
-  quickAuthInputs: {
-    gap: 10,
+  priceContainer: {
+    alignItems: 'flex-end',
   },
-  authInputField: {
-    backgroundColor: '#121622',
-    borderWidth: 1,
-    borderColor: '#1c2333',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    color: '#ffffff',
-    fontSize: 14,
+  startsAtText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
   },
-  quickSubmitBtn: {
-    backgroundColor: '#1e293b',
-    borderWidth: 1,
-    borderColor: '#334155',
+  priceValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#e11d48',
+  },
+  cardBookNowBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    backgroundColor: '#e11d48',
+    paddingVertical: 9,
     borderRadius: 12,
-    marginTop: 4,
+    gap: 6,
+    shadowColor: '#e11d48',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  quickSubmitBtnText: {
+  cardBookNowText: {
     color: '#ffffff',
-    fontWeight: '800',
     fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: -0.1,
+  },
+  cardCornerTagBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#dc2626',
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+  },
+  cardCornerTagText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cityPillScroll: {
+    marginTop: 10,
+    flexDirection: 'row',
+  },
+  cityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cityChipActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
+  },
+  cityChipText: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  cityChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });

@@ -86,12 +86,19 @@ export default function RootLayout() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#020617" }}>
+    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="item-detail" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="personal-info" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="favorites" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="notifications" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="settings" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="help-support" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="privacy-security" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="ai" options={{ presentation: "transparentModal", animation: "fade" }} />
       </Stack>
 
@@ -99,7 +106,7 @@ export default function RootLayout() {
         <Animated.View style={[
           StyleSheet.absoluteFill,
           { 
-            backgroundColor: "#0f172a", // Slate 900
+            backgroundColor: "#ffffff", // Slate 900
             justifyContent: "center", 
             alignItems: "center",
             transform: [{ translateY: screenTranslateY }],
@@ -128,8 +135,7 @@ export default function RootLayout() {
             <Animated.Text style={{ 
               fontSize: 48, 
               fontWeight: "900", 
-              color: "#ffffff", 
-              letterSpacing: 2,
+              color: "#0f172a", letterSpacing: 2,
               transform: [{ translateY: textTranslateY }],
               opacity: textOpacity
             }}>
@@ -140,7 +146,7 @@ export default function RootLayout() {
           {/* Golden Tagline */}
           <Animated.Text style={{ 
             fontSize: 16, 
-            color: "#fbbf24", // Amber 400
+            color: "#e11d48", // Amber 400
             textAlign: "center", 
             marginTop: 5, 
             fontStyle: "italic", 

@@ -29,6 +29,10 @@ export interface RoomEvent {
   image?: string;
   rating?: number;
   featured?: boolean;
+  time?: string;
+  availableDates?: string;
+  scarcityTag?: string;
+  typeTitle?: string;
   syncTimestamp: number;
 }
 
@@ -66,7 +70,11 @@ export interface RoomUser {
   email: string;
   role: string;
   phone?: string;
+  gender?: string;
+  location?: string;
   token: string;
+  referralCode?: string;
+  walletBalance?: number;
   lastLogin: number;
 }
 
@@ -77,9 +85,109 @@ const STORAGE_KEYS = {
   USER: '@happylokam_room_user',
   TOKEN: 'token',
   LOCATION: '@happylokam_room_location',
+  FAVORITES: '@happylokam_room_favorites',
+  RATINGS: '@happylokam_room_ratings',
+  NOTIFICATIONS: '@happylokam_room_notifications',
 };
 
 export const RoomDatabase = {
+  // --- Favorites DAO ---
+  async getFavorites(): Promise<any[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITES);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async toggleFavorite(item: { id: string; title: string; image?: string; price?: string | number; location?: string; type?: string; cornerTag?: string; tag?: string }): Promise<boolean> {
+    try {
+      const favs = await this.getFavorites();
+      const exists = favs.some((f) => f.id === item.id);
+      let updated: any[];
+      if (exists) {
+        updated = favs.filter((f) => f.id !== item.id);
+      } else {
+        updated = [item, ...favs];
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(updated));
+      return !exists;
+    } catch {
+      return false;
+    }
+  },
+
+  async isFavorite(id: string): Promise<boolean> {
+    try {
+      const favs = await this.getFavorites();
+      return favs.some((f) => f.id === id);
+    } catch {
+      return false;
+    }
+  },
+
+  // --- Ratings DAO ---
+  async getRatings(): Promise<any[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.RATINGS);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveRating(ratingData: { itemId: string; rating: number; review: string; userName?: string; createdAt?: string }): Promise<void> {
+    try {
+      const current = await this.getRatings();
+      const updated = [
+        {
+          ...ratingData,
+          id: 'rate_' + Date.now(),
+          createdAt: new Date().toISOString(),
+        },
+        ...current,
+      ];
+      await AsyncStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('saveRating error:', e);
+    }
+  },
+
+  // --- Notifications DAO ---
+  async getNotifications(): Promise<any[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveNotifications(list: any[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(list));
+    } catch (e) {
+      console.warn('saveNotifications error:', e);
+    }
+  },
+
+  async addNotification(notif: { id?: string; title: string; message: string; sentAt?: string; isRead?: boolean }): Promise<void> {
+    try {
+      const current = await this.getNotifications();
+      const newNotif = {
+        id: notif.id || 'notif_' + Date.now(),
+        title: notif.title,
+        message: notif.message,
+        sentAt: notif.sentAt || new Date().toISOString(),
+        isRead: notif.isRead || false,
+      };
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([newNotif, ...current]));
+    } catch (e) {
+      console.warn('addNotification error:', e);
+    }
+  },
+
   // --- Location DAO ---
   async getLocation(): Promise<string | null> {
     try {
@@ -214,6 +322,44 @@ export const RoomDatabase = {
       return !!token;
     } catch (error) {
       return false;
+    }
+  },
+
+  // --- Wallet DAO ---
+  async getWalletBalance(): Promise<number> {
+    try {
+      const user = await this.getUserSession();
+      return typeof user?.walletBalance === 'number' ? user.walletBalance : 250; // default initial bonus/balance
+    } catch {
+      return 0;
+    }
+  },
+
+  async deductWalletBalance(amount: number): Promise<number> {
+    try {
+      const user = await this.getUserSession();
+      if (!user) return 0;
+      const current = typeof user.walletBalance === 'number' ? user.walletBalance : 250;
+      const updatedBalance = Math.max(0, current - amount);
+      user.walletBalance = updatedBalance;
+      await this.saveUserSession(user);
+      return updatedBalance;
+    } catch {
+      return 0;
+    }
+  },
+
+  async addWalletBalance(amount: number): Promise<number> {
+    try {
+      const user = await this.getUserSession();
+      if (!user) return 0;
+      const current = typeof user.walletBalance === 'number' ? user.walletBalance : 0;
+      const updatedBalance = current + amount;
+      user.walletBalance = updatedBalance;
+      await this.saveUserSession(user);
+      return updatedBalance;
+    } catch {
+      return 0;
     }
   }
 };

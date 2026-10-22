@@ -23,7 +23,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-export type DialogType = 'exit' | 'logout' | 'danger' | 'success' | 'confirm' | 'info' | 'cancelled' | 'error';
+export type DialogType = 'exit' | 'logout' | 'danger' | 'success' | 'confirm' | 'info' | 'cancelled' | 'error' | 'warning';
 
 interface CelebrationDialogProps {
   visible: boolean;
@@ -146,6 +146,14 @@ export default function CelebrationDialog({
           bgCircle: '#ecfdf5',
           badgeText: 'SUCCESS',
           defaultConfirmColor: '#10b981',
+        };
+      case 'warning':
+        return {
+          icon: AlertTriangle,
+          iconColor: '#f59e0b',
+          bgCircle: '#fffbeb',
+          badgeText: 'ATTENTION',
+          defaultConfirmColor: '#f59e0b',
         };
       case 'info':
         return {
