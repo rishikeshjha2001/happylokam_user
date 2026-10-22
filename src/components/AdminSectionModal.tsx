@@ -84,7 +84,8 @@ export default function AdminSectionModal({
       location: itemLocation.trim() || 'Pan-India',
       type: itemType.trim() || 'Featured',
       itemType: itemBookingType,
-      price: itemPrice.trim() || '₹50,000',
+      price: parseFloat(itemPrice.replace(/[^\d.]/g, '')) || 50000,
+      priceUnit: itemPrice.trim() || '₹50,000',
       availableDates: availableDates.split(',').map((d) => d.trim()).filter(Boolean),
       totalSlots: 100,
       bookedSlots: 0,
@@ -328,7 +329,7 @@ export default function AdminSectionModal({
                   <View style={styles.presetGalleryBox}>
                     <Text style={styles.galleryHeading}>Select from Curated Gallery:</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                      {PRESET_CELEBRATION_IMAGES.map((img, idx) => {
+                      {PRESET_CELEBRATION_IMAGES.map((img: { label: string; title: string; url: string }, idx: number) => {
                         const isPicked = selectedImage === img.url && !customImageUrl;
                         return (
                           <TouchableOpacity

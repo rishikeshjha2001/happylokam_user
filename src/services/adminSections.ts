@@ -172,20 +172,15 @@ export async function bookSectionItem(
       try {
         await RoomDatabase.saveBooking({
           id: res.data?.id || `bkg_${Date.now()}`,
-          venueId: itemId,
-          venueName: res.data?.item?.title || 'Celebration Booking',
+          title: res.data?.item?.title || 'Celebration Booking',
+          category: res.data?.item?.itemType || 'Custom Section',
           date: payload.bookingDate,
-          time: payload.bookingTime || 'Standard Slot',
-          guests: payload.quantity || 1,
-          totalPrice: res.data?.totalAmount || 0,
+          amount: res.data?.totalAmount || 0,
           status: 'CONFIRMED',
+          ticketsCount: payload.quantity || 1,
           createdAt: new Date().toISOString(),
-          ticketCode: res.data?.ticketCode || 'HL-TCK-PASS',
           qrCode: res.data?.ticketCode || 'HL-TCK-PASS',
-          image: res.data?.item?.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-          location: res.data?.item?.location || 'Patna, Bihar',
-          guestName: payload.userName,
-          guestPhone: payload.userPhone,
+          serverVerified: true,
         });
       } catch (err) {
         console.warn('Failed to cache booking locally:', err);
@@ -197,3 +192,61 @@ export async function bookSectionItem(
     return { success: false, error: err.message || 'Network request failed' };
   }
 }
+
+export const PRESET_CELEBRATION_IMAGES = [
+  { label: 'Mandap', title: 'Mandap', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Heritage', title: 'Heritage', url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Glasshouse', title: 'Glasshouse', url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80' },
+  { label: 'Birthday', title: 'Birthday', url: 'https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Dandiya', title: 'Dandiya', url: 'https://images.unsplash.com/photo-1604928141064-207cea6f571f?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Suites', title: 'Suites', url: 'https://images.unsplash.com/photo-1522413452208-99663e031df3?auto=format&fit=crop&w=800&q=80' },
+];
+
+export async function saveAdminCustomSection(section: AdminCustomSection): Promise<AdminCustomSection[]> {
+  try {
+    await apiClient.post('/sections', section);
+  } catch (err) {
+    console.warn('saveAdminCustomSection backend error:', err);
+  }
+  const current = await getAdminCustomSections();
+  const existingIdx = current.findIndex((s) => s.id === section.id);
+  let updated: AdminCustomSection[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = section;
+  } else {
+    updated = [section, ...current];
+  }
+  await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export async function deleteAdminCustomSection(sectionId: string): Promise<AdminCustomSection[]> {
+  try {
+    await apiClient.delete(`/sections/${sectionId}`);
+  } catch (err) {
+    console.warn('deleteAdminCustomSection backend error:', err);
+  }
+  const current = await getAdminCustomSections();
+  const updated = current.filter((s) => s.id !== sectionId);
+  await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export async function deleteAdminSectionItem(sectionId: string, itemId: string): Promise<AdminCustomSection[]> {
+  try {
+    await apiClient.delete(`/sections/items/${itemId}`);
+  } catch (err) {
+    console.warn('deleteAdminSectionItem backend error:', err);
+  }
+  const current = await getAdminCustomSections();
+  const updated = current.map((s) => {
+    if (s.id === sectionId) {
+      return { ...s, items: (s.items || []).filter((i) => i.id !== itemId) };
+    }
+    return s;
+  });
+  await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+

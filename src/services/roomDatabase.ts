@@ -329,7 +329,7 @@ export const RoomDatabase = {
   async getWalletBalance(): Promise<number> {
     try {
       const user = await this.getUserSession();
-      return typeof user?.walletBalance === 'number' ? user.walletBalance : 250; // default initial bonus/balance
+      return typeof user?.walletBalance === 'number' ? user.walletBalance : 0;
     } catch {
       return 0;
     }
@@ -339,7 +339,7 @@ export const RoomDatabase = {
     try {
       const user = await this.getUserSession();
       if (!user) return 0;
-      const current = typeof user.walletBalance === 'number' ? user.walletBalance : 250;
+      const current = typeof user.walletBalance === 'number' ? user.walletBalance : 0;
       const updatedBalance = Math.max(0, current - amount);
       user.walletBalance = updatedBalance;
       await this.saveUserSession(user);

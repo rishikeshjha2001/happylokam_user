@@ -20,7 +20,8 @@ import {
   User,
 } from 'lucide-react-native';
 import { getLoksafari } from '../../services/api';
-import { DbLokSafariItem, DB_LOKSAFARI_ITEMS } from '../../constants/databaseModels';
+import { DbLokSafariItem } from '../../constants/databaseModels';
+import { getAdminCustomSections } from '../../services/adminSections';
 import PaymentModal from '../../components/PaymentModal';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
@@ -30,13 +31,42 @@ const { width } = Dimensions.get('window');
 export default function LokSafariTab() {
   const insets = useSafeAreaInsets();
 
-  const [safaris, setSafaris] = useState<DbLokSafariItem[]>(DB_LOKSAFARI_ITEMS);
+  const [safaris, setSafaris] = useState<DbLokSafariItem[]>([]);
   const [checkoutItem, setCheckoutItem] = useState<any>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
-    getLoksafari().then(setSafaris).catch(console.warn);
+    Promise.all([getLoksafari(), getAdminCustomSections()]).then(([backendSafaris, sections]) => {
+      let combined: DbLokSafariItem[] = [...backendSafaris];
+      (sections || []).forEach((sec) => {
+        const titleLower = (sec.title || '').toLowerCase();
+        const tagLower = (sec.tag || '').toLowerCase();
+        if (
+          titleLower.includes('safari') ||
+          titleLower.includes('tour') ||
+          titleLower.includes('trip') ||
+          tagLower.includes('safari') ||
+          tagLower.includes('nature')
+        ) {
+          (sec.items || []).forEach((it: any) => {
+            combined.push({
+              id: it.id,
+              title: it.title,
+              duration: it.subtitle || 'Custom Expedition',
+              price: typeof it.price === 'number' ? `₹${it.price.toLocaleString('en-IN')}` : String(it.price),
+              difficulty: 'Moderate',
+              rating: it.rating || 4.9,
+              highlights: it.features || [it.cornerTag || 'Exclusive'],
+              image: it.image,
+              type: it.type || sec.title,
+              location: it.location,
+            });
+          });
+        }
+      });
+      setSafaris(combined);
+    }).catch(console.warn);
   }, []);
 
   const topHeaderPadding = Math.max(insets.top, 14);
@@ -83,72 +113,82 @@ export default function LokSafariTab() {
 
         {/* Safari Cards */}
         <View style={styles.cardsList}>
-          {safaris.map((item) => (
-            <View key={item.id} style={styles.safariCard}>
-              <TouchableOpacity
-                activeOpacity={0.94}
-                onPress={() => setCheckoutItem(item)}
-                style={styles.cardImageTouch}
-              >
-                <Image source={{ uri: item.image }} style={styles.cardImage} />
-                <View style={styles.cardOverlay} />
-
-                {/* Star Rating Badge */}
-                <View style={styles.ratingBadge}>
-                  <Star size={12} color="#fbbf24" fill="#fbbf24" style={{ marginRight: 4 }} />
-                  <Text style={styles.ratingText}>{item.rating}</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Bottom Glass Card */}
-              <View style={styles.glassBottomCard}>
-                <View style={styles.cardTopRow}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={styles.typeKicker}>{item.type}</Text>
-                    <Text style={styles.itemTitle} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                  </View>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.perPersonLabel}>Per Person</Text>
-                    <Text style={styles.priceValue}>{item.price}</Text>
-                  </View>
-                </View>
-
-                {/* Duration & Difficulty */}
-                <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                    <Clock size={13} color="rgba(255,255,255,0.7)" style={{ marginRight: 5 }} />
-                    <Text style={styles.metaText}>{item.duration}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Compass size={13} color="rgba(255,255,255,0.7)" style={{ marginRight: 5 }} />
-                    <Text style={styles.metaText}>{item.difficulty}</Text>
-                  </View>
-                </View>
-
-                {/* Highlights Pills */}
-                <View style={styles.highlightsRow}>
-                  {item.highlights.map((h) => (
-                    <View key={h} style={styles.highlightPill}>
-                      <Text style={styles.highlightText}>{h}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Direct Book Now Button */}
-                <TouchableOpacity
-                  style={styles.bookSafariBtn}
-                  onPress={() => setCheckoutItem(item)}
-                  activeOpacity={0.85}
-                >
-                  <Ticket size={15} color="#ffffff" />
-                  <Text style={styles.bookSafariBtnText}>Book Expedition</Text>
-                  <ArrowRight size={14} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
+          {safaris.length === 0 ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 24 }}>
+              <Compass size={48} color="#94a3b8" strokeWidth={1.5} />
+              <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700', marginTop: 16 }}>No Active Expeditions</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                Curated wilderness tours and safari packages uploaded via the admin portal will appear right here.
+              </Text>
             </View>
-          ))}
+          ) : (
+            safaris.map((item) => (
+              <View key={item.id} style={styles.safariCard}>
+                <TouchableOpacity
+                  activeOpacity={0.94}
+                  onPress={() => setCheckoutItem(item)}
+                  style={styles.cardImageTouch}
+                >
+                  <Image source={{ uri: item.image }} style={styles.cardImage} />
+                  <View style={styles.cardOverlay} />
+
+                  {/* Star Rating Badge */}
+                  <View style={styles.ratingBadge}>
+                    <Star size={12} color="#fbbf24" fill="#fbbf24" style={{ marginRight: 4 }} />
+                    <Text style={styles.ratingText}>{item.rating}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Bottom Glass Card */}
+                <View style={styles.glassBottomCard}>
+                  <View style={styles.cardTopRow}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={styles.typeKicker}>{item.type}</Text>
+                      <Text style={styles.itemTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.perPersonLabel}>Per Person</Text>
+                      <Text style={styles.priceValue}>{item.price}</Text>
+                    </View>
+                  </View>
+
+                  {/* Duration & Difficulty */}
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaItem}>
+                      <Clock size={13} color="rgba(255,255,255,0.7)" style={{ marginRight: 5 }} />
+                      <Text style={styles.metaText}>{item.duration}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Compass size={13} color="rgba(255,255,255,0.7)" style={{ marginRight: 5 }} />
+                      <Text style={styles.metaText}>{item.difficulty}</Text>
+                    </View>
+                  </View>
+
+                  {/* Highlights Pills */}
+                  <View style={styles.highlightsRow}>
+                    {item.highlights.map((h) => (
+                      <View key={h} style={styles.highlightPill}>
+                        <Text style={styles.highlightText}>{h}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Direct Book Now Button */}
+                  <TouchableOpacity
+                    style={styles.bookSafariBtn}
+                    onPress={() => setCheckoutItem(item)}
+                    activeOpacity={0.85}
+                  >
+                    <Ticket size={15} color="#ffffff" />
+                    <Text style={styles.bookSafariBtnText}>Book Expedition</Text>
+                    <ArrowRight size={14} color="#ffffff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
 

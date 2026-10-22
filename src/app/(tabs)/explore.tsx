@@ -26,9 +26,9 @@ import {
   Sparkles,
   User,
 } from 'lucide-react-native';
-import { DB_CATEGORIES, DbCategory } from '../../constants/databaseModels';
-import { getVenues, getPackages } from '../../services/api';
-import { getAdminCustomSections } from '../../services/adminSections';
+import { DbCategory } from '../../constants/databaseModels';
+import { getVenues, getPackages, getCategories } from '../../services/api';
+import { getAdminCustomSections, getAdminCustomCategories } from '../../services/adminSections';
 import RoomDatabase from '../../services/roomDatabase';
 import AdvancedFilterModal, {
   FilterState,
@@ -40,7 +40,7 @@ import WalletModal from '../../components/WalletModal';
 
 const { width } = Dimensions.get('window');
 
-const CATEGORY_FILTERS = [
+const BASE_CATEGORY_FILTERS = [
   'All',
   'Weddings',
   'Birthdays',
@@ -58,7 +58,7 @@ export default function ExploreTab() {
 
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [categories, setCategories] = useState<DbCategory[]>(DB_CATEGORIES);
+  const [categories, setCategories] = useState<DbCategory[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [adminItems, setAdminItems] = useState<any[]>([]);
@@ -73,9 +73,20 @@ export default function ExploreTab() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
 
+  const dynamicCategoryFilters = useMemo(() => {
+    const list = ['All'];
+    categories.forEach((c) => {
+      if (c.type && !list.includes(c.type)) list.push(c.type);
+    });
+    BASE_CATEGORY_FILTERS.forEach((bc) => {
+      if (!list.includes(bc)) list.push(bc);
+    });
+    return list;
+  }, [categories]);
+
   useEffect(() => {
     if (params.category) {
-      const match = CATEGORY_FILTERS.find((c) => c.toLowerCase() === params.category?.toLowerCase());
+      const match = dynamicCategoryFilters.find((c) => c.toLowerCase() === params.category?.toLowerCase());
       if (match) {
         setActiveCategory(match);
         if (!params.search) setSearchQuery('');
@@ -86,21 +97,65 @@ export default function ExploreTab() {
     if (params.search) {
       setSearchQuery(params.search);
     }
-  }, [params.category, params.search]);
+  }, [params.category, params.search, dynamicCategoryFilters]);
 
   useEffect(() => {
-    Promise.all([getVenues(), getPackages(), getAdminCustomSections()])
-      .then(([vList, pList, secList]) => {
+    Promise.all([
+      getVenues(),
+      getPackages(),
+      getAdminCustomSections(),
+      getAdminCustomCategories(),
+      getCategories(),
+    ])
+      .then(([vList, pList, secList, adminCats, apiCats]) => {
         setVenues(vList);
         setPackages(pList);
-        const flattened = (secList || []).flatMap((s: any) =>
+
+        // Build dynamic categories list from admin panel + backend
+        const dynamicCats: DbCategory[] = [];
+        (adminCats || []).forEach((c: any) => {
+          dynamicCats.push({
+            id: c.id,
+            type: c.name,
+            title: c.name,
+            count: `${(c.items || []).length} Options`,
+            image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+            size: 'large',
+          });
+        });
+        (apiCats || []).forEach((c: any) => {
+          if (!dynamicCats.some((dc) => dc.type.toLowerCase() === c.type.toLowerCase())) {
+            dynamicCats.push(c);
+          }
+        });
+        setCategories(dynamicCats);
+
+        // Build flattened items from custom sections and categories
+        const secItems = (secList || []).flatMap((s: any) =>
           (s.items || []).map((it: any) => ({
             ...it,
             sectionTitle: s.title,
             type: it.type || it.itemType || s.title,
           }))
         );
-        setAdminItems(flattened);
+        const catItems = (adminCats || []).flatMap((c: any) =>
+          (c.items || []).map((it: any) => ({
+            ...it,
+            sectionTitle: c.name,
+            type: it.type || it.itemType || c.name,
+          }))
+        );
+
+        const seenIds = new Set<string>();
+        const combinedAdmin: any[] = [];
+        [...secItems, ...catItems].forEach((it: any) => {
+          if (it.id && !seenIds.has(it.id)) {
+            seenIds.add(it.id);
+            combinedAdmin.push(it);
+          }
+        });
+
+        setAdminItems(combinedAdmin);
       })
       .catch(console.warn);
   }, []);
@@ -259,7 +314,7 @@ export default function ExploreTab() {
       if (filters.sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0; // Default featured
     });
-  }, [venues, packages, activeCategory, searchQuery, filters]);
+  }, [venues, packages, adminItems, activeCategory, searchQuery, filters]);
 
   const activeFilterCount =
     (activeCategory !== 'All' ? 1 : 0) +
@@ -350,7 +405,7 @@ export default function ExploreTab() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterChipsRow}
           >
-            {CATEGORY_FILTERS.map((filter) => {
+            {dynamicCategoryFilters.map((filter) => {
               const isActive = activeCategory === filter;
               return (
                 <TouchableOpacity

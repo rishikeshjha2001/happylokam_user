@@ -178,7 +178,7 @@ export default function AuthScreen() {
           location: data.user?.location || location,
           role: data.user?.role || 'USER',
           token: data.token,
-          walletBalance: data.user?.walletBalance || 2450,
+          walletBalance: typeof data.user?.walletBalance === 'number' ? data.user.walletBalance : 0,
           lastLogin: Date.now(),
         });
 
@@ -218,7 +218,7 @@ export default function AuthScreen() {
         location: location || 'Pan-India',
         role: 'USER',
         token: 'token_guest_' + Date.now(),
-        walletBalance: 250,
+        walletBalance: 0,
         lastLogin: Date.now(),
       });
       router.replace('/(tabs)');

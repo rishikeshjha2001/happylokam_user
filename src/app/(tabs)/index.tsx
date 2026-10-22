@@ -151,7 +151,54 @@ export default function HomeTab() {
         getAdminCustomSections(),
         RoomDatabase.getLocation(),
       ]);
-      setSlides(heroData);
+
+      if (heroData && heroData.length > 0) {
+        setSlides(heroData);
+      } else if (customSecs && customSecs.length > 0) {
+        // Automatically populate hero slides from admin uploaded items
+        const dynamicHeroSlides: DbHeroSlide[] = [];
+        customSecs.forEach((sec) => {
+          (sec.items || []).forEach((it: any) => {
+            if (it.image && dynamicHeroSlides.length < 5) {
+              dynamicHeroSlides.push({
+                id: it.id || `slide-${dynamicHeroSlides.length}`,
+                title: it.title || sec.title,
+                subtitle: it.subtitle || sec.subtitle || 'Book with HappyLokam',
+                image: it.image,
+                badge: it.cornerTag || sec.tag || 'FEATURED',
+                gradient: 'from-rose-900/80 to-rose-500/40',
+              });
+            }
+          });
+        });
+
+        if (dynamicHeroSlides.length > 0) {
+          setSlides(dynamicHeroSlides);
+        } else {
+          setSlides([
+            {
+              id: 'hero-def-1',
+              title: 'Royal Celebration Passes & Venues',
+              subtitle: 'Handcrafted luxury celebrations & digital passes',
+              image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+              badge: 'Exclusive',
+              gradient: 'from-rose-900/80 to-rose-500/40',
+            },
+          ]);
+        }
+      } else {
+        setSlides([
+          {
+            id: 'hero-def-1',
+            title: 'Royal Celebration Passes & Venues',
+            subtitle: 'Handcrafted luxury celebrations & digital passes',
+            image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+            badge: 'Exclusive',
+            gradient: 'from-rose-900/80 to-rose-500/40',
+          },
+        ]);
+      }
+
       setVenues(venueData);
       setPackages(pkgData);
       setAdminSections(customSecs);
@@ -294,32 +341,80 @@ export default function HomeTab() {
             style={[styles.heroImage, { opacity: slideOpacity }]}
           />
 
-          {/* Accurate Cinematic Vignette */}
+          {/* Advanced Multi-Layer Optical Cinema Lens Vignette */}
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             <Svg height="100%" width="100%">
               <Defs>
-                <RadialGradient id="cinematicVignette" cx="50%" cy="40%" rx="65%" ry="65%">
+                {/* 1. Master Elliptical Optical Lens Radial Falloff */}
+                <RadialGradient id="masterOpticalLens" cx="50%" cy="38%" rx="72%" ry="65%" fx="50%" fy="38%">
                   <Stop offset="0%" stopColor="#000000" stopOpacity="0" />
-                  <Stop offset="60%" stopColor="#000000" stopOpacity="0.22" />
-                  <Stop offset="100%" stopColor="#000000" stopOpacity="0.78" />
+                  <Stop offset="32%" stopColor="#000000" stopOpacity="0" />
+                  <Stop offset="55%" stopColor="#020617" stopOpacity="0.10" />
+                  <Stop offset="72%" stopColor="#020617" stopOpacity="0.32" />
+                  <Stop offset="85%" stopColor="#020617" stopOpacity="0.60" />
+                  <Stop offset="95%" stopColor="#020617" stopOpacity="0.84" />
+                  <Stop offset="100%" stopColor="#020617" stopOpacity="0.94" />
                 </RadialGradient>
-              </Defs>
-              <Rect x="0" y="0" width="100%" height="100%" fill="url(#cinematicVignette)" />
-            </Svg>
-          </View>
 
-          {/* Smooth Soft Gradient Transition at Bottom */}
-          <View style={styles.heroBottomGradient} pointerEvents="none">
-            <Svg height="100%" width="100%">
-              <Defs>
-                <SvgGradient id="heroSoftFade" x1="0" y1="0" x2="0" y2="1">
+                {/* 2. Four Optical Corner Vignette Gradients */}
+                <RadialGradient id="cornerTL" cx="0%" cy="0%" r="60%">
+                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
+                  <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
+                  <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
+                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                </RadialGradient>
+                <RadialGradient id="cornerTR" cx="100%" cy="0%" r="60%">
+                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
+                  <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
+                  <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
+                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                </RadialGradient>
+                <RadialGradient id="cornerBL" cx="0%" cy="100%" r="65%">
+                  <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
+                  <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
+                  <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
+                  <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                </RadialGradient>
+                <RadialGradient id="cornerBR" cx="100%" cy="100%" r="65%">
+                  <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
+                  <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
+                  <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
+                  <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                </RadialGradient>
+
+                {/* 3. Top Scrim for Status Bar & Header Navigation Clarity */}
+                <SvgGradient id="topNavScrim" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.72" />
+                  <Stop offset="35%" stopColor="#000000" stopOpacity="0.35" />
+                  <Stop offset="70%" stopColor="#000000" stopOpacity="0.08" />
+                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                </SvgGradient>
+
+                {/* 4. Organic Cinema Bottom Scrim for Title & Badge Readability */}
+                <SvgGradient id="bottomCinemaScrim" x1="0" y1="0" x2="0" y2="1">
                   <Stop offset="0%" stopColor="#0f172a" stopOpacity="0" />
-                  <Stop offset="45%" stopColor="#0f172a" stopOpacity="0.2" />
-                  <Stop offset="75%" stopColor="#0f172a" stopOpacity="0.5" />
-                  <Stop offset="100%" stopColor="#0f172a" stopOpacity="0.82" />
+                  <Stop offset="25%" stopColor="#0f172a" stopOpacity="0.15" />
+                  <Stop offset="50%" stopColor="#0f172a" stopOpacity="0.45" />
+                  <Stop offset="75%" stopColor="#0f172a" stopOpacity="0.78" />
+                  <Stop offset="90%" stopColor="#0f172a" stopOpacity="0.92" />
+                  <Stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
                 </SvgGradient>
               </Defs>
-              <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroSoftFade)" />
+
+              {/* Layer 1: Master Elliptical Optical Lens Radial Vignette */}
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#masterOpticalLens)" />
+
+              {/* Layer 2: Four-Corner Lens Falloff Shadows */}
+              <Rect x="0" y="0" width="55%" height="45%" fill="url(#cornerTL)" />
+              <Rect x="45%" y="0" width="55%" height="45%" fill="url(#cornerTR)" />
+              <Rect x="0" y="55%" width="55%" height="45%" fill="url(#cornerBL)" />
+              <Rect x="45%" y="55%" width="55%" height="45%" fill="url(#cornerBR)" />
+
+              {/* Layer 3: Top Navigation & Status Bar Scrim */}
+              <Rect x="0" y="0" width="100%" height="135" fill="url(#topNavScrim)" />
+
+              {/* Layer 4: Bottom Text & Badge Scrim */}
+              <Rect x="0" y="40%" width="100%" height="60%" fill="url(#bottomCinemaScrim)" />
             </Svg>
           </View>
 
@@ -503,99 +598,6 @@ export default function HomeTab() {
 
 
         {/* ========================================== */}
-        {/* HORIZONTAL SECTION: PREMIUM VENUES        */}
-        {/* ========================================== */}
-        <View style={styles.sectionHeaderRow}>
-          <View>
-            <Text style={styles.sectionTitle}>Premium Venues</Text>
-            <Text style={styles.sectionSubtitle}>Handpicked luxury locations</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.viewAllRow}
-            onPress={() => router.push('/(tabs)/explore')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.viewAllText}>View All</Text>
-            <ChevronRight size={14} color="#e11d48" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-        >
-          {venues.map((venue) => {
-            const isLiked = likedIds.includes(venue.id);
-            return (
-              <View key={venue.id} style={styles.horizontalCard}>
-                {/* Image & Wishlist Button */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => handleOpenDetail(venue)}
-                  style={styles.cardImageContainer}
-                >
-                  <Image source={{ uri: venue.image }} style={styles.cardImage} />
-                  <View style={styles.cardImageOverlay} />
-
-                  <TouchableOpacity
-                    style={styles.likeBtn}
-                    onPress={() => toggleLike(venue.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Heart
-                      size={15}
-                      color={isLiked ? '#e11d48' : '#475569'}
-                      fill={isLiked ? '#e11d48' : 'transparent'}
-                    />
-                  </TouchableOpacity>
-
-                  <View style={styles.ratingBadge}>
-                    <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
-                    <Text style={styles.ratingText}>{venue.rating}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Card Info */}
-                <View style={styles.cardContent}>
-                  <TouchableOpacity onPress={() => handleOpenDetail(venue)} activeOpacity={0.85}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {venue.title}
-                    </Text>
-                  </TouchableOpacity>
-                  <View style={styles.locationRow}>
-                    <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
-                    <Text style={styles.locationText} numberOfLines={1}>
-                      {venue.location}
-                    </Text>
-                  </View>
-
-                  <View style={styles.cardFooter}>
-                    <View style={styles.typePill}>
-                      <Text style={styles.typePillText}>{venue.type}</Text>
-                    </View>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.startsAtText}>Starts at</Text>
-                      <Text style={styles.priceValue}>{venue.price}</Text>
-                    </View>
-                  </View>
-
-                  {/* Direct "Book Now" Button */}
-                  <TouchableOpacity
-                    style={styles.cardBookNowBtn}
-                    onPress={() => handleBookNow(venue)}
-                    activeOpacity={0.85}
-                  >
-                    <Ticket size={13} color="#ffffff" />
-                    <Text style={styles.cardBookNowText}>Book Now</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-
-        {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
         {/* ========================================== */}
         {adminSections.map((sec) => (
@@ -741,92 +743,213 @@ export default function HomeTab() {
         ))}
 
         {/* ========================================== */}
+        {/* HORIZONTAL SECTION: PREMIUM VENUES        */}
+        {/* ========================================== */}
+        {venues.length > 0 && (
+          <View style={{ marginTop: 22 }}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionTitle}>Premium Venues</Text>
+                <Text style={styles.sectionSubtitle}>Handpicked luxury locations</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewAllRow}
+                onPress={() => router.push('/(tabs)/explore')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight size={14} color="#e11d48" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {venues.map((venue) => {
+                const isLiked = likedIds.includes(venue.id);
+                return (
+                  <View key={venue.id} style={styles.horizontalCard}>
+                    {/* Image & Wishlist Button */}
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => handleOpenDetail(venue)}
+                      style={styles.cardImageContainer}
+                    >
+                      <Image source={{ uri: venue.image }} style={styles.cardImage} />
+                      <View style={styles.cardImageOverlay} />
+
+                      <TouchableOpacity
+                        style={styles.likeBtn}
+                        onPress={() => toggleLike(venue.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Heart
+                          size={15}
+                          color={isLiked ? '#e11d48' : '#475569'}
+                          fill={isLiked ? '#e11d48' : 'transparent'}
+                        />
+                      </TouchableOpacity>
+
+                      <View style={styles.ratingBadge}>
+                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                        <Text style={styles.ratingText}>{venue.rating}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Card Info */}
+                    <View style={styles.cardContent}>
+                      <TouchableOpacity onPress={() => handleOpenDetail(venue)} activeOpacity={0.85}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {venue.title}
+                        </Text>
+                      </TouchableOpacity>
+                      <View style={styles.locationRow}>
+                        <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
+                        <Text style={styles.locationText} numberOfLines={1}>
+                          {venue.location}
+                        </Text>
+                      </View>
+
+                      <View style={styles.cardFooter}>
+                        <View style={styles.typePill}>
+                          <Text style={styles.typePillText}>{venue.type}</Text>
+                        </View>
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.startsAtText}>Starts at</Text>
+                          <Text style={styles.priceValue}>{venue.price}</Text>
+                        </View>
+                      </View>
+
+                      {/* Direct "Book Now" Button */}
+                      <TouchableOpacity
+                        style={styles.cardBookNowBtn}
+                        onPress={() => handleBookNow(venue)}
+                        activeOpacity={0.85}
+                      >
+                        <Ticket size={13} color="#ffffff" />
+                        <Text style={styles.cardBookNowText}>Book Now</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ========================================== */}
         {/* HORIZONTAL SECTION: CURATED PACKAGES      */}
         {/* ========================================== */}
-        <View style={[styles.sectionHeaderRow, { marginTop: 22 }]}>
-          <View>
-            <Text style={styles.sectionTitle}>Curated Packages</Text>
-            <Text style={styles.sectionSubtitle}>All-inclusive celebrations</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.viewAllRow}
-            onPress={() => router.push('/(tabs)/explore')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.viewAllText}>View All</Text>
-            <ChevronRight size={14} color="#e11d48" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-        >
-          {packages.map((pkg) => {
-            const isLiked = likedIds.includes(pkg.id);
-            return (
-              <View key={pkg.id} style={styles.horizontalCard}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => handleOpenDetail(pkg)}
-                  style={styles.cardImageContainer}
-                >
-                  <Image source={{ uri: pkg.image }} style={styles.cardImage} />
-                  <View style={styles.cardImageOverlay} />
-
-                  <TouchableOpacity
-                    style={styles.likeBtn}
-                    onPress={() => toggleLike(pkg.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Heart
-                      size={15}
-                      color={isLiked ? '#e11d48' : '#475569'}
-                      fill={isLiked ? '#e11d48' : 'transparent'}
-                    />
-                  </TouchableOpacity>
-
-                  <View style={styles.ratingBadge}>
-                    <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
-                    <Text style={styles.ratingText}>{pkg.rating}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <View style={styles.cardContent}>
-                  <TouchableOpacity onPress={() => handleOpenDetail(pkg)} activeOpacity={0.85}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {pkg.title}
-                    </Text>
-                  </TouchableOpacity>
-                  <Text style={styles.tagsText} numberOfLines={1}>
-                    {pkg.tags.join(' • ')}
-                  </Text>
-
-                  <View style={styles.cardFooter}>
-                    <View style={styles.typePill}>
-                      <Text style={styles.typePillText}>{pkg.type}</Text>
-                    </View>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.startsAtText}>Starts at</Text>
-                      <Text style={styles.priceValue}>{pkg.price}</Text>
-                    </View>
-                  </View>
-
-                  {/* Direct "Book Now" Button */}
-                  <TouchableOpacity
-                    style={styles.cardBookNowBtn}
-                    onPress={() => handleBookNow(pkg)}
-                    activeOpacity={0.85}
-                  >
-                    <Ticket size={13} color="#ffffff" />
-                    <Text style={styles.cardBookNowText}>Book Now</Text>
-                  </TouchableOpacity>
-                </View>
+        {packages.length > 0 && (
+          <View style={{ marginTop: 22 }}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionTitle}>Curated Packages</Text>
+                <Text style={styles.sectionSubtitle}>All-inclusive celebrations</Text>
               </View>
-            );
-          })}
-        </ScrollView>
+              <TouchableOpacity
+                style={styles.viewAllRow}
+                onPress={() => router.push('/(tabs)/explore')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight size={14} color="#e11d48" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {packages.map((pkg) => {
+                const isLiked = likedIds.includes(pkg.id);
+                return (
+                  <View key={pkg.id} style={styles.horizontalCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => handleOpenDetail(pkg)}
+                      style={styles.cardImageContainer}
+                    >
+                      <Image source={{ uri: pkg.image }} style={styles.cardImage} />
+                      <View style={styles.cardImageOverlay} />
+
+                      <TouchableOpacity
+                        style={styles.likeBtn}
+                        onPress={() => toggleLike(pkg.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Heart
+                          size={15}
+                          color={isLiked ? '#e11d48' : '#475569'}
+                          fill={isLiked ? '#e11d48' : 'transparent'}
+                        />
+                      </TouchableOpacity>
+
+                      <View style={styles.ratingBadge}>
+                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                        <Text style={styles.ratingText}>{pkg.rating}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.cardContent}>
+                      <TouchableOpacity onPress={() => handleOpenDetail(pkg)} activeOpacity={0.85}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {pkg.title}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={styles.tagsText} numberOfLines={1}>
+                        {pkg.tags.join(' • ')}
+                      </Text>
+
+                      <View style={styles.cardFooter}>
+                        <View style={styles.typePill}>
+                          <Text style={styles.typePillText}>{pkg.type}</Text>
+                        </View>
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.startsAtText}>Starts at</Text>
+                          <Text style={styles.priceValue}>{pkg.price}</Text>
+                        </View>
+                      </View>
+
+                      {/* Direct "Book Now" Button */}
+                      <TouchableOpacity
+                        style={styles.cardBookNowBtn}
+                        onPress={() => handleBookNow(pkg)}
+                        activeOpacity={0.85}
+                      >
+                        <Ticket size={13} color="#ffffff" />
+                        <Text style={styles.cardBookNowText}>Book Now</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Empty state when no sections exist yet */}
+        {adminSections.length === 0 && venues.length === 0 && packages.length === 0 && (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
+            <Sparkles size={40} color="#e11d48" />
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 14 }}>
+              Welcome to HappyLokam
+            </Text>
+            <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+              New celebrations, custom sections, and venue passes uploaded via the Admin Portal will appear here live.
+            </Text>
+            <TouchableOpacity
+              style={{ marginTop: 18, backgroundColor: '#e11d48', paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20 }}
+              onPress={onRefresh}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 13 }}>Refresh Feed 🔄</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Review Booking / Payment Modal */}

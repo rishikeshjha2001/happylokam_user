@@ -12,7 +12,7 @@ import {
   DbCategory,
 } from '../constants/databaseModels';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://happylokam.com/api/v1').replace(/\/$/, '');
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.happylokam.com/api/v1').replace(/\/$/, '');
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
   const session = await RoomDatabase.getUserSession();
@@ -25,12 +25,24 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promi
     headers.Authorization = `Bearer ${session.token}`;
   }
 
-  const res = await fetch(`${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {
-    ...options,
-    headers,
-  });
-
-  return res.json();
+  try {
+    const res = await fetch(`${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {
+      ...options,
+      headers,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { success: false, error: text };
+      }
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn(`[API] Network error on ${endpoint}:`, err);
+    return { success: false, data: [] };
+  }
 }
 
 export const apiClient = {
@@ -48,19 +60,19 @@ export const getHeroSlides = async (): Promise<DbHeroSlide[]> => {
     if (Array.isArray(slides) && slides.length > 0) {
       return slides.map((s: any, idx: number) => ({
         id: s.id || `hero-${idx}`,
-        title: s.title1 ? `${s.title1} ${s.title2 || ''}`.trim() : (s.title || DB_HERO_SLIDES[idx % DB_HERO_SLIDES.length].title),
-        subtitle: s.desc || s.subtitle || DB_HERO_SLIDES[idx % DB_HERO_SLIDES.length].subtitle,
-        image: s.image && s.image.startsWith('http') ? s.image : DB_HERO_SLIDES[idx % DB_HERO_SLIDES.length].image,
+        title: s.title1 ? `${s.title1} ${s.title2 || ''}`.trim() : (s.title || 'Celebration Offer'),
+        subtitle: s.desc || s.subtitle || 'Exclusive deals on grand celebrations',
+        image: s.image && s.image.startsWith('http') ? s.image : 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
         badge: s.badge || 'Featured',
-        gradient: s.gradient ? `from-${s.gradient}` : DB_HERO_SLIDES[idx % DB_HERO_SLIDES.length].gradient,
+        gradient: s.gradient ? `from-${s.gradient}` : 'from-rose-500',
         ctaText: s.ctaText,
         ctaLink: s.ctaLink,
       }));
     }
-    return DB_HERO_SLIDES;
+    return [];
   } catch (error) {
-    console.warn('getHeroSlides fallback to DB seed:', error);
-    return DB_HERO_SLIDES;
+    console.warn('getHeroSlides error:', error);
+    return [];
   }
 };
 
@@ -73,24 +85,24 @@ export const getVenues = async (category = 'All'): Promise<DbVenue[]> => {
     if (Array.isArray(list) && list.length > 0) {
       return list.map((item: any, idx: number) => ({
         id: item.id || `venue-${idx}`,
-        title: item.title || item.name || DB_VENUES[idx % DB_VENUES.length].title,
-        name: item.name || item.title || DB_VENUES[idx % DB_VENUES.length].name,
-        location: item.location || item.city || DB_VENUES[idx % DB_VENUES.length].location,
-        price: typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : (item.price || DB_VENUES[idx % DB_VENUES.length].price),
+        title: item.title || item.name || 'Premium Listing',
+        name: item.name || item.title || 'Premium Listing',
+        location: item.location || item.city || 'India',
+        price: typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : (item.price || 'Contact for price'),
         rating: item.rating || 4.9,
-        reviews: item.reviews || (100 + (idx * 27) % 150),
+        reviews: item.reviews || 120,
         image: Array.isArray(item.images) && item.images[0]?.startsWith('http')
           ? item.images[0]
-          : (typeof item.imageUrl === 'string' && item.imageUrl.startsWith('http') ? item.imageUrl : DB_VENUES[idx % DB_VENUES.length].image),
-        type: item.type || item.category || 'Premium Venue',
-        city: item.city || 'Patna',
-        amenities: item.features || DB_VENUES[idx % DB_VENUES.length].amenities,
+          : (typeof item.imageUrl === 'string' && item.imageUrl.startsWith('http') ? item.imageUrl : 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80'),
+        type: item.type || item.category || 'Venue',
+        city: item.city || 'India',
+        amenities: item.features || [],
       }));
     }
-    return DB_VENUES;
+    return [];
   } catch (error) {
-    console.warn('getVenues fallback to DB seed:', error);
-    return DB_VENUES;
+    console.warn('getVenues error:', error);
+    return [];
   }
 };
 
@@ -102,11 +114,11 @@ export const getPackages = async (): Promise<DbPackage[]> => {
     if (Array.isArray(events) && events.length > 0) {
       return events.map((ev: any, idx: number) => ({
         id: ev.id || `pkg-${idx}`,
-        title: ev.title || DB_PACKAGES[idx % DB_PACKAGES.length].title,
-        tags: Array.isArray(ev.features) && ev.features.length > 0 ? ev.features.slice(0, 3) : DB_PACKAGES[idx % DB_PACKAGES.length].tags,
-        price: typeof ev.price === 'number' ? `₹${ev.price.toLocaleString('en-IN')}` : (ev.price || DB_PACKAGES[idx % DB_PACKAGES.length].price),
+        title: ev.title || 'Celebration Pass',
+        tags: Array.isArray(ev.features) && ev.features.length > 0 ? ev.features.slice(0, 3) : [],
+        price: typeof ev.price === 'number' ? `₹${ev.price.toLocaleString('en-IN')}` : (ev.price || '₹499'),
         rating: ev.rating || 4.9,
-        image: ev.imageUrl && ev.imageUrl.startsWith('http') ? ev.imageUrl : DB_PACKAGES[idx % DB_PACKAGES.length].image,
+        image: ev.imageUrl && ev.imageUrl.startsWith('http') ? ev.imageUrl : 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
         type: ev.category || 'Celebration Pass',
         location: ev.location,
         time: ev.time || '6:00 PM – 11:30 PM',
@@ -114,10 +126,10 @@ export const getPackages = async (): Promise<DbPackage[]> => {
         ticketTiers: ev.ticketTiers,
       }));
     }
-    return DB_PACKAGES;
+    return [];
   } catch (error) {
-    console.warn('getPackages fallback to DB seed:', error);
-    return DB_PACKAGES;
+    console.warn('getPackages error:', error);
+    return [];
   }
 };
 
@@ -129,27 +141,43 @@ export const getLoksafari = async (): Promise<DbLokSafariItem[]> => {
     if (Array.isArray(list) && list.length > 0) {
       return list.map((pkg: any, idx: number) => ({
         id: pkg.id || `safari-${idx}`,
-        title: pkg.title || DB_LOKSAFARI_ITEMS[idx % DB_LOKSAFARI_ITEMS.length].title,
-        duration: pkg.duration || DB_LOKSAFARI_ITEMS[idx % DB_LOKSAFARI_ITEMS.length].duration,
-        price: typeof pkg.price === 'number' ? `₹${pkg.price.toLocaleString('en-IN')}` : (pkg.price || DB_LOKSAFARI_ITEMS[idx % DB_LOKSAFARI_ITEMS.length].price),
+        title: pkg.title || 'LokSafari Tour',
+        duration: pkg.duration || 'Full Day',
+        price: typeof pkg.price === 'number' ? `₹${pkg.price.toLocaleString('en-IN')}` : (pkg.price || '₹1,499'),
         difficulty: (pkg.difficulty || 'Moderate') as any,
         rating: pkg.rating || 4.9,
-        highlights: Array.isArray(pkg.highlights) ? pkg.highlights : DB_LOKSAFARI_ITEMS[idx % DB_LOKSAFARI_ITEMS.length].highlights,
-        image: pkg.imageUrl && pkg.imageUrl.startsWith('http') ? pkg.imageUrl : DB_LOKSAFARI_ITEMS[idx % DB_LOKSAFARI_ITEMS.length].image,
+        highlights: Array.isArray(pkg.highlights) ? pkg.highlights : [],
+        image: pkg.imageUrl && pkg.imageUrl.startsWith('http') ? pkg.imageUrl : 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
         type: pkg.type || 'Eco Expedition',
         location: pkg.location,
       }));
     }
-    return DB_LOKSAFARI_ITEMS;
+    return [];
   } catch (error) {
-    console.warn('getLoksafari fallback to DB seed:', error);
-    return DB_LOKSAFARI_ITEMS;
+    console.warn('getLoksafari error:', error);
+    return [];
   }
 };
 
 // 5. Categories
 export const getCategories = async (): Promise<DbCategory[]> => {
-  return DB_CATEGORIES;
+  try {
+    const data = await apiClient.get('/categories');
+    const list = data?.data || [];
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((c: any) => ({
+        id: c.id,
+        type: c.name,
+        title: c.name,
+        count: `${c.items?.length || 0} Options`,
+        image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+        size: 'large' as const,
+      }));
+    }
+    return [];
+  } catch {
+    return [];
+  }
 };
 
 // 6. User Profile & Wallet from Database
