@@ -9,6 +9,7 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  BackHandler,
 } from 'react-native';
 import {
   Camera,
@@ -50,6 +51,13 @@ export default function ProfileTab() {
 
   useEffect(() => {
     loadSession();
+
+    const onBackPress = () => {
+      router.replace('/(tabs)');
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
   }, []);
 
   const loadSession = async () => {
@@ -60,7 +68,7 @@ export default function ProfileTab() {
         setUserData({
           name: session.name,
           email: session.email || 'user@happylokam.com',
-          balance: typeof session.walletBalance === 'number' ? session.walletBalance : 250,
+          balance: typeof session.walletBalance === 'number' ? session.walletBalance : 0,
           bonus: 0,
         });
       } else {

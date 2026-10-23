@@ -194,13 +194,107 @@ export async function bookSectionItem(
 }
 
 export const PRESET_CELEBRATION_IMAGES = [
-  { label: 'Mandap', title: 'Mandap', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80' },
-  { label: 'Heritage', title: 'Heritage', url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80' },
-  { label: 'Glasshouse', title: 'Glasshouse', url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Birthday', title: 'Birthday', url: 'https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?auto=format&fit=crop&w=1200&q=80' },
-  { label: 'Dandiya', title: 'Dandiya', url: 'https://images.unsplash.com/photo-1604928141064-207cea6f571f?auto=format&fit=crop&w=1200&q=80' },
-  { label: 'Suites', title: 'Suites', url: 'https://images.unsplash.com/photo-1522413452208-99663e031df3?auto=format&fit=crop&w=800&q=80' },
+  { label: 'Happy Birthday Party', title: 'Happy Birthday Party', url: 'https://api.happylokam.com/uploads/birthday_hero.jpg' },
+  { label: 'Royal Wedding Varmala', title: 'Royal Wedding Varmala', url: 'https://api.happylokam.com/uploads/wedding_hero.jpg' },
+  { label: 'Mandap Decor', title: 'Mandap', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Heritage Palace', title: 'Heritage', url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Glasshouse Lawn', title: 'Glasshouse', url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80' },
+  { label: 'Birthday Sparkles', title: 'Birthday', url: 'https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Dandiya Night', title: 'Dandiya', url: 'https://images.unsplash.com/photo-1604928141064-207cea6f571f?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Royal Suites', title: 'Suites', url: 'https://images.unsplash.com/photo-1522413452208-99663e031df3?auto=format&fit=crop&w=800&q=80' },
 ];
+
+const HERO_SLIDES_STORAGE_KEY = '@happylokam_admin_hero_slides_v4';
+
+/**
+ * Fetch Hero Slides from real backend or local cache
+ */
+export async function getAdminHeroSlides(): Promise<any[]> {
+  try {
+    const res = await apiClient.get('/hero-slides');
+    const slides = res?.data || res?.slides || [];
+    if (Array.isArray(slides) && slides.length > 0) {
+      await AsyncStorage.setItem(HERO_SLIDES_STORAGE_KEY, JSON.stringify(slides));
+      return slides;
+    }
+  } catch (err) {
+    console.warn('[AdminHeroSlides] Backend fetch error, loading cache:', err);
+  }
+
+  try {
+    const raw = await AsyncStorage.getItem(HERO_SLIDES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+
+  return [];
+}
+
+/**
+ * Save new or updated Hero Slide (calls POST /hero-slides)
+ */
+export async function saveAdminHeroSlide(slide: {
+  id?: string;
+  image: string;
+  badge?: string;
+  title1: string;
+  title2?: string;
+  desc?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  gradient?: string;
+}): Promise<any[]> {
+  try {
+    await apiClient.post('/hero-slides', {
+      ...slide,
+      title1: slide.title1,
+      title2: slide.title2 || '',
+      desc: slide.desc || '',
+      badge: slide.badge || 'Happylokam Special',
+      image: slide.image,
+      ctaText: slide.ctaText || 'Search Packages',
+      ctaLink: slide.ctaLink || '/search',
+      gradient: slide.gradient || 'from-rose-500 to-rose-700',
+    });
+  } catch (err) {
+    console.warn('saveAdminHeroSlide backend error:', err);
+  }
+
+  const current = await getAdminHeroSlides();
+  const newSlide = {
+    id: slide.id || `slide_${Date.now()}`,
+    title: `${slide.title1} ${slide.title2 || ''}`.trim(),
+    subtitle: slide.desc || '',
+    badge: slide.badge || 'Happylokam Special',
+    image: slide.image,
+    gradient: slide.gradient || 'from-rose-500 to-rose-700',
+    ctaText: slide.ctaText || 'Search Packages',
+    ctaLink: slide.ctaLink || '/search',
+  };
+
+  const updated = [newSlide, ...current.filter((s: any) => s.id !== newSlide.id)];
+  await AsyncStorage.setItem(HERO_SLIDES_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+/**
+ * Delete Hero Slide by ID (calls DELETE /hero-slides/:id)
+ */
+export async function deleteAdminHeroSlide(slideId: string): Promise<any[]> {
+  try {
+    await apiClient.delete(`/hero-slides/${slideId}`);
+  } catch (err) {
+    console.warn('deleteAdminHeroSlide backend error:', err);
+  }
+
+  const current = await getAdminHeroSlides();
+  const updated = current.filter((s: any) => s.id !== slideId);
+  await AsyncStorage.setItem(HERO_SLIDES_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
 
 export async function saveAdminCustomSection(section: AdminCustomSection): Promise<AdminCustomSection[]> {
   try {
@@ -249,4 +343,83 @@ export async function deleteAdminSectionItem(sectionId: string, itemId: string):
   await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updated));
   return updated;
 }
+
+export async function saveAdminCustomCategory(category: AdminCustomCategory): Promise<AdminCustomCategory[]> {
+  try {
+    await apiClient.post('/categories', {
+      name: category.name,
+      image: category.image,
+      tag: category.tag,
+      order: category.order || 0,
+    });
+  } catch (err) {
+    console.warn('saveAdminCustomCategory backend error:', err);
+  }
+  const current = await getAdminCustomCategories();
+  const existingIdx = current.findIndex((c) => c.id === category.id);
+  let updated: AdminCustomCategory[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = category;
+  } else {
+    updated = [category, ...current];
+  }
+  await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export async function deleteAdminCustomCategory(categoryId: string): Promise<AdminCustomCategory[]> {
+  try {
+    await apiClient.delete(`/categories/${categoryId}`);
+  } catch (err) {
+    console.warn('deleteAdminCustomCategory backend error:', err);
+  }
+  const current = await getAdminCustomCategories();
+  const updated = current.filter((c) => c.id !== categoryId);
+  await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export async function saveAdminSectionItem(
+  item: AdminSectionItem,
+  target: { sectionId?: string; categoryId?: string }
+): Promise<{ sections: AdminCustomSection[]; categories: AdminCustomCategory[] }> {
+  try {
+    await apiClient.post('/sections/items', {
+      ...item,
+      sectionId: target.sectionId,
+      categoryId: target.categoryId,
+    });
+  } catch (err) {
+    console.warn('saveAdminSectionItem backend error:', err);
+  }
+
+  let updatedSections = await getAdminCustomSections();
+  let updatedCategories = await getAdminCustomCategories();
+
+  if (target.sectionId) {
+    updatedSections = updatedSections.map((s) => {
+      if (s.id === target.sectionId) {
+        const items = s.items ? [...s.items.filter((i) => i.id !== item.id), item] : [item];
+        return { ...s, items };
+      }
+      return s;
+    });
+    await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(updatedSections));
+  }
+
+  if (target.categoryId) {
+    updatedCategories = updatedCategories.map((c) => {
+      if (c.id === target.categoryId) {
+        const items = c.items ? [...c.items.filter((i) => i.id !== item.id), item] : [item];
+        return { ...c, items };
+      }
+      return c;
+    });
+    await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(updatedCategories));
+  }
+
+  return { sections: updatedSections, categories: updatedCategories };
+}
+
 

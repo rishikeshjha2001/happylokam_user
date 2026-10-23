@@ -51,12 +51,16 @@ import { DbHeroSlide, DbVenue, DbPackage } from '../../constants/databaseModels'
 import RoomDatabase from '../../services/roomDatabase';
 import {
   AdminCustomSection,
+  AdminCustomCategory,
   getAdminCustomSections,
+  getAdminCustomCategories,
 } from '../../services/adminSections';
 import PaymentModal from '../../components/PaymentModal';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import AdminSectionModal from '../../components/AdminSectionModal';
+import CelebrationDialog from '../../components/CelebrationDialog';
+import OtaSync from '../../services/otaSync';
 
 const { width } = Dimensions.get('window');
 
@@ -74,6 +78,7 @@ export default function HomeTab() {
   const [venues, setVenues] = useState<DbVenue[]>([]);
   const [packages, setPackages] = useState<DbPackage[]>([]);
   const [adminSections, setAdminSections] = useState<AdminCustomSection[]>([]);
+  const [adminCategories, setAdminCategories] = useState<AdminCustomCategory[]>([]);
   const [userProfile, setUserProfile] = useState<{ name: string; email: string; balance: number } | null>(null);
 
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -88,6 +93,7 @@ export default function HomeTab() {
   const [isWalletOpen, setWalletOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [detectingGps, setDetectingGps] = useState(false);
 
   const CITIES_LIST = [
@@ -143,14 +149,24 @@ export default function HomeTab() {
 
   const loadData = async () => {
     try {
-      const [heroData, venueData, pkgData, session, customSecs, savedLoc] = await Promise.all([
+      const [heroData, venueData, pkgData, session, customSecs, customCats, savedLoc, favs] = await Promise.all([
         getHeroSlides(),
         getVenues(),
         getPackages(),
         RoomDatabase.getUserSession(),
         getAdminCustomSections(),
+        getAdminCustomCategories(),
         RoomDatabase.getLocation(),
+        RoomDatabase.getFavorites(),
       ]);
+
+      if (favs && Array.isArray(favs)) {
+        setLikedIds(favs.map((f: any) => f.id));
+      }
+
+      if (customCats && Array.isArray(customCats)) {
+        setAdminCategories(customCats);
+      }
 
       if (heroData && heroData.length > 0) {
         setSlides(heroData);
@@ -222,21 +238,24 @@ export default function HomeTab() {
   useEffect(() => {
     loadData();
 
-    // Hardware back press listener on Home screen with confirmation
+    // Start live OTA auto-sync for instant updates when admin uploads new items
+    OtaSync.startAutoSync(20000);
+    const unsubscribeOta = OtaSync.subscribe(() => {
+      loadData();
+    });
+
+    // Hardware back press listener on Home screen with premium confirmation dialog
     const backAction = () => {
-      Alert.alert(
-        'Exit HappyLokam? 🏰',
-        'Are you sure you want to exit the application?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes, Exit', style: 'destructive', onPress: () => BackHandler.exitApp() },
-        ]
-      );
+      setShowExitDialog(true);
       return true;
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-    return () => backHandler.remove();
+    return () => {
+      backHandler.remove();
+      unsubscribeOta();
+      OtaSync.stopAutoSync();
+    };
   }, []);
 
   // Slide rotation timer
@@ -258,8 +277,14 @@ export default function HomeTab() {
     setRefreshing(false);
   };
 
-  const toggleLike = (id: string) => {
-    setLikedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  const toggleLike = async (item: any) => {
+    const itemObj = typeof item === 'string' ? { id: item, title: 'Saved Item' } : item;
+    try {
+      const isNowFav = await RoomDatabase.toggleFavorite(itemObj);
+      setLikedIds((prev) => (isNowFav ? [...prev, itemObj.id] : prev.filter((i) => i !== itemObj.id)));
+    } catch {
+      setLikedIds((prev) => (prev.includes(itemObj.id) ? prev.filter((i) => i !== itemObj.id) : [...prev, itemObj.id]));
+    }
   };
 
   const handleOpenDetail = (item: any) => {
@@ -598,6 +623,65 @@ export default function HomeTab() {
 
 
         {/* ========================================== */}
+        {/* DYNAMIC ADMIN CUSTOM CATEGORIES            */}
+        {/* ========================================== */}
+        {adminCategories.length > 0 && (
+          <View style={{ marginTop: 22 }}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <View style={styles.secCustomTagPill}>
+                  <Text style={styles.secCustomTagText}>CURATED THEMES</Text>
+                </View>
+                <Text style={styles.sectionTitle}>Celebration Categories</Text>
+                <Text style={styles.sectionSubtitle}>Handpicked themes, catering & venues</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewAllRow}
+                onPress={() => router.push('/(tabs)/explore')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight size={14} color="#e11d48" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {adminCategories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={styles.catBannerCard}
+                  activeOpacity={0.88}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/explore',
+                      params: { category: cat.name },
+                    })
+                  }
+                >
+                  <Image source={{ uri: cat.image }} style={styles.catBannerImg} />
+                  <View style={styles.catBannerOverlay} />
+                  {cat.tag && (
+                    <View style={styles.catTagBadge}>
+                      <Text style={styles.catTagBadgeText}>{cat.tag}</Text>
+                    </View>
+                  )}
+                  <View style={styles.catBannerContent}>
+                    <Text style={styles.catBannerTitle} numberOfLines={1}>{cat.name}</Text>
+                    <Text style={styles.catBannerSub}>
+                      {cat.items?.length ? `${cat.items.length} Celebration Items` : 'Explore Collection'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
         {/* ========================================== */}
         {adminSections.map((sec) => (
@@ -661,7 +745,7 @@ export default function HomeTab() {
 
                       <TouchableOpacity
                         style={styles.likeBtn}
-                        onPress={() => toggleLike(it.id)}
+                        onPress={() => toggleLike(it)}
                         activeOpacity={0.8}
                       >
                         <Heart
@@ -782,7 +866,7 @@ export default function HomeTab() {
 
                       <TouchableOpacity
                         style={styles.likeBtn}
-                        onPress={() => toggleLike(venue.id)}
+                        onPress={() => toggleLike(venue)}
                         activeOpacity={0.8}
                       >
                         <Heart
@@ -878,7 +962,7 @@ export default function HomeTab() {
 
                       <TouchableOpacity
                         style={styles.likeBtn}
-                        onPress={() => toggleLike(pkg.id)}
+                        onPress={() => toggleLike(pkg)}
                         activeOpacity={0.8}
                       >
                         <Heart
@@ -987,6 +1071,8 @@ export default function HomeTab() {
         sections={adminSections}
         onClose={() => setIsAdminModalOpen(false)}
         onSectionsUpdated={(updated) => setAdminSections(updated)}
+        onCategoriesUpdated={(updated) => setAdminCategories(updated)}
+        onHeroSlidesUpdated={(updated) => setSlides(updated)}
       />
 
       {/* Location Selector Modal */}
@@ -1048,6 +1134,19 @@ export default function HomeTab() {
           </View>
         </View>
       </Modal>
+
+      {/* Premium Exit Confirmation Modal */}
+      <CelebrationDialog
+        visible={showExitDialog}
+        type="exit"
+        badgeText="EXIT APPLICATION"
+        title="Leaving HappyLokam? 🏰"
+        message="Are you sure you want to exit the application, or would you like to stay and continue exploring grand venues and celebration passes?"
+        confirmText="Exit App"
+        cancelText="Stay & Explore ✨"
+        onConfirm={() => BackHandler.exitApp()}
+        onCancel={() => setShowExitDialog(false)}
+      />
     </View>
   );
 }
@@ -1733,4 +1832,65 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+  catBannerCard: {
+    width: 170,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0f172a',
+    marginRight: 12,
+    position: 'relative',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  catBannerImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  catBannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  catTagBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#e11d48',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  catTagBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  catBannerContent: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+  },
+  catBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.2,
+  },
+  catBannerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 2,
+  },
 });
+

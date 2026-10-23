@@ -9,6 +9,8 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  BackHandler,
+  RefreshControl,
 } from 'react-native';
 import {
   Menu,
@@ -19,10 +21,12 @@ import {
   ChevronRight,
   ShieldCheck,
   User,
+  Sparkles,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
+import { apiClient } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 
@@ -35,15 +39,68 @@ export default function BookingsTab() {
   const [filter, setFilter] = useState<'Active' | 'Past'>('Active');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    RoomDatabase.isAuthenticated().then((authed) => {
-      setIsAuthenticated(authed);
-      if (authed) {
-        RoomDatabase.getBookings().then(setBookings).catch(console.warn);
-      }
-    }).catch(() => setIsAuthenticated(false));
+    // Back navigation on Android returns to Home
+    const onBackPress = () => {
+      router.replace('/(tabs)');
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    loadBookingsData();
+
+    return () => backSub.remove();
   }, []);
+
+  const loadBookingsData = async () => {
+    try {
+      const authed = await RoomDatabase.isAuthenticated();
+      setIsAuthenticated(authed);
+      const local = await RoomDatabase.getBookings();
+
+      // Attempt live server fetch for online bookings
+      try {
+        const res = await apiClient.get('/sections/bookings/my');
+        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          const serverBookings: RoomBooking[] = res.data.map((sb: any) => ({
+            id: sb.id,
+            title: sb.item?.title || 'Celebration Pass',
+            category: sb.item?.itemType || 'Custom Booking',
+            date: sb.bookingDate || new Date().toISOString().split('T')[0],
+            amount: sb.totalAmount || 0,
+            status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+            ticketsCount: sb.quantity || 1,
+            createdAt: sb.createdAt,
+            qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
+            serverVerified: true,
+          }));
+
+          const combined = [...local];
+          serverBookings.forEach((sb) => {
+            if (!combined.some((c) => c.id === sb.id)) {
+              combined.push(sb);
+            }
+          });
+          setBookings(combined);
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend bookings fetch fallback to local:', err);
+      }
+
+      setBookings(local);
+    } catch (e) {
+      console.warn('loadBookingsData error:', e);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadBookingsData();
+    setRefreshing(false);
+  };
 
   const filteredBookings = bookings.filter((b) =>
     filter === 'Active' ? b.status !== 'CANCELLED' : b.status === 'CANCELLED'
@@ -81,7 +138,11 @@ export default function BookingsTab() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomScrollPadding }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomScrollPadding }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e11d48']} />}
+      >
         <View style={styles.titleSection}>
           <Text style={styles.pageTitle}>My Bookings</Text>
           <Text style={styles.pageSubtitle}>Verified celebration gate passes & QR admissions</Text>
@@ -155,7 +216,21 @@ export default function BookingsTab() {
                   <Text style={styles.passAmount}>₹{booking.amount?.toLocaleString('en-IN')}</Text>
                   <TouchableOpacity
                     style={styles.viewPassBtn}
-                    onPress={() => {}}
+                    onPress={() => {
+                      router.push({
+                        pathname: '/booking-detail',
+                        params: {
+                          id: booking.id,
+                          title: booking.title,
+                          date: booking.date,
+                          amount: String(booking.amount),
+                          category: booking.category,
+                          qrCode: booking.qrCode,
+                          ticketsCount: String(booking.ticketsCount || 1),
+                          status: booking.status,
+                        },
+                      });
+                    }}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.viewPassText}>View Pass</Text>

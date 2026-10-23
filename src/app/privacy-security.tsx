@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +23,20 @@ import RoomDatabase from '../services/roomDatabase';
 export default function PrivacySecurityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener('hardwareBackPress', handleGoBack);
+    return () => backSub.remove();
+  }, []);
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -48,7 +63,7 @@ export default function PrivacySecurityScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleGoBack}
           style={styles.backBtn}
           activeOpacity={0.7}
         >

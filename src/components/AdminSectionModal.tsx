@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -23,21 +23,34 @@ import {
   MapPin,
   Check,
   ChevronDown,
+  FolderPlus,
+  Ticket,
 } from 'lucide-react-native';
 import {
   AdminCustomSection,
+  AdminCustomCategory,
   AdminSectionItem,
   PRESET_CELEBRATION_IMAGES,
   saveAdminCustomSection,
   deleteAdminCustomSection,
   deleteAdminSectionItem,
+  saveAdminCustomCategory,
+  deleteAdminCustomCategory,
+  saveAdminSectionItem,
+  getAdminCustomCategories,
+  saveAdminHeroSlide,
+  deleteAdminHeroSlide,
+  getAdminHeroSlides,
 } from '../services/adminSections';
+import OtaSync from '../services/otaSync';
 
 interface AdminSectionModalProps {
   visible: boolean;
   sections: AdminCustomSection[];
   onClose: () => void;
   onSectionsUpdated: (sections: AdminCustomSection[]) => void;
+  onCategoriesUpdated?: (categories: AdminCustomCategory[]) => void;
+  onHeroSlidesUpdated?: (heroSlides: any[]) => void;
 }
 
 export default function AdminSectionModal({
@@ -45,16 +58,31 @@ export default function AdminSectionModal({
   sections,
   onClose,
   onSectionsUpdated,
+  onCategoriesUpdated,
+  onHeroSlidesUpdated,
 }: AdminSectionModalProps) {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+  const [activeTab, setActiveTab] = useState<'create-section' | 'create-category' | 'create-banner' | 'create-item' | 'manage'>('create-section');
 
-  // Form states for creating a new section with an initial item
+  // Categories list
+  const [categories, setCategories] = useState<AdminCustomCategory[]>([]);
+  // Hero slides list
+  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+
+  // Section Form States
   const [secTitle, setSecTitle] = useState('');
   const [secSubtitle, setSecSubtitle] = useState('');
   const [secTag, setSecTag] = useState('');
 
-  // Item states
+  // Category Form States
+  const [catName, setCatName] = useState('');
+  const [catTag, setCatTag] = useState('');
+  const [catImage, setCatImage] = useState(PRESET_CELEBRATION_IMAGES[0].url);
+  const [customCatImageUrl, setCustomCatImageUrl] = useState('');
+
+  // Item Form States
+  const [itemTargetType, setItemTargetType] = useState<'section' | 'category'>('section');
+  const [targetId, setTargetId] = useState<string>('');
   const [itemTitle, setItemTitle] = useState('');
   const [itemLocation, setItemLocation] = useState('');
   const [itemPrice, setItemPrice] = useState('₹1.2L');
@@ -65,8 +93,87 @@ export default function AdminSectionModal({
   const [itemTags, setItemTags] = useState('Mandap, Lawn, Valet');
   const [selectedImage, setSelectedImage] = useState(PRESET_CELEBRATION_IMAGES[0].url);
   const [customImageUrl, setCustomImageUrl] = useState('');
-  const [showImagePicker, setShowImagePicker] = useState(false);
 
+  // Hero Banner Form States
+  const [bannerTitle1, setBannerTitle1] = useState('Happy Birthday Grand Celebrations');
+  const [bannerTitle2, setBannerTitle2] = useState('Live party decor, gourmet cake & DJ fun');
+  const [bannerBadge, setBannerBadge] = useState('Happylokam Special');
+  const [bannerDesc, setBannerDesc] = useState('Book handcrafted birthday celebration passes & themes');
+  const [bannerCtaText, setBannerCtaText] = useState('Explore Birthday Themes');
+  const [bannerCtaLink, setBannerCtaLink] = useState('/explore?category=Birthday Themes');
+  const [bannerImage, setBannerImage] = useState(PRESET_CELEBRATION_IMAGES[0].url);
+  const [customBannerImageUrl, setCustomBannerImageUrl] = useState('');
+
+  useEffect(() => {
+    if (visible) {
+      getAdminCustomCategories().then((cats) => {
+        setCategories(cats || []);
+        if (cats && cats.length > 0 && !targetId) {
+          setTargetId(cats[0].id);
+        }
+      }).catch(() => {});
+      if (sections && sections.length > 0 && !targetId) {
+        setTargetId(sections[0].id);
+      }
+      getAdminHeroSlides().then((slides) => {
+        setHeroSlides(slides || []);
+      }).catch(() => {});
+    }
+  }, [visible, sections]);
+
+  // Save New Hero Banner
+  const handleSaveBanner = async () => {
+    if (!bannerTitle1.trim()) {
+      Alert.alert('Banner Title Required', 'Please enter a main title for this hero banner.');
+      return;
+    }
+    const finalImage = customBannerImageUrl.trim() || bannerImage;
+    if (!finalImage) {
+      Alert.alert('Banner Image Required', 'Please select or provide an image URL for the banner.');
+      return;
+    }
+
+    try {
+      const updated = await saveAdminHeroSlide({
+        image: finalImage,
+        title1: bannerTitle1.trim(),
+        title2: bannerTitle2.trim(),
+        badge: bannerBadge.trim() || 'Happylokam Special',
+        desc: bannerDesc.trim(),
+        ctaText: bannerCtaText.trim() || 'Explore Celebration',
+        ctaLink: bannerCtaLink.trim() || '/explore',
+      });
+      setHeroSlides(updated);
+      if (onHeroSlidesUpdated) onHeroSlidesUpdated(updated);
+      OtaSync.triggerSync();
+      Alert.alert('Hero Banner Posted! 🚀', 'Your hero banner is now live in the home screen carousel.');
+      setBannerTitle1('');
+      setBannerTitle2('');
+      setCustomBannerImageUrl('');
+      setActiveTab('manage');
+    } catch {
+      Alert.alert('Error', 'Failed to publish hero banner. Please try again.');
+    }
+  };
+
+  // Delete Hero Slide
+  const handleDeleteHeroSlide = async (slideId: string, title: string) => {
+    Alert.alert('Delete Banner', `Are you sure you want to remove "${title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const updated = await deleteAdminHeroSlide(slideId);
+          setHeroSlides(updated);
+          if (onHeroSlidesUpdated) onHeroSlidesUpdated(updated);
+          OtaSync.triggerSync();
+        },
+      },
+    ]);
+  };
+
+  // Save New Section (with initial item)
   const handleSaveSection = async () => {
     if (!secTitle.trim()) {
       Alert.alert('Section Title Required', 'Please enter a name for the new section.');
@@ -107,8 +214,7 @@ export default function AdminSectionModal({
     try {
       const updated = await saveAdminCustomSection(newSection);
       onSectionsUpdated(updated);
-      Alert.alert('Section Created!', `"${secTitle}" is now live on the Home screen.`);
-      // Reset form
+      Alert.alert('Section Created! 🎉', `"${secTitle}" is now live on the Home screen.`);
       setSecTitle('');
       setSecSubtitle('');
       setSecTag('');
@@ -116,29 +222,123 @@ export default function AdminSectionModal({
       setItemLocation('');
       setCustomImageUrl('');
       setActiveTab('manage');
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Failed to save section. Please try again.');
     }
   };
 
-  const handleDeleteSection = async (sectionId: string, title: string) => {
-    Alert.alert(
-      'Delete Section',
-      `Are you sure you want to remove "${title}" from Home?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const updated = await deleteAdminCustomSection(sectionId);
-            onSectionsUpdated(updated);
-          },
-        },
-      ]
-    );
+  // Save New Category
+  const handleSaveCategory = async () => {
+    if (!catName.trim()) {
+      Alert.alert('Category Name Required', 'Please enter a name for the new celebration category.');
+      return;
+    }
+
+    const finalCatImage = customCatImageUrl.trim() || catImage;
+    const newCategory: AdminCustomCategory = {
+      id: `cat_${Date.now()}`,
+      name: catName.trim(),
+      image: finalCatImage,
+      tag: catTag.trim() || 'Trending',
+      createdAt: new Date().toISOString(),
+      items: [],
+    };
+
+    try {
+      const updated = await saveAdminCustomCategory(newCategory);
+      setCategories(updated);
+      if (onCategoriesUpdated) onCategoriesUpdated(updated);
+      Alert.alert('Category Created! 🎂', `"${catName}" is now available in Explore & Home.`);
+      setCatName('');
+      setCatTag('');
+      setCustomCatImageUrl('');
+      setActiveTab('manage');
+    } catch {
+      Alert.alert('Error', 'Failed to save category. Please try again.');
+    }
   };
 
+  // Save Item to existing Section or Category
+  const handleSaveItem = async () => {
+    if (!itemTitle.trim()) {
+      Alert.alert('Item Title Required', 'Please enter a title for this celebration item.');
+      return;
+    }
+    if (!targetId) {
+      Alert.alert('Target Required', `Please select a ${itemTargetType} to attach this item to.`);
+      return;
+    }
+
+    const finalImage = customImageUrl.trim() || selectedImage;
+    const newItem: AdminSectionItem = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      sectionId: itemTargetType === 'section' ? targetId : undefined,
+      categoryId: itemTargetType === 'category' ? targetId : undefined,
+      title: itemTitle.trim(),
+      location: itemLocation.trim() || 'Pan-India',
+      type: itemType.trim() || 'Featured',
+      itemType: itemBookingType,
+      price: parseFloat(itemPrice.replace(/[^\d.]/g, '')) || 50000,
+      priceUnit: itemPrice.trim() || '₹50,000',
+      availableDates: availableDates.split(',').map((d) => d.trim()).filter(Boolean),
+      totalSlots: 100,
+      bookedSlots: 0,
+      rating: parseFloat(itemRating) || 4.9,
+      reviews: Math.floor(Math.random() * 80) + 40,
+      image: finalImage,
+      tags: itemTags ? itemTags.split(',').map((t) => t.trim()).filter(Boolean) : ['Verified'],
+    };
+
+    try {
+      const result = await saveAdminSectionItem(newItem, {
+        sectionId: itemTargetType === 'section' ? targetId : undefined,
+        categoryId: itemTargetType === 'category' ? targetId : undefined,
+      });
+      onSectionsUpdated(result.sections);
+      setCategories(result.categories);
+      if (onCategoriesUpdated) onCategoriesUpdated(result.categories);
+      Alert.alert('Item Added! ✨', `"${itemTitle}" has been added successfully.`);
+      setItemTitle('');
+      setItemLocation('');
+      setCustomImageUrl('');
+      setActiveTab('manage');
+    } catch {
+      Alert.alert('Error', 'Failed to add item. Please try again.');
+    }
+  };
+
+  // Delete Section
+  const handleDeleteSection = async (sectionId: string, title: string) => {
+    Alert.alert('Delete Section', `Are you sure you want to remove "${title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const updated = await deleteAdminCustomSection(sectionId);
+          onSectionsUpdated(updated);
+        },
+      },
+    ]);
+  };
+
+  // Delete Category
+  const handleDeleteCategory = async (categoryId: string, name: string) => {
+    Alert.alert('Delete Category', `Are you sure you want to remove "${name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const updated = await deleteAdminCustomCategory(categoryId);
+          setCategories(updated);
+          if (onCategoriesUpdated) onCategoriesUpdated(updated);
+        },
+      },
+    ]);
+  };
+
+  // Delete Item
   const handleDeleteItem = async (sectionId: string, itemId: string) => {
     const updated = await deleteAdminSectionItem(sectionId, itemId);
     onSectionsUpdated(updated);
@@ -156,8 +356,8 @@ export default function AdminSectionModal({
                 <Text style={styles.adminBadgeText}>ADMIN CONTROL</Text>
               </View>
             </View>
-            <Text style={styles.headerTitle}>Section Manager</Text>
-            <Text style={styles.headerSubtitle}>Add new dynamic sections & items to Home</Text>
+            <Text style={styles.headerTitle}>Section & Category Manager</Text>
+            <Text style={styles.headerSubtitle}>Add new dynamic sections, categories & items</Text>
           </View>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
             <X size={20} color="#64748b" />
@@ -165,15 +365,48 @@ export default function AdminSectionModal({
         </View>
 
         {/* Tab Switcher */}
-        <View style={styles.tabSwitcher}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabSwitcher}>
           <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'create' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('create')}
+            style={[styles.tabButton, activeTab === 'create-section' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('create-section')}
             activeOpacity={0.8}
           >
-            <Plus size={16} color={activeTab === 'create' ? '#e11d48' : '#64748b'} />
-            <Text style={[styles.tabButtonText, activeTab === 'create' && styles.tabButtonTextActive]}>
-              Add New Section
+            <Layers size={15} color={activeTab === 'create-section' ? '#e11d48' : '#64748b'} />
+            <Text style={[styles.tabButtonText, activeTab === 'create-section' && styles.tabButtonTextActive]}>
+              + Section
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'create-category' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('create-category')}
+            activeOpacity={0.8}
+          >
+            <FolderPlus size={15} color={activeTab === 'create-category' ? '#e11d48' : '#64748b'} />
+            <Text style={[styles.tabButtonText, activeTab === 'create-category' && styles.tabButtonTextActive]}>
+              + Category
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'create-item' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('create-item')}
+            activeOpacity={0.8}
+          >
+            <Ticket size={15} color={activeTab === 'create-item' ? '#e11d48' : '#64748b'} />
+            <Text style={[styles.tabButtonText, activeTab === 'create-item' && styles.tabButtonTextActive]}>
+              + Item
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'create-banner' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('create-banner')}
+            activeOpacity={0.8}
+          >
+            <ImageIcon size={15} color={activeTab === 'create-banner' ? '#e11d48' : '#64748b'} />
+            <Text style={[styles.tabButtonText, activeTab === 'create-banner' && styles.tabButtonTextActive]}>
+              + Banner
             </Text>
           </TouchableOpacity>
 
@@ -182,26 +415,19 @@ export default function AdminSectionModal({
             onPress={() => setActiveTab('manage')}
             activeOpacity={0.8}
           >
-            <Layers size={16} color={activeTab === 'manage' ? '#e11d48' : '#64748b'} />
+            <Sparkles size={15} color={activeTab === 'manage' ? '#e11d48' : '#64748b'} />
             <Text style={[styles.tabButtonText, activeTab === 'manage' && styles.tabButtonTextActive]}>
-              Live Sections ({sections.length})
+              Manage ({sections.length + categories.length + heroSlides.length})
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
-        {/* Content Body */}
-        <ScrollView
-          style={styles.scrollBody}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {activeTab === 'create' ? (
+        <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* TAB 1: CREATE SECTION */}
+          {activeTab === 'create-section' && (
             <View style={styles.formContainer}>
-              {/* Section Details Group */}
               <View style={styles.cardSection}>
                 <Text style={styles.sectionHeaderLabel}>1. SECTION HEADER DETAILS</Text>
-                
                 <Text style={styles.inputLabel}>Section Title *</Text>
                 <TextInput
                   style={styles.textInput}
@@ -230,10 +456,8 @@ export default function AdminSectionModal({
                 />
               </View>
 
-              {/* First Item in Section */}
               <View style={styles.cardSection}>
                 <Text style={styles.sectionHeaderLabel}>2. ADD FIRST CELEBRATION ITEM</Text>
-
                 <Text style={styles.inputLabel}>Item Title *</Text>
                 <TextInput
                   style={styles.textInput}
@@ -248,7 +472,7 @@ export default function AdminSectionModal({
                     <Text style={styles.inputLabel}>Location / City</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="e.g. Udaipur, RJ"
+                      placeholder="e.g. Patna, Bihar"
                       placeholderTextColor="#94a3b8"
                       value={itemLocation}
                       onChangeText={setItemLocation}
@@ -266,26 +490,214 @@ export default function AdminSectionModal({
                   </View>
                 </View>
 
+                {/* Booking Type Selector */}
+                <Text style={styles.inputLabel}>Admission / Reservation Type</Text>
+                <View style={styles.typeSelectorRow}>
+                  <TouchableOpacity
+                    style={[styles.typePill, itemBookingType === 'BOOKING' && styles.typePillActive]}
+                    onPress={() => setItemBookingType('BOOKING')}
+                  >
+                    <Text style={[styles.typePillText, itemBookingType === 'BOOKING' && styles.typePillTextActive]}>
+                      🗓️ Reservation
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.typePill, itemBookingType === 'TICKET' && styles.typePillActive]}
+                    onPress={() => setItemBookingType('TICKET')}
+                  >
+                    <Text style={[styles.typePillText, itemBookingType === 'TICKET' && styles.typePillTextActive]}>
+                      🎟️ Digital Gate Pass
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Preset Image Picker */}
+                <Text style={styles.inputLabel}>Select Cover Image</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+                  {PRESET_CELEBRATION_IMAGES.map((img) => {
+                    const isSelected = selectedImage === img.url && !customImageUrl;
+                    return (
+                      <TouchableOpacity
+                        key={img.label}
+                        onPress={() => {
+                          setSelectedImage(img.url);
+                          setCustomImageUrl('');
+                        }}
+                        style={[styles.imageThumbWrap, isSelected && styles.imageThumbSelected]}
+                      >
+                        <Image source={{ uri: img.url }} style={styles.imageThumb} />
+                        <Text style={styles.imageThumbLabel}>{img.label}</Text>
+                        {isSelected && (
+                          <View style={styles.selectedCheck}>
+                            <Check size={12} color="#ffffff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <Text style={styles.inputLabel}>Or Enter Custom Image URL</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://images.unsplash.com/..."
+                  placeholderTextColor="#94a3b8"
+                  value={customImageUrl}
+                  onChangeText={setCustomImageUrl}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveSection} activeOpacity={0.88}>
+                <Sparkles size={18} color="#ffffff" />
+                <Text style={styles.submitBtnText}>Publish Section to Home</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 2: CREATE CATEGORY */}
+          {activeTab === 'create-category' && (
+            <View style={styles.formContainer}>
+              <View style={styles.cardSection}>
+                <Text style={styles.sectionHeaderLabel}>NEW CELEBRATION CATEGORY</Text>
+                <Text style={styles.inputLabel}>Category Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Baby Shower, Wedding Themes, Office Events"
+                  placeholderTextColor="#94a3b8"
+                  value={catName}
+                  onChangeText={setCatName}
+                />
+
+                <Text style={styles.inputLabel}>Category Badge / Tag</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. VIP, Trending, Special Offer"
+                  placeholderTextColor="#94a3b8"
+                  value={catTag}
+                  onChangeText={setCatTag}
+                />
+
+                <Text style={styles.inputLabel}>Select Category Cover Image</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+                  {PRESET_CELEBRATION_IMAGES.map((img) => {
+                    const isSelected = catImage === img.url && !customCatImageUrl;
+                    return (
+                      <TouchableOpacity
+                        key={img.label}
+                        onPress={() => {
+                          setCatImage(img.url);
+                          setCustomCatImageUrl('');
+                        }}
+                        style={[styles.imageThumbWrap, isSelected && styles.imageThumbSelected]}
+                      >
+                        <Image source={{ uri: img.url }} style={styles.imageThumb} />
+                        <Text style={styles.imageThumbLabel}>{img.label}</Text>
+                        {isSelected && (
+                          <View style={styles.selectedCheck}>
+                            <Check size={12} color="#ffffff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <Text style={styles.inputLabel}>Or Enter Custom Category Image URL</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://images.unsplash.com/..."
+                  placeholderTextColor="#94a3b8"
+                  value={customCatImageUrl}
+                  onChangeText={setCustomCatImageUrl}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveCategory} activeOpacity={0.88}>
+                <FolderPlus size={18} color="#ffffff" />
+                <Text style={styles.submitBtnText}>Publish Category</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 3: CREATE ITEM */}
+          {activeTab === 'create-item' && (
+            <View style={styles.formContainer}>
+              <View style={styles.cardSection}>
+                <Text style={styles.sectionHeaderLabel}>TARGET DESTINATION</Text>
+                <View style={styles.typeSelectorRow}>
+                  <TouchableOpacity
+                    style={[styles.typePill, itemTargetType === 'section' && styles.typePillActive]}
+                    onPress={() => {
+                      setItemTargetType('section');
+                      if (sections.length > 0) setTargetId(sections[0].id);
+                    }}
+                  >
+                    <Text style={[styles.typePillText, itemTargetType === 'section' && styles.typePillTextActive]}>
+                      To Section ({sections.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.typePill, itemTargetType === 'category' && styles.typePillActive]}
+                    onPress={() => {
+                      setItemTargetType('category');
+                      if (categories.length > 0) setTargetId(categories[0].id);
+                    }}
+                  >
+                    <Text style={[styles.typePillText, itemTargetType === 'category' && styles.typePillTextActive]}>
+                      To Category ({categories.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.inputLabel}>Select Destination Name</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+                  {(itemTargetType === 'section' ? sections : categories).map((dest: any) => {
+                    const isSelected = targetId === dest.id;
+                    return (
+                      <TouchableOpacity
+                        key={dest.id}
+                        style={[styles.destChip, isSelected && styles.destChipActive]}
+                        onPress={() => setTargetId(dest.id)}
+                      >
+                        <Text style={[styles.destChipText, isSelected && styles.destChipTextActive]}>
+                          {dest.title || dest.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={styles.cardSection}>
+                <Text style={styles.sectionHeaderLabel}>ITEM DETAILS</Text>
+                <Text style={styles.inputLabel}>Item Title *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Royal Rajwada Mandap Set, Desi Ghee Feasts"
+                  placeholderTextColor="#94a3b8"
+                  value={itemTitle}
+                  onChangeText={setItemTitle}
+                />
+
                 <View style={styles.rowInputs}>
                   <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.inputLabel}>Type Pill</Text>
+                    <Text style={styles.inputLabel}>Location</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="e.g. Palace Resort, Live Band"
+                      placeholder="e.g. Patna, Bihar"
                       placeholderTextColor="#94a3b8"
-                      value={itemType}
-                      onChangeText={setItemType}
+                      value={itemLocation}
+                      onChangeText={setItemLocation}
                     />
                   </View>
                   <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Text style={styles.inputLabel}>Rating</Text>
+                    <Text style={styles.inputLabel}>Price *</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="4.9"
+                      placeholder="e.g. ₹45,000"
                       placeholderTextColor="#94a3b8"
-                      value={itemRating}
-                      onChangeText={setItemRating}
-                      keyboardType="numeric"
+                      value={itemPrice}
+                      onChangeText={setItemPrice}
                     />
                   </View>
                 </View>
@@ -293,135 +705,237 @@ export default function AdminSectionModal({
                 <Text style={styles.inputLabel}>Tags / Amenities (comma separated)</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="e.g. Lake View, Grand Ballroom, Valet"
+                  placeholder="e.g. Royal Decor, Live Music, AC Banquet"
                   placeholderTextColor="#94a3b8"
                   value={itemTags}
                   onChangeText={setItemTags}
                 />
 
-                {/* Image Picker */}
-                <Text style={styles.inputLabel}>Celebration Cover Image</Text>
-                <View style={styles.imagePreviewRow}>
-                  <Image source={{ uri: customImageUrl.trim() || selectedImage }} style={styles.currentPreviewImg} />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <TouchableOpacity
-                      style={styles.selectPresetBtn}
-                      onPress={() => setShowImagePicker(!showImagePicker)}
-                      activeOpacity={0.8}
-                    >
-                      <ImageIcon size={16} color="#e11d48" />
-                      <Text style={styles.selectPresetBtnText}>
-                        {showImagePicker ? 'Close Gallery' : 'Pick High-Res Photo'}
-                      </Text>
-                      <ChevronDown size={14} color="#e11d48" />
-                    </TouchableOpacity>
+                <Text style={styles.inputLabel}>Cover Image</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+                  {PRESET_CELEBRATION_IMAGES.map((img) => {
+                    const isSelected = selectedImage === img.url && !customImageUrl;
+                    return (
+                      <TouchableOpacity
+                        key={img.label}
+                        onPress={() => {
+                          setSelectedImage(img.url);
+                          setCustomImageUrl('');
+                        }}
+                        style={[styles.imageThumbWrap, isSelected && styles.imageThumbSelected]}
+                      >
+                        <Image source={{ uri: img.url }} style={styles.imageThumb} />
+                        <Text style={styles.imageThumbLabel}>{img.label}</Text>
+                        {isSelected && (
+                          <View style={styles.selectedCheck}>
+                            <Check size={12} color="#ffffff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveItem} activeOpacity={0.88}>
+                <Plus size={18} color="#ffffff" />
+                <Text style={styles.submitBtnText}>Add Item</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 3: CREATE HERO BANNER */}
+          {activeTab === 'create-banner' && (
+            <View style={styles.formContainer}>
+              <View style={styles.cardSection}>
+                <Text style={styles.sectionHeaderLabel}>1. HERO BANNER COPY & BADGES</Text>
+                
+                <Text style={styles.inputLabel}>Main Headline / Title 1 *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Happy Birthday Grand Celebrations"
+                  placeholderTextColor="#94a3b8"
+                  value={bannerTitle1}
+                  onChangeText={setBannerTitle1}
+                />
+
+                <Text style={styles.inputLabel}>Secondary Title / Highlight</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Royal Vivah & Rose-Petal Varmala"
+                  placeholderTextColor="#94a3b8"
+                  value={bannerTitle2}
+                  onChangeText={setBannerTitle2}
+                />
+
+                <View style={styles.rowInputs}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.inputLabel}>Badge Tag</Text>
                     <TextInput
-                      style={[styles.textInput, { marginTop: 8, fontSize: 12, paddingVertical: 8 }]}
-                      placeholder="Or paste custom image URL..."
+                      style={styles.textInput}
+                      placeholder="e.g. Happylokam Special"
                       placeholderTextColor="#94a3b8"
-                      value={customImageUrl}
-                      onChangeText={setCustomImageUrl}
+                      value={bannerBadge}
+                      onChangeText={setBannerBadge}
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={styles.inputLabel}>Button CTA Text</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Explore Now"
+                      placeholderTextColor="#94a3b8"
+                      value={bannerCtaText}
+                      onChangeText={setBannerCtaText}
                     />
                   </View>
                 </View>
 
-                {showImagePicker && (
-                  <View style={styles.presetGalleryBox}>
-                    <Text style={styles.galleryHeading}>Select from Curated Gallery:</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                      {PRESET_CELEBRATION_IMAGES.map((img: { label: string; title: string; url: string }, idx: number) => {
-                        const isPicked = selectedImage === img.url && !customImageUrl;
-                        return (
-                          <TouchableOpacity
-                            key={idx}
-                            style={[styles.presetThumb, isPicked && styles.presetThumbActive]}
-                            onPress={() => {
-                              setSelectedImage(img.url);
-                              setCustomImageUrl('');
-                            }}
-                            activeOpacity={0.8}
-                          >
-                            <Image source={{ uri: img.url }} style={styles.presetImg} />
-                            {isPicked && (
-                              <View style={styles.pickedCheckMark}>
-                                <Check size={14} color="#ffffff" strokeWidth={3} />
-                              </View>
-                            )}
-                            <Text style={styles.presetLabel} numberOfLines={1}>{img.label}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-                )}
+                <Text style={styles.inputLabel}>Banner Description / Subtitle</Text>
+                <TextInput
+                  style={[styles.textInput, { height: 60 }]}
+                  placeholder="e.g. Curated birthday themes, live confetti, luxury mandaps & digital passes"
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                  value={bannerDesc}
+                  onChangeText={setBannerDesc}
+                />
+
+                <Text style={styles.inputLabel}>CTA Navigation Link</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. /explore?category=Birthday Themes"
+                  placeholderTextColor="#94a3b8"
+                  value={bannerCtaLink}
+                  onChangeText={setBannerCtaLink}
+                />
               </View>
 
-              {/* Publish Button */}
-              <TouchableOpacity
-                style={styles.publishBtn}
-                onPress={handleSaveSection}
-                activeOpacity={0.85}
-              >
-                <Sparkles size={18} color="#ffffff" />
-                <Text style={styles.publishBtnText}>Publish Section to Home</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.manageContainer}>
-              {sections.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Layers size={40} color="#cbd5e1" />
-                  <Text style={styles.emptyTitle}>No Custom Sections Yet</Text>
-                  <Text style={styles.emptySub}>Create your first custom section to display it live on the Home screen.</Text>
-                </View>
-              ) : (
-                sections.map((sec) => (
-                  <View key={sec.id} style={styles.manageSectionCard}>
-                    <View style={styles.manageSectionHeader}>
-                      <View style={{ flex: 1 }}>
-                        {sec.tag && (
-                          <View style={styles.secTagPill}>
-                            <Tag size={10} color="#e11d48" />
-                            <Text style={styles.secTagPillText}>{sec.tag}</Text>
+              <View style={styles.cardSection}>
+                <Text style={styles.sectionHeaderLabel}>2. HERO BANNER IMAGE</Text>
+                <Text style={styles.inputLabel}>Select High-Impact Celebration Cover</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+                  {PRESET_CELEBRATION_IMAGES.map((img) => {
+                    const isSelected = bannerImage === img.url && !customBannerImageUrl;
+                    return (
+                      <TouchableOpacity
+                        key={img.label}
+                        onPress={() => {
+                          setBannerImage(img.url);
+                          setCustomBannerImageUrl('');
+                        }}
+                        style={[styles.imageThumbWrap, isSelected && styles.imageThumbSelected]}
+                      >
+                        <Image source={{ uri: img.url }} style={styles.imageThumb} />
+                        <Text style={styles.imageThumbLabel}>{img.label}</Text>
+                        {isSelected && (
+                          <View style={styles.selectedCheck}>
+                            <Check size={12} color="#ffffff" />
                           </View>
                         )}
-                        <Text style={styles.manageSecTitle}>{sec.title}</Text>
-                        <Text style={styles.manageSecSub}>{sec.subtitle}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <Text style={[styles.inputLabel, { marginTop: 14 }]}>Or Enter Custom Image URL</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://images.unsplash.com/... or https://api.happylokam.com/uploads/..."
+                  placeholderTextColor="#94a3b8"
+                  value={customBannerImageUrl}
+                  onChangeText={setCustomBannerImageUrl}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveBanner} activeOpacity={0.88}>
+                <Sparkles size={18} color="#ffffff" />
+                <Text style={styles.submitBtnText}>Post Hero Banner 🚀</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 4: MANAGE TAB */}
+          {activeTab === 'manage' && (
+            <View style={styles.manageContainer}>
+              {/* Hero Banners List */}
+              <Text style={styles.sectionHeaderLabel}>ACTIVE HERO BANNERS ({heroSlides.length})</Text>
+              {heroSlides.map((slide) => (
+                <View key={slide.id || slide.title} style={styles.manageSectionCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image source={{ uri: slide.image }} style={styles.manageItemImg} />
+                    <View style={{ flex: 1, marginHorizontal: 12 }}>
+                      <Text style={styles.manageSecTitle} numberOfLines={1}>{slide.title || slide.title1}</Text>
+                      <Text style={styles.manageSecSub} numberOfLines={1}>{slide.badge || 'Banner'} • {slide.subtitle || slide.desc}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteHeroSlide(slide.id, slide.title || slide.title1)}
+                      style={styles.deleteSecBtn}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              {/* Sections List */}
+              <Text style={[styles.sectionHeaderLabel, { marginTop: 20 }]}>ACTIVE SECTIONS ({sections.length})</Text>
+              {sections.map((sec) => (
+                <View key={sec.id} style={styles.manageSectionCard}>
+                  <View style={styles.manageSectionHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.manageSecTitle}>{sec.title}</Text>
+                      <Text style={styles.manageSecSub}>{sec.subtitle || 'Custom Dynamic Section'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteSection(sec.id, sec.title)}
+                      style={styles.deleteSecBtn}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Items count */}
+                  <Text style={styles.secItemsCountLabel}>ITEMS ({sec.items?.length || 0}):</Text>
+                  {(sec.items || []).map((it) => (
+                    <View key={it.id} style={styles.manageItemRow}>
+                      <Image source={{ uri: it.image }} style={styles.manageItemImg} />
+                      <View style={{ flex: 1, marginHorizontal: 10 }}>
+                        <Text style={styles.manageItemTitle} numberOfLines={1}>{it.title}</Text>
+                        <Text style={styles.manageItemSub} numberOfLines={1}>
+                          <MapPin size={10} color="#94a3b8" /> {it.location} • ₹{it.price}
+                        </Text>
                       </View>
                       <TouchableOpacity
-                        style={styles.deleteSecBtn}
-                        onPress={() => handleDeleteSection(sec.id, sec.title)}
-                        activeOpacity={0.7}
+                        onPress={() => handleDeleteItem(sec.id, it.id)}
+                        style={styles.deleteItemBtn}
                       >
-                        <Trash2 size={16} color="#ef4444" />
+                        <Trash2 size={14} color="#94a3b8" />
                       </TouchableOpacity>
                     </View>
+                  ))}
+                </View>
+              ))}
 
-                    {/* Section Items */}
-                    <Text style={styles.secItemsCountLabel}>ITEMS IN THIS SECTION ({sec.items.length}):</Text>
-                    {sec.items.map((it) => (
-                      <View key={it.id} style={styles.manageItemRow}>
-                        <Image source={{ uri: it.image }} style={styles.manageItemImg} />
-                        <View style={{ flex: 1, marginHorizontal: 10 }}>
-                          <Text style={styles.manageItemTitle} numberOfLines={1}>{it.title}</Text>
-                          <Text style={styles.manageItemSub} numberOfLines={1}>
-                            <MapPin size={10} color="#94a3b8" /> {it.location} • <Text style={{ color: '#e11d48', fontWeight: '800' }}>{it.price}</Text>
-                          </Text>
-                        </View>
-                        {sec.items.length > 1 && (
-                          <TouchableOpacity
-                            onPress={() => handleDeleteItem(sec.id, it.id)}
-                            style={styles.deleteItemBtn}
-                            activeOpacity={0.7}
-                          >
-                            <Trash2 size={14} color="#94a3b8" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))}
+              {/* Categories List */}
+              <Text style={[styles.sectionHeaderLabel, { marginTop: 20 }]}>
+                ACTIVE CATEGORIES ({categories.length})
+              </Text>
+              {categories.map((cat) => (
+                <View key={cat.id} style={styles.manageCategoryRow}>
+                  <Image source={{ uri: cat.image }} style={styles.manageCatImg} />
+                  <View style={{ flex: 1, marginHorizontal: 12 }}>
+                    <Text style={styles.manageCatName}>{cat.name}</Text>
+                    <Text style={styles.manageCatSub}>{cat.tag || 'Category'}</Text>
                   </View>
-                ))
-              )}
+                  <TouchableOpacity
+                    onPress={() => handleDeleteCategory(cat.id, cat.name)}
+                    style={styles.deleteSecBtn}
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           )}
         </ScrollView>
@@ -465,7 +979,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: '#0f172a',
     letterSpacing: -0.4,
@@ -491,14 +1005,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
-    gap: 12,
+    gap: 8,
   },
   tabButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     borderWidth: 1,
@@ -510,7 +1024,7 @@ const styles = StyleSheet.create({
     borderColor: '#fecdd3',
   },
   tabButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748b',
   },
@@ -551,7 +1065,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
     marginBottom: 6,
-    marginTop: 8,
+    marginTop: 10,
   },
   textInput: {
     backgroundColor: '#f8fafc',
@@ -559,226 +1073,210 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 10,
     fontSize: 14,
-    fontWeight: '600',
     color: '#0f172a',
   },
   rowInputs: {
     flexDirection: 'row',
+    marginTop: 4,
   },
-  imagePreviewRow: {
+  typeSelectorRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 10,
     marginTop: 6,
   },
-  currentPreviewImg: {
-    width: 80,
-    height: 80,
-    borderRadius: 14,
-    backgroundColor: '#f1f5f9',
-  },
-  selectPresetBtn: {
-    flexDirection: 'row',
+  typePill: {
+    flex: 1,
+    paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: '#fff1f2',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
   },
-  selectPresetBtnText: {
+  typePillActive: {
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+  },
+  typePillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#e11d48',
-    flex: 1,
+    color: '#64748b',
   },
-  presetGalleryBox: {
-    marginTop: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    padding: 10,
+  typePillTextActive: {
+    color: '#e11d48',
+  },
+  destChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    marginRight: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  galleryHeading: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  galleryScroll: {
-    flexDirection: 'row',
-  },
-  presetThumb: {
-    width: 100,
-    marginRight: 10,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
-  },
-  presetThumbActive: {
+  destChipActive: {
+    backgroundColor: '#e11d48',
     borderColor: '#e11d48',
   },
-  presetImg: {
-    width: '100%',
-    height: 64,
-    resizeMode: 'cover',
+  destChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
   },
-  pickedCheckMark: {
+  destChipTextActive: {
+    color: '#ffffff',
+  },
+  imageScroll: {
+    marginTop: 8,
+    flexDirection: 'row',
+  },
+  imageThumbWrap: {
+    marginRight: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  imageThumbSelected: {
+    borderColor: '#e11d48',
+  },
+  imageThumb: {
+    width: 80,
+    height: 60,
+    borderRadius: 10,
+  },
+  imageThumbLabel: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    right: 4,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffffff',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    textAlign: 'center',
+    borderRadius: 4,
+    paddingVertical: 1,
+  },
+  selectedCheck: {
     position: 'absolute',
     top: 4,
     right: 4,
     backgroundColor: '#e11d48',
-    borderRadius: 10,
-    padding: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  presetLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#475569',
-    padding: 4,
-  },
-  publishBtn: {
+  submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e11d48',
-    paddingVertical: 16,
-    borderRadius: 18,
     gap: 8,
+    backgroundColor: '#e11d48',
+    paddingVertical: 14,
+    borderRadius: 16,
     shadowColor: '#e11d48',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 18,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 4,
     marginTop: 8,
   },
-  publishBtnText: {
+  submitBtnText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: -0.2,
+    fontSize: 15,
+    fontWeight: '800',
   },
   manageContainer: {
     gap: 14,
   },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#334155',
-    marginTop: 12,
-  },
-  emptySub: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginTop: 4,
-    maxWidth: 240,
-  },
   manageSectionCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: '#e2e8f0',
   },
   manageSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  secTagPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff1f2',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  secTagPillText: {
-    color: '#e11d48',
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+    marginBottom: 10,
   },
   manageSecTitle: {
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#0f172a',
   },
   manageSecSub: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748b',
-    marginTop: 1,
+    marginTop: 2,
   },
   deleteSecBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#fef2f2',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 8,
+    backgroundColor: '#fee2e2',
+    borderRadius: 10,
   },
   secItemsCountLabel: {
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#94a3b8',
-    letterSpacing: 0.6,
     marginBottom: 8,
   },
   manageItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
   },
   manageItemImg: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     borderRadius: 8,
   },
   manageItemTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#0f172a',
   },
   manageItemSub: {
     fontSize: 11,
-    fontWeight: '600',
     color: '#64748b',
     marginTop: 2,
   },
   deleteItemBtn: {
     padding: 6,
+  },
+  manageCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  manageCatImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+  },
+  manageCatName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  manageCatSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
   },
 });

@@ -39,7 +39,12 @@ import {
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import RoomDatabase from '../services/roomDatabase';
-import { getAdminCustomSections, AdminCustomSection } from '../services/adminSections';
+import {
+  getAdminCustomSections,
+  getAdminCustomCategories,
+  AdminCustomSection,
+  AdminCustomCategory,
+} from '../services/adminSections';
 
 interface SidebarDrawerProps {
   visible: boolean;
@@ -51,8 +56,9 @@ interface SidebarDrawerProps {
 export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: SidebarDrawerProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('Welcome Guest');
-  const [walletBalance, setWalletBalance] = useState(250);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [customSections, setCustomSections] = useState<AdminCustomSection[]>([]);
+  const [customCategories, setCustomCategories] = useState<AdminCustomCategory[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -73,11 +79,15 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       });
 
       RoomDatabase.getWalletBalance().then((bal) => {
-        setWalletBalance(bal);
+        setWalletBalance(bal || 0);
       });
 
       getAdminCustomSections().then((secs) => {
         setCustomSections(secs || []);
+      }).catch(() => {});
+
+      getAdminCustomCategories().then((cats) => {
+        setCustomCategories(cats || []);
       }).catch(() => {});
     }
   }, [visible, user]);
@@ -107,6 +117,13 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       action: () => { onClose(); router.push('/(tabs)/explore?category=Weddings'); },
     },
     {
+      icon: Tag,
+      label: 'Wedding Offers & VIP Deals',
+      sub: 'Instant cashback, early bird & promo discounts',
+      tag: 'OFFERS',
+      action: () => { onClose(); router.push('/notifications'); },
+    },
+    {
       icon: Cake,
       label: 'Birthday Themes & Fiesta',
       sub: 'Neon backdrops, DJ parties, magicians & cake',
@@ -114,39 +131,53 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       action: () => { onClose(); router.push('/(tabs)/explore?category=Birthdays'); },
     },
     {
-      icon: Tag,
-      label: 'Our Offers & Discounts',
-      sub: 'Cashback deals, early bird & promo codes',
-      tag: 'OFFERS',
-      action: () => { onClose(); router.push('/notifications'); },
+      icon: Utensils,
+      label: 'Catering & 56-Bhog Feasts',
+      sub: 'Pure Desi Ghee banquets, live chaat & mocktails',
+      tag: 'CATERING',
+      action: () => { onClose(); router.push('/(tabs)/explore?category=Catering'); },
+    },
+    {
+      icon: Gift,
+      label: 'Baby Shower & Mom-to-Be',
+      sub: 'Pastel balloon arches, high tea & cradle setups',
+      tag: 'BABY',
+      action: () => { onClose(); router.push('/(tabs)/explore?category=Baby Shower'); },
+    },
+    {
+      icon: Sparkles,
+      label: 'Engagements & Roka Setups',
+      sub: 'Ring ceremony stages, acoustic music & fairy lights',
+      tag: 'ROKA',
+      action: () => { onClose(); router.push('/(tabs)/explore?category=Engagements'); },
     },
     {
       icon: Package,
-      label: 'Our All-in-One Packages',
-      sub: 'Complete event execution with manager & catering',
-      tag: 'PACKAGES',
-      action: () => { onClose(); router.push('/(tabs)/explore?category=Packages'); },
+      label: 'Office & Corporate Events',
+      sub: 'Annual summits, award galas & corporate banquets',
+      tag: 'OFFICE',
+      action: () => { onClose(); router.push('/(tabs)/explore?category=Office Events'); },
     },
     {
       icon: Palette,
-      label: 'Book Decoration & Ideas',
+      label: 'Mandap & Haldi Decor',
       sub: 'Haldi bohemian, fairy forest lights & fresh florals',
       tag: 'DECOR',
       action: () => { onClose(); router.push('/(tabs)/explore?category=Decor'); },
     },
     {
       icon: Flame,
-      label: 'Book Pandit & Sacred Rituals',
+      label: 'Vedic Pandit & Sacred Rituals',
       sub: 'Vedic Vivah, Griha Pravesh & Hawan Vidhi',
       tag: 'PANDIT',
       action: () => { onClose(); router.push('/(tabs)/explore?category=Pandit'); },
     },
     {
-      icon: Utensils,
-      label: 'Book Catering & Feasts',
-      sub: 'Pure Desi Ghee 56-Bhog, live chaat & banquets',
-      tag: 'CATERING',
-      action: () => { onClose(); router.push('/(tabs)/explore?category=Catering'); },
+      icon: Compass,
+      label: 'LokSafari Expeditions',
+      sub: 'Eco trails, village cultural tours & gate passes',
+      tag: 'SAFARI',
+      action: () => { onClose(); router.push('/(tabs)/loksafari'); },
     },
   ];
 
@@ -336,6 +367,42 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
                       </TouchableOpacity>
                     ))}
                   </View>
+                ))}
+
+                <View style={styles.divider} />
+              </>
+            )}
+
+            {/* Admin Custom Categories */}
+            {customCategories.length > 0 && (
+              <>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionHeading}>ADMIN CATEGORIES</Text>
+                  <View style={styles.adminBadge}>
+                    <Text style={styles.adminBadgeText}>LIVE THEMES</Text>
+                  </View>
+                </View>
+
+                {customCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.themeItem}
+                    onPress={() => {
+                      onClose();
+                      router.push({
+                        pathname: '/(tabs)/explore',
+                        params: { category: cat.name },
+                      });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: cat.image }} style={styles.customCatDrawerImg} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.themeTitle} numberOfLines={1}>{cat.name}</Text>
+                      <Text style={styles.themeSub} numberOfLines={1}>{cat.tag || 'Celebration Category'}</Text>
+                    </View>
+                    <ChevronRight size={14} color="#94a3b8" />
+                  </TouchableOpacity>
                 ))}
 
                 <View style={styles.divider} />
@@ -740,5 +807,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#e11d48',
+  },
+  customCatDrawerImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
   },
 });

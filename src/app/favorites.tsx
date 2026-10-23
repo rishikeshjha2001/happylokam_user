@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +33,17 @@ export default function FavoritesScreen() {
 
   useEffect(() => {
     loadFavorites();
+
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)');
+      }
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
   }, []);
 
   const loadFavorites = async () => {
@@ -55,7 +67,7 @@ export default function FavoritesScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
           style={styles.backBtn}
           activeOpacity={0.7}
         >

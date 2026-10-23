@@ -179,11 +179,14 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
       const razorpayOrder = await createRazorpayOrder(total, `hl_sec_${Date.now()}`);
       const mockPayId = `pay_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
       
+      const confirmedServerId = bookingResult?.data?.id || bookingResult?.id;
+      const confirmedTicketCode = bookingResult?.data?.ticketCode || bookingResult?.ticketCode;
+
       await verifyRazorpayPayment({
         razorpay_order_id: razorpayOrder.id || `order_${Date.now()}`,
         razorpay_payment_id: mockPayId,
         razorpay_signature: 'sig_verified_user_app',
-        sectionBookingId: bookingResult?.id,
+        sectionBookingId: confirmedServerId,
       });
 
       // 4. Deduct Wallet Balance if applied
@@ -193,10 +196,10 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
       }
 
       // 5. Store Confirmed Pass in RoomDatabase
-      const ticketId = bookingResult?.ticketCode || `HL-${isTicket ? 'TCK' : 'BKG'}-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const ticketId = confirmedTicketCode || `HL-${isTicket ? 'TCK' : 'BKG'}-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
       
       const localBooking = {
-        id: bookingResult?.id || ('hlc_' + Date.now()),
+        id: confirmedServerId || ('hlc_' + Date.now()),
         title: item.title || 'Celebration Booking',
         category: isTicket ? 'Ticket Pass' : (item.type || 'Reservation'),
         date: selectedDate,

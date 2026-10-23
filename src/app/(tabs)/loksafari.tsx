@@ -8,8 +8,10 @@ import {
   Image,
   Dimensions,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import {
   Menu,
   Star,
@@ -37,6 +39,12 @@ export default function LokSafariTab() {
   const [isWalletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
+    const onBackPress = () => {
+      router.replace('/(tabs)');
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
     Promise.all([getLoksafari(), getAdminCustomSections()]).then(([backendSafaris, sections]) => {
       let combined: DbLokSafariItem[] = [...backendSafaris];
       (sections || []).forEach((sec) => {

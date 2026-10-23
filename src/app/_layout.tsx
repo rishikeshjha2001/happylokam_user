@@ -99,6 +99,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="help-support" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="privacy-security" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="booking-detail" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="ai" options={{ presentation: "transparentModal", animation: "fade" }} />
       </Stack>
 

@@ -69,10 +69,10 @@ export const getHeroSlides = async (): Promise<DbHeroSlide[]> => {
         ctaLink: s.ctaLink,
       }));
     }
-    return [];
+    return DB_HERO_SLIDES;
   } catch (error) {
-    console.warn('getHeroSlides error:', error);
-    return [];
+    console.warn('getHeroSlides error, returning curated celebration slides:', error);
+    return DB_HERO_SLIDES;
   }
 };
 
@@ -165,7 +165,7 @@ export const getCategories = async (): Promise<DbCategory[]> => {
     const data = await apiClient.get('/categories');
     const list = data?.data || [];
     if (Array.isArray(list) && list.length > 0) {
-      return list.map((c: any) => ({
+      const serverCats: DbCategory[] = list.map((c: any) => ({
         id: c.id,
         type: c.name,
         title: c.name,
@@ -173,10 +173,18 @@ export const getCategories = async (): Promise<DbCategory[]> => {
         image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
         size: 'large' as const,
       }));
+      // Merge with default categories to make sure all celebration types are available
+      const merged = [...serverCats];
+      DB_CATEGORIES.forEach((defCat) => {
+        if (!merged.some((m) => m.type.toLowerCase() === defCat.type.toLowerCase())) {
+          merged.push(defCat);
+        }
+      });
+      return merged;
     }
-    return [];
+    return DB_CATEGORIES;
   } catch {
-    return [];
+    return DB_CATEGORIES;
   }
 };
 

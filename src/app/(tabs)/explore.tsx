@@ -10,6 +10,7 @@ import {
   Dimensions,
   StatusBar,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -37,19 +38,27 @@ import AdvancedFilterModal, {
 import PaymentModal from '../../components/PaymentModal';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
+import OtaSync from '../../services/otaSync';
 
 const { width } = Dimensions.get('window');
 
 const BASE_CATEGORY_FILTERS = [
   'All',
   'Weddings',
+  'Wedding Themes',
+  'Wedding Offers',
   'Birthdays',
-  'Packages',
-  'Decor',
+  'Birthday Themes',
   'Catering',
+  'Baby Shower',
+  'Engagements',
+  'Office Events',
+  'Decor',
   'Pandit',
   'Venues',
   'Photography',
+  'LokSafari',
+  'Packages',
 ];
 
 export default function ExploreTab() {
@@ -99,7 +108,7 @@ export default function ExploreTab() {
     }
   }, [params.category, params.search, dynamicCategoryFilters]);
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       getVenues(),
       getPackages(),
@@ -158,10 +167,40 @@ export default function ExploreTab() {
         setAdminItems(combinedAdmin);
       })
       .catch(console.warn);
+  };
+
+  useEffect(() => {
+    loadData();
+
+    // Load initial favorites from RoomDatabase
+    RoomDatabase.getFavorites().then((favs) => {
+      setLikedIds(favs.map((f: any) => f.id));
+    }).catch(() => {});
+
+    // Listen to live OTA admin uploads
+    const unsubOta = OtaSync.subscribe(() => {
+      loadData();
+    });
+
+    // Android hardware back handler: navigate to Home
+    const onBackPress = () => {
+      router.replace('/(tabs)');
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      backSub.remove();
+      unsubOta();
+    };
   }, []);
 
-  const toggleLike = (id: string) => {
-    setLikedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  const toggleLike = async (item: any) => {
+    try {
+      const isNowFav = await RoomDatabase.toggleFavorite(item);
+      setLikedIds((prev) => (isNowFav ? [...prev, item.id] : prev.filter((i) => i !== item.id)));
+    } catch {
+      setLikedIds((prev) => (prev.includes(item.id) ? prev.filter((i) => i !== item.id) : [...prev, item.id]));
+    }
   };
 
   const handleOpenDetail = (item: any) => {
@@ -524,7 +563,7 @@ export default function ExploreTab() {
                       {/* Wishlist Button */}
                       <TouchableOpacity
                         style={styles.cardLikeBtn}
-                        onPress={() => toggleLike(item.id)}
+                        onPress={() => toggleLike(item)}
                         activeOpacity={0.8}
                       >
                         <Heart

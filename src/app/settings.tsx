@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +34,20 @@ export default function SettingsScreen() {
   const [biometricLock, setBiometricLock] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [currentCity, setCurrentCity] = useState('Patna, Bihar');
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener('hardwareBackPress', handleGoBack);
+    return () => backSub.remove();
+  }, []);
 
   useEffect(() => {
     RoomDatabase.getLocation().then((loc) => {
@@ -62,7 +77,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleGoBack}
           style={styles.backBtn}
           activeOpacity={0.7}
         >

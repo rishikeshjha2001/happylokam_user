@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +47,20 @@ export default function HelpSupportScreen() {
   const insets = useSafeAreaInsets();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener('hardwareBackPress', handleGoBack);
+    return () => backSub.remove();
+  }, []);
+
   const handleCall = () => {
     Linking.openURL('tel:+919876543210').catch(() => {
       Alert.alert('Helpline', 'Call us at +91 98765 43210 (9 AM - 9 PM)');
@@ -69,7 +84,7 @@ export default function HelpSupportScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleGoBack}
           style={styles.backBtn}
           activeOpacity={0.7}
         >
