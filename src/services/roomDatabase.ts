@@ -361,6 +361,18 @@ export const RoomDatabase = {
     } catch {
       return 0;
     }
+  },
+
+  async setWalletBalance(amount: number): Promise<number> {
+    try {
+      const user = await this.getUserSession();
+      if (!user) return 0;
+      user.walletBalance = Math.max(0, amount);
+      await this.saveUserSession(user);
+      return user.walletBalance;
+    } catch {
+      return 0;
+    }
   }
 };
 

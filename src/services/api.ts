@@ -191,9 +191,20 @@ export const getCategories = async (): Promise<DbCategory[]> => {
 // 6. User Profile & Wallet from Database
 export const getUserWallet = async (): Promise<{ balance: number; bonus: number; name: string; email: string }> => {
   try {
+    const isAuth = await RoomDatabase.isAuthenticated();
+    if (isAuth) {
+      try {
+        const res = await apiClient.get('/user/wallet');
+        if (res && res.data && typeof res.data.walletBalance === 'number') {
+          await RoomDatabase.setWalletBalance(res.data.walletBalance);
+        }
+      } catch {
+        // Fallback to local session on network error
+      }
+    }
     const session = await RoomDatabase.getUserSession();
     return {
-      balance: session?.walletBalance || 0,
+      balance: typeof session?.walletBalance === 'number' ? session.walletBalance : 0,
       bonus: 0,
       name: session?.name || '',
       email: session?.email || '',
