@@ -20,3 +20,4 @@ android/.cxx/
 # OS
 .DS_Store
 Thumbs.db
+emulator_screen.png
