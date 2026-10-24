@@ -67,36 +67,77 @@ export default function BookingsTab() {
       const local = await RoomDatabase.getBookings();
 
       // Attempt live server fetch for online bookings
+      const combined = [...local];
       try {
-        const res = await apiClient.get('/sections/bookings/my');
-        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-          const serverBookings: RoomBooking[] = res.data.map((sb: any) => ({
-            id: sb.id,
-            title: sb.item?.title || 'Celebration Pass',
-            category: sb.item?.itemType || 'Custom Booking',
-            date: sb.bookingDate || new Date().toISOString().split('T')[0],
-            amount: sb.totalAmount || 0,
-            status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
-            ticketsCount: sb.quantity || 1,
-            createdAt: sb.createdAt,
-            qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
-            serverVerified: true,
-          }));
+        const [sectionsRes, userRes] = await Promise.all([
+          apiClient.get('/sections/bookings/my').catch(() => null),
+          apiClient.get('/user/bookings').catch(() => null),
+        ]);
 
-          const combined = [...local];
-          serverBookings.forEach((sb) => {
+        if (sectionsRes?.success && Array.isArray(sectionsRes.data)) {
+          sectionsRes.data.forEach((sb: any) => {
             if (!combined.some((c) => c.id === sb.id)) {
-              combined.push(sb);
+              combined.push({
+                id: sb.id,
+                title: sb.item?.title || 'Celebration Pass',
+                category: sb.item?.itemType || 'Custom Booking',
+                date: sb.bookingDate || new Date().toISOString().split('T')[0],
+                amount: sb.totalAmount || 0,
+                status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                ticketsCount: sb.quantity || 1,
+                createdAt: sb.createdAt,
+                qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
+                serverVerified: true,
+              });
             }
           });
-          setBookings(combined);
-          return;
+        }
+
+        if (userRes?.success && userRes.data) {
+          const { eventBookings, vendorBookings } = userRes.data;
+          if (Array.isArray(eventBookings)) {
+            eventBookings.forEach((eb: any) => {
+              if (!combined.some((c) => c.id === eb.id)) {
+                combined.push({
+                  id: eb.id,
+                  title: eb.event?.title || 'Event Pass',
+                  category: 'EVENT',
+                  date: eb.event?.date ? new Date(eb.event.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                  amount: eb.totalAmount || 0,
+                  status: (eb.status === 'CONFIRMED' || eb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                  ticketsCount: eb.ticketsCount || 1,
+                  createdAt: eb.createdAt,
+                  qrCode: eb.id,
+                  serverVerified: true,
+                });
+              }
+            });
+          }
+
+          if (Array.isArray(vendorBookings)) {
+            vendorBookings.forEach((vb: any) => {
+              if (!combined.some((c) => c.id === vb.id)) {
+                combined.push({
+                  id: vb.id,
+                  title: vb.partner?.businessName || 'Celebration Service',
+                  category: 'VENDOR',
+                  date: vb.date ? new Date(vb.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                  amount: vb.totalAmount || 0,
+                  status: (vb.status === 'CONFIRMED' || vb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                  ticketsCount: 1,
+                  createdAt: vb.createdAt,
+                  qrCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
+                  serverVerified: true,
+                });
+              }
+            });
+          }
         }
       } catch (err) {
         console.warn('Backend bookings fetch fallback to local:', err);
       }
 
-      setBookings(local);
+      setBookings(combined);
     } catch (e) {
       console.warn('loadBookingsData error:', e);
     }
