@@ -60,6 +60,10 @@ import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import AdminSectionModal from '../../components/AdminSectionModal';
 import CelebrationDialog from '../../components/CelebrationDialog';
+import AdvancedFilterModal, {
+  FilterState,
+  DEFAULT_FILTERS,
+} from '../../components/AdvancedFilterModal';
 import OtaSync from '../../services/otaSync';
 
 const { width } = Dimensions.get('window');
@@ -87,7 +91,7 @@ export default function HomeTab() {
   const [likedIds, setLikedIds] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modals
+  // Modals & Filters
   const [checkoutItem, setCheckoutItem] = useState<any>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
@@ -95,6 +99,8 @@ export default function HomeTab() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [detectingGps, setDetectingGps] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [homeFilters, setHomeFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const CITIES_LIST = [
     'All India',
@@ -340,6 +346,35 @@ export default function HomeTab() {
     return hero.subtitle || 'Experience grandeur like never before';
   };
 
+  const homeActiveFilterCount =
+    (homeFilters.category !== 'All' ? 1 : 0) +
+    (homeFilters.sortBy !== 'featured' ? 1 : 0) +
+    (homeFilters.priceRange !== 'all' ? 1 : 0) +
+    (homeFilters.minRating > 0 ? 1 : 0) +
+    (homeFilters.city !== 'All' ? 1 : 0) +
+    (homeFilters.capacity !== 'all' ? 1 : 0) +
+    homeFilters.amenities.length;
+
+  const searchSuggestions = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    const allSecItems = adminSections.flatMap((s) => s.items || []);
+    const pool = [...allSecItems, ...venues, ...packages];
+    const seen = new Set<string>();
+    const results: any[] = [];
+    pool.forEach((it: any) => {
+      const id = it.id || it.title;
+      if (!seen.has(id)) {
+        seen.add(id);
+        const text = `${it.title || it.name || ''} ${it.location || it.city || ''} ${it.type || ''} ${(it.tags || []).join(' ')}`.toLowerCase();
+        if (text.includes(q)) {
+          results.push(it);
+        }
+      }
+    });
+    return results.slice(0, 4);
+  }, [searchQuery, adminSections, venues, packages]);
+
   // Safe area top for status bar clearance (ensures greeting header is never cut off)
   const headerTopPadding = Math.max(insets.top + 10, 48);
   const heroBannerHeight = 410 + Math.max(insets.top, 24);
@@ -549,19 +584,95 @@ export default function HomeTab() {
                 })
               }
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={{ padding: 6, marginRight: 4 }}
+              >
+                <X size={16} color="#94a3b8" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.filterBtn}
-              onPress={() =>
-                router.push({
-                  pathname: '/(tabs)/explore',
-                  params: searchQuery.trim() ? { search: searchQuery.trim() } : {},
-                })
-              }
+              style={[styles.filterBtn, homeActiveFilterCount > 0 && styles.filterBtnActive]}
+              onPress={() => setIsFilterModalOpen(true)}
               activeOpacity={0.75}
             >
-              <SlidersHorizontal size={18} color="#475569" />
+              <SlidersHorizontal size={18} color={homeActiveFilterCount > 0 ? '#ffffff' : '#475569'} />
+              {homeActiveFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{homeActiveFilterCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
+
+          {/* Live Floating Instant Search Autocomplete Suggestions */}
+          {searchQuery.trim().length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              <View style={styles.suggestionsHeader}>
+                <Text style={styles.suggestionsHeaderText}>
+                  Matches for "{searchQuery}" ({searchSuggestions.length})
+                </Text>
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Text style={styles.suggestionsCloseText}>Close ✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {searchSuggestions.length === 0 ? (
+                <View style={styles.noSuggestionRow}>
+                  <Text style={styles.noSuggestionText}>No exact matches found. Press below to explore all items.</Text>
+                </View>
+              ) : (
+                searchSuggestions.map((item: any, idx: number) => (
+                  <TouchableOpacity
+                    key={item.id || idx}
+                    style={styles.suggestionItem}
+                    onPress={() => {
+                      setSearchQuery('');
+                      handleOpenDetail(item);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{
+                        uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+                      }}
+                      style={styles.suggestionThumb}
+                    />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.suggestionTitle} numberOfLines={1}>
+                        {item.title || item.name}
+                      </Text>
+                      <Text style={styles.suggestionSub} numberOfLines={1}>
+                        📍 {item.location || item.city || 'Pan-India'} • {item.type || 'Celebration'}
+                      </Text>
+                    </View>
+                    <View style={styles.suggestionPriceBox}>
+                      <Text style={styles.suggestionPriceText}>
+                        {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
+                      </Text>
+                      <ChevronRight size={14} color="#94a3b8" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+
+              <TouchableOpacity
+                style={styles.seeAllExploreBtn}
+                onPress={() => {
+                  const q = searchQuery.trim();
+                  setSearchQuery('');
+                  router.push({
+                    pathname: '/(tabs)/explore',
+                    params: { search: q },
+                  });
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.seeAllExploreBtnText}>View all matches in Explore tab →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Smart Advanced Search Keyword / Category Chips */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityPillScroll}>
@@ -1075,6 +1186,32 @@ export default function HomeTab() {
         onHeroSlidesUpdated={(updated) => setSlides(updated)}
       />
 
+      {/* Advanced Filter Modal from Home Search */}
+      <AdvancedFilterModal
+        visible={isFilterModalOpen}
+        filters={homeFilters}
+        totalMatches={adminSections.flatMap((s) => s.items || []).length + venues.length + packages.length}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={(applied) => {
+          setHomeFilters(applied);
+          setIsFilterModalOpen(false);
+          router.push({
+            pathname: '/(tabs)/explore',
+            params: {
+              category: applied.category !== 'All' ? applied.category : undefined,
+              priceRange: applied.priceRange !== 'all' ? applied.priceRange : undefined,
+              sortBy: applied.sortBy !== 'featured' ? applied.sortBy : undefined,
+              minRating: applied.minRating > 0 ? String(applied.minRating) : undefined,
+              city: applied.city !== 'All' ? applied.city : undefined,
+              capacity: applied.capacity !== 'all' ? applied.capacity : undefined,
+              amenities: applied.amenities.length > 0 ? applied.amenities.join(',') : undefined,
+              search: searchQuery.trim() || undefined,
+            },
+          });
+        }}
+        onReset={() => setHomeFilters(DEFAULT_FILTERS)}
+      />
+
       {/* Location Selector Modal */}
       <Modal
         visible={isLocationModalOpen}
@@ -1490,6 +1627,115 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    position: 'relative',
+  },
+  filterBtnActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#0f172a',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  filterBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  suggestionsContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginTop: 8,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  suggestionsHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  suggestionsCloseText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94a3b8',
+  },
+  noSuggestionRow: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  noSuggestionText: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  suggestionThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+  },
+  suggestionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  suggestionSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  suggestionPriceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  suggestionPriceText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#e11d48',
+  },
+  seeAllExploreBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff1f2',
+  },
+  seeAllExploreBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#e11d48',
   },
 
   // Quick Categories

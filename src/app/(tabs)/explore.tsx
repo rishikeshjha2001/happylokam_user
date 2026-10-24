@@ -63,7 +63,16 @@ const BASE_CATEGORY_FILTERS = [
 
 export default function ExploreTab() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ category?: string; search?: string }>();
+  const params = useLocalSearchParams<{
+    category?: string;
+    search?: string;
+    priceRange?: string;
+    sortBy?: 'featured' | 'price_low' | 'price_high' | 'rating';
+    minRating?: string;
+    city?: string;
+    capacity?: string;
+    amenities?: string;
+  }>();
 
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,7 +115,30 @@ export default function ExploreTab() {
     if (params.search) {
       setSearchQuery(params.search);
     }
-  }, [params.category, params.search, dynamicCategoryFilters]);
+    // Hydrate advanced filter state from route params
+    if (params.priceRange || params.sortBy || params.minRating || params.city || params.capacity || params.amenities) {
+      setFilters((prev) => ({
+        ...prev,
+        category: params.category || prev.category,
+        priceRange: params.priceRange || prev.priceRange,
+        sortBy: (params.sortBy as any) || prev.sortBy,
+        minRating: params.minRating ? parseFloat(params.minRating) : prev.minRating,
+        city: params.city || prev.city,
+        capacity: params.capacity || prev.capacity,
+        amenities: params.amenities ? params.amenities.split(',') : prev.amenities,
+      }));
+    }
+  }, [
+    params.category,
+    params.search,
+    params.priceRange,
+    params.sortBy,
+    params.minRating,
+    params.city,
+    params.capacity,
+    params.amenities,
+    dynamicCategoryFilters,
+  ]);
 
   const loadData = () => {
     Promise.all([
@@ -468,24 +500,41 @@ export default function ExploreTab() {
               <Text style={styles.summaryLabel}>Active Filters:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                 {filters.city !== 'All' && (
-                  <View style={styles.summaryPill}>
-                    <Text style={styles.summaryPillText}>📍 {filters.city}</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.summaryPill}
+                    onPress={() => setFilters((p) => ({ ...p, city: 'All' }))}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.summaryPillText}>📍 {filters.city} ✕</Text>
+                  </TouchableOpacity>
                 )}
                 {filters.minRating > 0 && (
-                  <View style={styles.summaryPill}>
-                    <Text style={styles.summaryPillText}>⭐ {filters.minRating}+ Stars</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.summaryPill}
+                    onPress={() => setFilters((p) => ({ ...p, minRating: 0 }))}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.summaryPillText}>⭐ {filters.minRating}+ Stars ✕</Text>
+                  </TouchableOpacity>
                 )}
                 {filters.priceRange !== 'all' && (
-                  <View style={styles.summaryPill}>
-                    <Text style={styles.summaryPillText}>💰 {filters.priceRange.replace('_', ' ')}</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.summaryPill}
+                    onPress={() => setFilters((p) => ({ ...p, priceRange: 'all' }))}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.summaryPillText}>💰 {filters.priceRange.replace('_', ' ')} ✕</Text>
+                  </TouchableOpacity>
                 )}
                 {filters.amenities.map((am) => (
-                  <View key={am} style={styles.summaryPill}>
-                    <Text style={styles.summaryPillText}>✨ {am}</Text>
-                  </View>
+                  <TouchableOpacity
+                    key={am}
+                    style={styles.summaryPill}
+                    onPress={() => setFilters((p) => ({ ...p, amenities: p.amenities.filter((x) => x !== am) }))}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.summaryPillText}>✨ {am} ✕</Text>
+                  </TouchableOpacity>
                 ))}
                 <TouchableOpacity onPress={() => setFilters(DEFAULT_FILTERS)} style={styles.clearAllBtn}>
                   <Text style={styles.clearAllBtnText}>Clear All</Text>

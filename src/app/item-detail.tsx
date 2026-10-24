@@ -11,6 +11,9 @@ import {
   Dimensions,
   TextInput,
   Modal,
+  Linking,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,12 +32,30 @@ import {
   ShieldCheck,
   MessageSquare,
   Send,
+  Navigation,
+  Phone,
+  Plus,
+  Minus,
+  Gift,
+  Info,
+  Check,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
 import { getAdminSectionItemById, AdminSectionItem } from '../services/adminSections';
 import PaymentModal from '../components/PaymentModal';
 
 const { width } = Dimensions.get('window');
+
+const AMENITIES_LIST = [
+  { icon: '❄️', title: 'Central AC Hall', desc: 'Full climate control' },
+  { icon: '🚗', title: 'Valet Parking', desc: 'Capacity for 200+ cars' },
+  { icon: '🛏️', title: 'Luxury Suites', desc: 'Bridal & family rooms' },
+  { icon: '⚡', title: '100% DG Backup', desc: 'Uninterrupted power' },
+  { icon: '🥗', title: 'Pure Veg Kitchen', desc: 'Dedicated prep area' },
+  { icon: '🎶', title: 'Concert Stage & DJ', desc: 'Intelligent sound system' },
+  { icon: '🛡️', title: 'Quality Assured', desc: 'On-site HappyLokam team' },
+  { icon: '💐', title: 'Bespoke Decor', desc: 'Custom theme & lighting' },
+];
 
 export default function ItemDetailScreen() {
   const router = useRouter();
@@ -57,7 +78,9 @@ export default function ItemDetailScreen() {
   const [showPayment, setShowPayment] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [guestCount, setGuestCount] = useState(150);
+
   // Rating & Review State
   const [ratings, setRatings] = useState<any[]>([]);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
@@ -85,6 +108,9 @@ export default function ItemDetailScreen() {
           if (fetched.availableTimes && fetched.availableTimes.length > 0) {
             setSelectedTime(fetched.availableTimes[0]);
           }
+          if (fetched.capacity) {
+            setGuestCount(Math.min(fetched.capacity, 200));
+          }
           setLoading(false);
           return;
         }
@@ -99,7 +125,7 @@ export default function ItemDetailScreen() {
         image: params.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
         cornerTag: params.cornerTag || 'SPECIAL',
         type: params.type || 'CELEBRATION',
-        location: params.location || 'Verified Location',
+        location: params.location || 'Verified Celebration Venue',
         description: params.description || params.subtitle || 'Exclusive celebration service package curated with highest quality and satisfaction guarantee.',
         features: [
           'Dedicated Event Manager & On-Site Coordinator',
@@ -179,10 +205,39 @@ export default function ItemDetailScreen() {
     );
   }
 
-  const isTicket = item.itemType === 'TICKET' || item.type?.toLowerCase().includes('ticket');
+  const isTicket = item.itemType === 'TICKET' || item.type?.toLowerCase().includes('ticket') || item.type?.toLowerCase().includes('pass');
   const basePriceNum = typeof item.price === 'number' 
     ? item.price 
     : (parseInt(String(item.price).replace(/\D/g, ''), 10) || 1499);
+
+  const mainPhoto = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80';
+  const galleryImages = [
+    mainPhoto,
+    'https://images.unsplash.com/photo-1544077960-604201fe74bc?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80',
+  ];
+
+  const handleScrollImage = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const slide = Math.round(event.nativeEvent.contentOffset.x / width);
+    setActiveImageIndex(slide);
+  };
+
+  const handleOpenGoogleMaps = () => {
+    const query = encodeURIComponent(`${item.title} ${item.location || ''}`);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+  };
+
+  const handleWhatsAppInquiry = () => {
+    const text = encodeURIComponent(
+      `Hello HappyLokam! I am interested in booking: "${item.title}" (${item.location || 'Pan-India'}). Please share package details and availability.`
+    );
+    Linking.openURL(`https://wa.me/919429693155?text=${text}`);
+  };
+
+  const handlePhoneCall = () => {
+    Linking.openURL('tel:+919429693155');
+  };
 
   const handleInitiateBooking = async () => {
     const authed = await RoomDatabase.isAuthenticated();
@@ -209,15 +264,25 @@ export default function ItemDetailScreen() {
         contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Image Section */}
+        {/* Multi-Photo Carousel Gallery */}
         <View style={styles.heroContainer}>
-          <Image
-            source={{
-              uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-            }}
-            style={styles.heroImage}
-          />
-          <View style={styles.heroOverlay} />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScrollImage}
+          >
+            {galleryImages.map((imgUri, idx) => (
+              <View key={idx} style={{ width, height: 320 }}>
+                <Image
+                  source={{ uri: imgUri }}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.heroOverlay} />
+              </View>
+            ))}
+          </ScrollView>
 
           {/* Top Bar Navigation */}
           <View style={[styles.topBar, { top: insets.top + 8 }]}>
@@ -252,11 +317,17 @@ export default function ItemDetailScreen() {
             </View>
           )}
 
-          {/* Type Pill */}
+          {/* Type Pill & Photo Index Indicator */}
           <View style={styles.heroBottomRow}>
             <View style={styles.typePill}>
               {isTicket ? <Ticket size={12} color="#ffffff" /> : <Calendar size={12} color="#ffffff" />}
               <Text style={styles.typePillText}>{item.type || 'EXPERIENCE'}</Text>
+            </View>
+
+            <View style={styles.photoCountPill}>
+              <Text style={styles.photoCountText}>
+                📸 {activeImageIndex + 1} / {galleryImages.length}
+              </Text>
             </View>
           </View>
         </View>
@@ -298,10 +369,108 @@ export default function ItemDetailScreen() {
             )}
           </View>
 
+          {/* Interactive Google Maps Location & Direction Box */}
+          <View style={styles.locationCard}>
+            <View style={styles.locationHeaderRow}>
+              <View style={styles.locationIconBox}>
+                <MapPin size={20} color="#e11d48" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.locationCardTitle}>{item.location || 'Jaipur & Delhi NCR'}</Text>
+                <Text style={styles.locationCardSub}>Prime central celebration hub • Verified GPS coordinates</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.mapsBtn}
+              onPress={handleOpenGoogleMaps}
+              activeOpacity={0.85}
+            >
+              <Navigation size={15} color="#ffffff" />
+              <Text style={styles.mapsBtnText}>Get Directions on Google Maps</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Venue & Package Amenities Grid */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Key Amenities & Highlights</Text>
+            <View style={styles.amenitiesGrid}>
+              {AMENITIES_LIST.map((am, i) => (
+                <View key={i} style={styles.amenityCard}>
+                  <Text style={styles.amenityIcon}>{am.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.amenityTitle}>{am.title}</Text>
+                    <Text style={styles.amenityDesc}>{am.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Celebration Specialist Concierge Box */}
+          <View style={styles.conciergeCard}>
+            <View style={styles.conciergeTopRow}>
+              <View style={styles.conciergeAvatar}>
+                <Sparkles size={20} color="#e11d48" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.conciergeTitle}>HappyLokam Celebration Concierge</Text>
+                <Text style={styles.conciergeSub}>
+                  Need custom floral arrangements, catering changes, or private venue tour? Connect with our senior event planner.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.conciergeBtnsRow}>
+              <TouchableOpacity
+                style={styles.whatsappBtn}
+                onPress={handleWhatsAppInquiry}
+                activeOpacity={0.85}
+              >
+                <MessageSquare size={16} color="#ffffff" />
+                <Text style={styles.whatsappBtnText}>Chat on WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.callBtn}
+                onPress={handlePhoneCall}
+                activeOpacity={0.85}
+              >
+                <Phone size={16} color="#0f172a" />
+                <Text style={styles.callBtnText}>Call Concierge</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Interactive Guest Count Picker */}
+          {!isTicket && (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionTitle}>Expected Guests</Text>
+              <View style={styles.guestPickerCard}>
+                <View>
+                  <Text style={styles.guestPickerLabel}>Guest Attendance</Text>
+                  <Text style={styles.guestPickerSub}>Seating & dining arrangements will scale</Text>
+                </View>
+                <View style={styles.guestCounterRow}>
+                  <TouchableOpacity
+                    style={styles.counterBtn}
+                    onPress={() => setGuestCount(Math.max(25, guestCount - 25))}
+                  >
+                    <Minus size={16} color="#0f172a" />
+                  </TouchableOpacity>
+                  <Text style={styles.guestCountVal}>{guestCount}</Text>
+                  <TouchableOpacity
+                    style={styles.counterBtn}
+                    onPress={() => setGuestCount(guestCount + 25)}
+                  >
+                    <Plus size={16} color="#0f172a" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Available Dates Selection */}
           {item.availableDates && item.availableDates.length > 0 && (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Available Dates</Text>
+              <Text style={styles.sectionTitle}>Available Celebration Dates</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
                 {item.availableDates.map((date: string) => {
                   const isSelected = selectedDate === date;
@@ -351,7 +520,7 @@ export default function ItemDetailScreen() {
           {/* Features Included */}
           {item.features && item.features.length > 0 && (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Features & Highlights</Text>
+              <Text style={styles.sectionTitle}>What's Included</Text>
               <View style={styles.featuresCard}>
                 {item.features.map((feat: string, idx: number) => (
                   <View key={idx} style={styles.featureRow}>
@@ -362,6 +531,41 @@ export default function ItemDetailScreen() {
               </View>
             </View>
           )}
+
+          {/* Transparent Price Breakdown Card */}
+          <View style={styles.priceBreakdownCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <Gift size={18} color="#e11d48" />
+              <Text style={styles.priceBreakdownTitle}>Transparent Price Breakdown</Text>
+            </View>
+
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Base Celebration Package</Text>
+              <Text style={styles.breakdownVal}>₹{basePriceNum.toLocaleString('en-IN')}</Text>
+            </View>
+
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>GST & Regulatory Taxes (18%)</Text>
+              <Text style={styles.breakdownValGreen}>Included in package</Text>
+            </View>
+
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>HappyLokam Assurance Fee</Text>
+              <Text style={styles.breakdownValGreen}>FREE (₹0)</Text>
+            </View>
+
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Celebration Wallet Discount</Text>
+              <Text style={styles.breakdownValRed}>Redeemable at Checkout</Text>
+            </View>
+
+            <View style={styles.breakdownDivider} />
+
+            <View style={styles.breakdownRowTotal}>
+              <Text style={styles.breakdownTotalLabel}>Net Estimated Total</Text>
+              <Text style={styles.breakdownTotalVal}>₹{basePriceNum.toLocaleString('en-IN')}</Text>
+            </View>
+          </View>
 
           {/* Description */}
           {item.description ? (
@@ -375,9 +579,9 @@ export default function ItemDetailScreen() {
           <View style={styles.guaranteeCard}>
             <ShieldCheck size={26} color="#059669" />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.guaranteeTitle}>HappyLokam Quality Assured</Text>
+              <Text style={styles.guaranteeTitle}>HappyLokam 100% Quality Assured</Text>
               <Text style={styles.guaranteeSub}>
-                100% genuine vendors, verified backup teams, secure online payments via Razorpay, and instant digital check-in passes.
+                Verified vendors, on-site backup staff, secure online payments with instant digital ticket passes.
               </Text>
             </View>
           </View>
@@ -400,7 +604,7 @@ export default function ItemDetailScreen() {
               <View style={styles.emptyReviewBox}>
                 <MessageSquare size={26} color="#94a3b8" />
                 <Text style={styles.emptyReviewText}>
-                  No reviews yet. Be the first to share your experience!
+                  No reviews yet. Be the first to share your celebration experience!
                 </Text>
               </View>
             ) : (
@@ -453,7 +657,8 @@ export default function ItemDetailScreen() {
           item={item}
           onClose={() => setShowPayment(false)}
           onSuccess={() => {
-            // refresh data
+            setShowPayment(false);
+            router.push('/(tabs)/bookings');
           }}
         />
       )}
@@ -463,7 +668,7 @@ export default function ItemDetailScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.ratingModalCard}>
             <Text style={styles.ratingModalTitle}>Share Your Experience</Text>
-            <Text style={styles.ratingModalSub}>How was your service or booking experience?</Text>
+            <Text style={styles.ratingModalSub}>How was your celebration or service experience?</Text>
 
             <View style={styles.ratingStarsPicker}>
               {[1, 2, 3, 4, 5].map((star) => (
@@ -598,6 +803,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   typePill: {
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
@@ -613,6 +822,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  photoCountPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  photoCountText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   body: {
     padding: 20,
@@ -660,7 +880,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 22,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
@@ -679,6 +899,196 @@ const styles = StyleSheet.create({
     height: 14,
     backgroundColor: '#cbd5e1',
     marginHorizontal: 12,
+  },
+  locationCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 22,
+  },
+  locationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffe4e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  locationCardSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  mapsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#e11d48',
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  mapsBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  amenitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  amenityCard: {
+    width: (width - 50) / 2,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  amenityIcon: {
+    fontSize: 22,
+  },
+  amenityTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  amenityDesc: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  conciergeCard: {
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  conciergeTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  conciergeAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#f43f5e',
+  },
+  conciergeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#9f1239',
+  },
+  conciergeSub: {
+    fontSize: 12,
+    color: '#881337',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  conciergeBtnsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  whatsappBtn: {
+    flex: 1,
+    backgroundColor: '#25d366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  whatsappBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  callBtn: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  callBtnText: {
+    color: '#0f172a',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  guestPickerCard: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  guestPickerLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  guestPickerSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  guestCounterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  counterBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestCountVal: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    minWidth: 32,
+    textAlign: 'center',
   },
   sectionBlock: {
     marginBottom: 24,
@@ -758,6 +1168,65 @@ const styles = StyleSheet.create({
     color: '#334155',
     flex: 1,
     lineHeight: 18,
+  },
+  priceBreakdownCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 24,
+  },
+  priceBreakdownTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  breakdownLabel: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  breakdownVal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  breakdownValGreen: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  breakdownValRed: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#e11d48',
+  },
+  breakdownDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 10,
+  },
+  breakdownRowTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  breakdownTotalLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  breakdownTotalVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#e11d48',
   },
   descText: {
     fontSize: 14,
@@ -969,3 +1438,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
