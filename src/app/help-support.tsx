@@ -33,6 +33,7 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import RoomDatabase, { RoomSupportMessage } from '../services/roomDatabase';
+import { apiClient } from '../services/api';
 
 const FAQS = [
   {
@@ -138,6 +139,33 @@ export default function HelpSupportScreen() {
       text: query,
     });
     setMessages((prev) => [...prev, userMsg]);
+
+    // Asynchronously dispatch dynamic support ticket to backend Admin Desk
+    RoomDatabase.getUserSession()
+      .then((session) => {
+        const lowerQ = query.toLowerCase();
+        let cat = 'GENERAL';
+        if (lowerQ.includes('pass') || lowerQ.includes('ticket') || lowerQ.includes('booking') || lowerQ.includes('qr')) {
+          cat = 'BOOKING_PASS';
+        } else if (lowerQ.includes('payment') || lowerQ.includes('razorpay') || lowerQ.includes('refund') || lowerQ.includes('wallet')) {
+          cat = 'PAYMENT_RAZORPAY';
+        } else if (lowerQ.includes('catering') || lowerQ.includes('decor') || lowerQ.includes('food') || lowerQ.includes('theme')) {
+          cat = 'CATERING_DECOR';
+        } else if (lowerQ.includes('venue') || lowerQ.includes('lawn') || lowerQ.includes('hall')) {
+          cat = 'VENUE_ACCESS';
+        }
+
+        apiClient.post('/support/create', {
+          userName: session?.name || 'Mobile App User',
+          userPhone: session?.phone || '9570729072',
+          userEmail: session?.email || null,
+          category: cat,
+          subject: query.slice(0, 50),
+          message: query,
+          priority: lowerQ.includes('urgent') || lowerQ.includes('emergency') || lowerQ.includes('cancel') ? 'URGENT' : 'MEDIUM',
+        }).catch((err) => console.warn('Support ticket sync notice:', err));
+      })
+      .catch(() => {});
 
     // Scroll to bottom
     setTimeout(() => {

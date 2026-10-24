@@ -562,27 +562,6 @@ export default function HomeTab() {
             </View>
           </View>
 
-          {/* Left / Right Slide Navigation Chevrons */}
-          {slides.length > 1 && (
-            <>
-              <TouchableOpacity
-                style={styles.heroNavBtnLeft}
-                onPress={handlePrevSlide}
-                activeOpacity={0.75}
-              >
-                <ChevronLeft size={18} color="#ffffff" strokeWidth={2.5} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.heroNavBtnRight}
-                onPress={handleNextSlide}
-                activeOpacity={0.75}
-              >
-                <ChevronRight size={18} color="#ffffff" strokeWidth={2.5} />
-              </TouchableOpacity>
-            </>
-          )}
-
           {/* Hero Bottom Vignette Content with Punchy Tagline & Pagination Indicators */}
           <View style={styles.heroContentBox}>
             {/* Interactive Pagination Capsule Pills */}

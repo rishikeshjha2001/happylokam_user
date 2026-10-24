@@ -49,9 +49,12 @@ const BASE_CATEGORY_FILTERS = [
   'Wedding Offers',
   'Birthdays',
   'Birthday Themes',
+  'DJ & Sound',
+  'Bridal Makeup',
   'Catering',
   'Baby Shower',
   'Engagements',
+  'Choreography',
   'Office Events',
   'Decor',
   'Pandit',
@@ -314,6 +317,14 @@ export default function ExploreTab() {
           matchesCat = itemType.includes('venue') || itemType.includes('palace') || itemType.includes('resort') || itemType.includes('haveli');
         } else if (catKey === 'photography') {
           matchesCat = itemType.includes('photo') || itemType.includes('shoot') || itemTags.includes('shoot');
+        } else if (catKey.includes('dj') || catKey.includes('sound')) {
+          matchesCat = itemType.includes('dj') || itemTags.includes('dj') || itemTitle.includes('dj') || itemTags.includes('sound') || itemTitle.includes('music');
+        } else if (catKey.includes('makeup') || catKey.includes('bridal')) {
+          matchesCat = itemType.includes('makeup') || itemTags.includes('makeup') || itemTitle.includes('makeup') || itemTags.includes('beauty') || itemTags.includes('bridal');
+        } else if (catKey.includes('choreo') || catKey.includes('dance')) {
+          matchesCat = itemType.includes('choreo') || itemTags.includes('dance') || itemTitle.includes('dance') || itemTitle.includes('sangeet');
+        } else if (catKey.includes('theme')) {
+          matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor');
         } else {
           matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey);
         }
