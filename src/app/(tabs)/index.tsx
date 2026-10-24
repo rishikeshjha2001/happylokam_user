@@ -29,6 +29,7 @@ import {
   Heart,
   Star,
   MapPin,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   ArrowRight,
@@ -247,15 +248,35 @@ export default function HomeTab() {
     };
   }, []);
 
-  // Slide rotation timer
+  // Slide rotation timer synchronized with ScrollView
+  const heroScrollRef = useRef<ScrollView>(null);
+
+  const goToSlide = (index: number) => {
+    if (index < 0 || index >= slides.length) return;
+    heroScrollRef.current?.scrollTo({ x: index * width, animated: true });
+    setCurrentSlide(index);
+  };
+
+  const handleNextSlide = () => {
+    if (slides.length <= 1) return;
+    const next = (currentSlide + 1) % slides.length;
+    goToSlide(next);
+  };
+
+  const handlePrevSlide = () => {
+    if (slides.length <= 1) return;
+    const prev = (currentSlide - 1 + slides.length) % slides.length;
+    goToSlide(prev);
+  };
+
   useEffect(() => {
     if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      Animated.sequence([
-        Animated.timing(slideOpacity, { toValue: 0.35, duration: 280, useNativeDriver: true }),
-        Animated.timing(slideOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
-      ]).start();
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setCurrentSlide((prev) => {
+        const next = (prev + 1) % slides.length;
+        heroScrollRef.current?.scrollTo({ x: next * width, animated: true });
+        return next;
+      });
     }, 4500);
     return () => clearInterval(timer);
   }, [slides.length]);
@@ -378,11 +399,30 @@ export default function HomeTab() {
         {/* HERO SLIDER WITH INTEGRATED HEADER         */}
         {/* ========================================== */}
         <View style={[styles.heroBanner, { height: heroBannerHeight }]}>
-          {/* Background Image */}
-          <Animated.Image
-            source={getHeroImageSource(activeHero.image)}
-            style={[styles.heroImage, { opacity: slideOpacity }]}
-          />
+          {/* Swipable Horizontal Multi-Image Carousel */}
+          <ScrollView
+            ref={heroScrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const slideIdx = Math.round(e.nativeEvent.contentOffset.x / width);
+              if (slideIdx !== currentSlide && slideIdx >= 0 && slideIdx < slides.length) {
+                setCurrentSlide(slideIdx);
+              }
+            }}
+            style={StyleSheet.absoluteFill}
+          >
+            {slides.map((slide, idx) => (
+              <View key={slide.id || idx} style={{ width, height: heroBannerHeight }}>
+                <Image
+                  source={getHeroImageSource(slide.image)}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                />
+              </View>
+            ))}
+          </ScrollView>
 
           {/* Advanced Multi-Layer Optical Cinema Lens Vignette */}
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -522,8 +562,49 @@ export default function HomeTab() {
             </View>
           </View>
 
-          {/* Hero Bottom Vignette Content with Punchy Tagline */}
+          {/* Left / Right Slide Navigation Chevrons */}
+          {slides.length > 1 && (
+            <>
+              <TouchableOpacity
+                style={styles.heroNavBtnLeft}
+                onPress={handlePrevSlide}
+                activeOpacity={0.75}
+              >
+                <ChevronLeft size={18} color="#ffffff" strokeWidth={2.5} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.heroNavBtnRight}
+                onPress={handleNextSlide}
+                activeOpacity={0.75}
+              >
+                <ChevronRight size={18} color="#ffffff" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Hero Bottom Vignette Content with Punchy Tagline & Pagination Indicators */}
           <View style={styles.heroContentBox}>
+            {/* Interactive Pagination Capsule Pills */}
+            <View style={styles.heroPaginationRow}>
+              {slides.map((_, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => goToSlide(idx)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.heroDot,
+                    idx === currentSlide && styles.heroDotActive,
+                  ]}
+                />
+              ))}
+              <View style={styles.heroCounterBadge}>
+                <Text style={styles.heroCounterText}>
+                  {currentSlide + 1} / {slides.length}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.featuredBadge}>
               <Flame size={12} color="#ffffff" />
               <Text style={styles.featuredBadgeText}>{activeHero.badge || 'FEATURED OFFER'}</Text>
@@ -1508,6 +1589,64 @@ const styles = StyleSheet.create({
     backgroundColor: '#e11d48',
     borderWidth: 1.5,
     borderColor: '#ffffff',
+  },
+  heroNavBtnLeft: {
+    position: 'absolute',
+    left: 12,
+    top: '46%',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 25,
+  },
+  heroNavBtnRight: {
+    position: 'absolute',
+    right: 12,
+    top: '46%',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 25,
+  },
+  heroPaginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  heroDot: {
+    height: 5,
+    width: 7,
+    borderRadius: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  heroDotActive: {
+    width: 24,
+    backgroundColor: '#ffffff',
+  },
+  heroCounterBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    marginLeft: 6,
+  },
+  heroCounterText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#ffffff',
   },
   heroContentBox: {
     position: 'absolute',

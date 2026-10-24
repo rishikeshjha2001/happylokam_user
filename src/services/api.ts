@@ -57,7 +57,7 @@ export const getHeroSlides = async (): Promise<DbHeroSlide[]> => {
   try {
     const data = await apiClient.get('/hero-slides');
     const slides = data?.data || data?.slides || [];
-    if (Array.isArray(slides) && slides.length > 0) {
+    if (Array.isArray(slides) && slides.length >= 4) {
       return slides.map((s: any, idx: number) => ({
         id: s.id || `hero-${idx}`,
         title: s.title1 ? `${s.title1} ${s.title2 || ''}`.trim() : (s.title || 'Celebration Offer'),
