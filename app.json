@@ -34,7 +34,7 @@
     ],
     "updates": {
       "enabled": true,
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 3000,
       "checkAutomatically": "ON_LOAD"
     },
     "runtimeVersion": {

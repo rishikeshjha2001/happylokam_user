@@ -123,11 +123,12 @@ export default function ExploreTab() {
         // Build dynamic categories list from admin panel + backend
         const dynamicCats: DbCategory[] = [];
         (adminCats || []).forEach((c: any) => {
+          const itemCount = Array.isArray(c.items) ? c.items.length : 0;
           dynamicCats.push({
             id: c.id,
             type: c.name,
             title: c.name,
-            count: `${(c.items || []).length} Options`,
+            count: itemCount > 0 ? `${itemCount} Options` : '',
             image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
             size: 'large',
           });
@@ -498,10 +499,10 @@ export default function ExploreTab() {
         {activeCategory === 'All' && !searchQuery.trim() && activeFilterCount === 0 && (
           <View style={styles.gridContainer}>
             {categories.map((cat, idx) => {
-              const isLarge = cat.size === 'large' || idx % 3 === 0;
+              const isLarge = cat.size === 'large';
               return (
                 <TouchableOpacity
-                  key={cat.id}
+                  key={cat.id || `cat-${idx}`}
                   style={[styles.gridItem, isLarge ? styles.gridItemLarge : styles.gridItemSmall]}
                   onPress={() => setActiveCategory(cat.type)}
                   activeOpacity={0.9}
@@ -513,7 +514,7 @@ export default function ExploreTab() {
                     <Text style={styles.gridTitle} numberOfLines={1}>
                       {cat.title}
                     </Text>
-                    <Text style={styles.gridCount}>{cat.count}</Text>
+                    {Boolean(cat.count) && <Text style={styles.gridCount}>{cat.count}</Text>}
                   </View>
                 </TouchableOpacity>
               );

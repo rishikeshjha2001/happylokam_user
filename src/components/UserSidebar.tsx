@@ -342,18 +342,6 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
                   <Text style={styles.couponCountText}>{coupons.length > 0 ? `${coupons.length} Active` : 'Offers'}</Text>
                 </View>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.navItem}
-                onPress={handleShareReferral}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.navIconBox, { backgroundColor: '#fae8ff' }]}>
-                  <Gift size={18} color="#c026d3" />
-                </View>
-                <Text style={styles.navText}>Refer & Earn ₹150</Text>
-                <Share2 size={15} color="#c026d3" />
-              </TouchableOpacity>
             </View>
 
             {/* Concierge & Support */}

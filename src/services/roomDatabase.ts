@@ -78,6 +78,37 @@ export interface RoomUser {
   lastLogin: number;
 }
 
+export interface RoomWalletTransaction {
+  id: string;
+  title: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  date: string;
+  formattedDate?: string;
+  category?: string;
+  referenceId?: string;
+  notes?: string;
+}
+
+export interface RoomSupportMessage {
+  id: string;
+  sender: 'user' | 'concierge';
+  text: string;
+  timestamp: string;
+  senderName?: string;
+}
+
+export interface RoomAddress {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  street: string;
+  city: string;
+  pincode: string;
+  isDefault?: boolean;
+}
+
 const STORAGE_KEYS = {
   EVENTS: '@happylokam_room_events',
   VENUES: '@happylokam_room_venues',
@@ -88,6 +119,9 @@ const STORAGE_KEYS = {
   FAVORITES: '@happylokam_room_favorites',
   RATINGS: '@happylokam_room_ratings',
   NOTIFICATIONS: '@happylokam_room_notifications',
+  WALLET_TRANSACTIONS: '@happylokam_room_wallet_transactions',
+  SUPPORT_MESSAGES: '@happylokam_room_support_messages',
+  ADDRESSES: '@happylokam_room_saved_addresses',
 };
 
 export const RoomDatabase = {
@@ -372,6 +406,194 @@ export const RoomDatabase = {
       return user.walletBalance;
     } catch {
       return 0;
+    }
+  },
+
+  // --- Wallet Transactions DAO ---
+  async getWalletTransactions(): Promise<RoomWalletTransaction[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.WALLET_TRANSACTIONS);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('RoomDatabase.getWalletTransactions error:', e);
+      return [];
+    }
+  },
+
+  async addWalletTransaction(tx: Omit<RoomWalletTransaction, 'id'> & { id?: string }): Promise<RoomWalletTransaction> {
+    try {
+      const current = await this.getWalletTransactions();
+      const newTx: RoomWalletTransaction = {
+        id: tx.id || `tx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        title: tx.title,
+        amount: tx.amount,
+        type: tx.type,
+        date: tx.date || new Date().toISOString(),
+        formattedDate: tx.formattedDate || new Date().toLocaleString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        category: tx.category || (tx.type === 'credit' ? 'Wallet Credit' : 'Payment Debit'),
+        referenceId: tx.referenceId,
+        notes: tx.notes,
+      };
+
+      const updated = [newTx, ...current];
+      await AsyncStorage.setItem(STORAGE_KEYS.WALLET_TRANSACTIONS, JSON.stringify(updated));
+      return newTx;
+    } catch (e) {
+      console.warn('RoomDatabase.addWalletTransaction error:', e);
+      return {
+        id: `tx_${Date.now()}`,
+        title: tx.title,
+        amount: tx.amount,
+        type: tx.type,
+        date: new Date().toISOString(),
+      };
+    }
+  },
+
+  async clearWalletTransactions(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.WALLET_TRANSACTIONS);
+    } catch (e) {
+      console.warn('RoomDatabase.clearWalletTransactions error:', e);
+    }
+  },
+
+  // --- Support Chat Messages DAO ---
+  async getSupportMessages(): Promise<RoomSupportMessage[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.SUPPORT_MESSAGES);
+      if (!raw) {
+        return [
+          {
+            id: 'msg_welcome',
+            sender: 'concierge',
+            text: 'Namaste! 🙏 Welcome to HappyLokam Celebration Concierge. How can we make your wedding, birthday, or party unforgettable today?',
+            timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            senderName: 'HappyLokam Concierge',
+          },
+        ];
+      }
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  },
+
+  async addSupportMessage(msg: { sender: 'user' | 'concierge'; text: string; senderName?: string }): Promise<RoomSupportMessage> {
+    try {
+      const current = await this.getSupportMessages();
+      const newMsg: RoomSupportMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        sender: msg.sender,
+        text: msg.text,
+        timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        senderName: msg.senderName || (msg.sender === 'user' ? 'You' : 'HappyLokam Concierge'),
+      };
+      const updated = [...current, newMsg];
+      await AsyncStorage.setItem(STORAGE_KEYS.SUPPORT_MESSAGES, JSON.stringify(updated));
+      return newMsg;
+    } catch (e) {
+      console.warn('RoomDatabase.addSupportMessage error:', e);
+      return {
+        id: `msg_${Date.now()}`,
+        sender: msg.sender,
+        text: msg.text,
+        timestamp: 'Just now',
+      };
+    }
+  },
+
+  async clearSupportMessages(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.SUPPORT_MESSAGES);
+    } catch (e) {
+      console.warn('RoomDatabase.clearSupportMessages error:', e);
+    }
+  },
+
+  // --- Saved Celebration Addresses DAO ---
+  async getAddresses(): Promise<RoomAddress[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.ADDRESSES);
+      if (!raw) {
+        // Return default primary celebration address
+        return [
+          {
+            id: 'addr_default_1',
+            label: 'Home Celebration Address',
+            recipientName: 'Celebration Host',
+            phone: '+91 98765 43210',
+            street: 'Kanti Factory Road, Kankarbagh',
+            city: 'Patna, Bihar',
+            pincode: '800026',
+            isDefault: true,
+          },
+        ];
+      }
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn('RoomDatabase.getAddresses error:', e);
+      return [];
+    }
+  },
+
+  async saveAddress(addr: Omit<RoomAddress, 'id'> & { id?: string }): Promise<RoomAddress> {
+    try {
+      const current = await this.getAddresses();
+      const newAddr: RoomAddress = {
+        id: addr.id || `addr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        label: addr.label.trim(),
+        recipientName: addr.recipientName.trim(),
+        phone: addr.phone.trim(),
+        street: addr.street.trim(),
+        city: addr.city.trim(),
+        pincode: addr.pincode.trim(),
+        isDefault: addr.isDefault ?? (current.length === 0),
+      };
+
+      let updated = current.filter((a) => a.id !== newAddr.id);
+      if (newAddr.isDefault) {
+        updated = updated.map((a) => ({ ...a, isDefault: false }));
+      }
+      updated.unshift(newAddr);
+      await AsyncStorage.setItem(STORAGE_KEYS.ADDRESSES, JSON.stringify(updated));
+      return newAddr;
+    } catch (e) {
+      console.warn('RoomDatabase.saveAddress error:', e);
+      return {
+        id: `addr_${Date.now()}`,
+        ...addr,
+      };
+    }
+  },
+
+  async deleteAddress(id: string): Promise<void> {
+    try {
+      const current = await this.getAddresses();
+      const updated = current.filter((a) => a.id !== id);
+      await AsyncStorage.setItem(STORAGE_KEYS.ADDRESSES, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('RoomDatabase.deleteAddress error:', e);
+    }
+  },
+
+  async setDefaultAddress(id: string): Promise<void> {
+    try {
+      const current = await this.getAddresses();
+      const updated = current.map((a) => ({
+        ...a,
+        isDefault: a.id === id,
+      }));
+      await AsyncStorage.setItem(STORAGE_KEYS.ADDRESSES, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('RoomDatabase.setDefaultAddress error:', e);
     }
   }
 };

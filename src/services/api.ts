@@ -235,24 +235,7 @@ export const getUserNotifications = async (): Promise<any[]> => {
   }
 
   const cached = await RoomDatabase.getNotifications();
-  if (cached.length > 0) return cached;
-
-  return [
-    {
-      id: 'notif_welcome',
-      title: 'Welcome to HappyLokam Celebrations 🎉',
-      message: 'Explore royal wedding venues, birthday passes, book vedic pandits, catering feasts and theme decorators with instant digital passes.',
-      sentAt: new Date().toISOString(),
-      isRead: false,
-    },
-    {
-      id: 'notif_wallet',
-      title: 'Wallet Balance Active 💰',
-      message: 'Admin promo cash and cashback are automatically applied at checkout to save on your next booking.',
-      sentAt: new Date(Date.now() - 3600000).toISOString(),
-      isRead: false,
-    },
-  ];
+  return cached || [];
 };
 
 // 8. Offers & Promo Coupons from Admin Panel
@@ -311,6 +294,7 @@ export const verifyRazorpayPayment = async (payload: {
   razorpay_signature?: string;
   sectionBookingId?: string;
   bookingId?: string;
+  amount?: number;
 }): Promise<any> => {
   try {
     const res = await apiClient.post('/payments/verify', payload);

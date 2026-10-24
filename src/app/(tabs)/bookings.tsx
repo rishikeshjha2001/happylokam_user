@@ -24,7 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
 import { apiClient } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
@@ -53,6 +53,12 @@ export default function BookingsTab() {
 
     return () => backSub.remove();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadBookingsData();
+    }, [])
+  );
 
   const loadBookingsData = async () => {
     try {

@@ -145,27 +145,7 @@ export default function ItemDetailScreen() {
   const loadRatings = async () => {
     const list = await RoomDatabase.getRatings();
     const filtered = list.filter((r) => r.itemId === itemId);
-    if (filtered.length > 0) {
-      setRatings(filtered);
-    } else {
-      // Seed realistic verified reviews
-      setRatings([
-        {
-          id: 'rev_1',
-          userName: 'Verified Guest',
-          rating: 5,
-          review: 'Extraordinary arrangement! The team handled everything flawlessly. Highly recommended for family events.',
-          createdAt: '2 days ago',
-        },
-        {
-          id: 'rev_2',
-          userName: 'Community Member',
-          rating: 5,
-          review: 'Seamless booking on the app. The digital pass worked instantly at the entrance!',
-          createdAt: '1 week ago',
-        },
-      ]);
-    }
+    setRatings(filtered);
   };
 
   const handleSubmitRating = async () => {
@@ -416,25 +396,34 @@ export default function ItemDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {ratings.map((r, i) => (
-              <View key={i} style={styles.reviewCard}>
-                <View style={styles.reviewTopRow}>
-                  <Text style={styles.reviewUser}>{r.userName || 'Verified Guest'}</Text>
-                  <View style={styles.starsRow}>
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={12}
-                        color={s <= r.rating ? '#eab308' : '#e2e8f0'}
-                        fill={s <= r.rating ? '#eab308' : 'none'}
-                      />
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.reviewText}>{r.review}</Text>
-                <Text style={styles.reviewTime}>{r.createdAt}</Text>
+            {ratings.length === 0 ? (
+              <View style={styles.emptyReviewBox}>
+                <MessageSquare size={26} color="#94a3b8" />
+                <Text style={styles.emptyReviewText}>
+                  No reviews yet. Be the first to share your experience!
+                </Text>
               </View>
-            ))}
+            ) : (
+              ratings.map((r, i) => (
+                <View key={i} style={styles.reviewCard}>
+                  <View style={styles.reviewTopRow}>
+                    <Text style={styles.reviewUser}>{r.userName || 'Verified Guest'}</Text>
+                    <View style={styles.starsRow}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={12}
+                          color={s <= r.rating ? '#eab308' : '#e2e8f0'}
+                          fill={s <= r.rating ? '#eab308' : 'none'}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewText}>{r.review}</Text>
+                  <Text style={styles.reviewTime}>{r.createdAt}</Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -815,6 +804,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#e11d48',
     fontWeight: '700',
+  },
+  emptyReviewBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 8,
+  },
+  emptyReviewText: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
   },
   reviewCard: {
     backgroundColor: '#f8fafc',
