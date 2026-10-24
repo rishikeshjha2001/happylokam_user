@@ -9,7 +9,7 @@ import {
   StatusBar,
   Platform,
   BackHandler,
-  ActivityIndicator,
+  Image,
 } from 'react-native';
 import {
   Sparkles,
@@ -24,18 +24,19 @@ import {
   ChevronRight,
   Menu,
   Bell,
-  Gift,
   MapPin,
+  Camera,
   Calendar,
   CheckCircle2,
   Clock,
   ArrowRight,
-  ShieldCheck,
+  Gift,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
 import SidebarDrawer from '../../components/SidebarDrawer';
+import WalletModal from '../../components/WalletModal';
 
 const { width } = Dimensions.get('window');
 
@@ -55,7 +56,7 @@ export default function ProfileTab() {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [latestBooking, setLatestBooking] = useState<RoomBooking | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isWalletOpen, setWalletOpen] = useState(false);
 
   const loadProfileData = async () => {
     try {
@@ -78,8 +79,8 @@ export default function ProfileTab() {
       } else {
         setIsLoggedIn(false);
         setUserData({
-          name: 'Guest User',
-          email: 'guest@happylokam.com',
+          name: 'Welcome, Guest',
+          email: 'Sign in to access your digital passes',
           balance: 0,
           phone: '',
           referralCode: '',
@@ -95,8 +96,6 @@ export default function ProfileTab() {
       }
     } catch (e) {
       console.warn('Profile load error:', e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -121,8 +120,8 @@ export default function ProfileTab() {
     await RoomDatabase.clearUserSession();
     setIsLoggedIn(false);
     setUserData({
-      name: 'Guest User',
-      email: 'guest@happylokam.com',
+      name: 'Welcome, Guest',
+      email: 'Sign in to access your digital passes',
       balance: 0,
       phone: '',
       referralCode: '',
@@ -133,24 +132,24 @@ export default function ProfileTab() {
   const celebrationItems = [
     {
       icon: Ticket,
-      label: 'My Bookings & Passes',
-      sub: `${bookingsCount} Confirmed passes & reservations`,
+      label: 'My Bookings & QR Passes',
+      sub: `${bookingsCount} Confirmed passes & tickets`,
       color: '#d97706',
       bg: '#fffbeb',
       action: () => (isLoggedIn ? router.push('/(tabs)/bookings') : router.push('/login')),
     },
     {
       icon: CreditCard,
-      label: 'Celebration Wallet',
-      sub: `₹${userData.balance.toLocaleString('en-IN')} Non-withdrawable celebration cash`,
-      color: '#e11d48',
-      bg: '#fff1f2',
+      label: 'HappyWallet Balance & Bonus',
+      sub: `₹${userData.balance.toLocaleString('en-IN')} Celebration cash`,
+      color: '#059669',
+      bg: '#ecfdf5',
       action: () => router.push('/wallet'),
     },
     {
       icon: MapPin,
-      label: 'Saved Celebration Locations',
-      sub: 'Home, banquet lawns, and event addresses',
+      label: 'Saved Celebration Addresses',
+      sub: 'Manage delivery & venue locations',
       color: '#0284c7',
       bg: '#f0f9ff',
       action: () => router.push('/addresses'),
@@ -159,25 +158,25 @@ export default function ProfileTab() {
       icon: Heart,
       label: 'Saved Venues & Wishlist',
       sub: `${favoritesCount} Saved celebration packages`,
-      color: '#ec4899',
-      bg: '#fdf2f8',
+      color: '#e11d48',
+      bg: '#fff1f2',
       action: () => router.push('/favorites'),
     },
   ];
 
-  const accountItems = [
+  const preferenceItems = [
     {
       icon: User,
       label: 'Personal Information',
-      sub: 'Name, phone, email, and preferences',
+      sub: 'Name, email, contact & profile details',
       color: '#3b82f6',
       bg: '#eff6ff',
       action: () => (isLoggedIn ? router.push('/personal-info') : router.push('/login')),
     },
     {
       icon: Bell,
-      label: 'Notifications & Broadcasts',
-      sub: 'Booking updates & admin drops',
+      label: 'Notifications & Alerts',
+      sub: 'Booking updates & celebration drops',
       color: '#8b5cf6',
       bg: '#f5f3ff',
       action: () => router.push('/notifications'),
@@ -185,7 +184,7 @@ export default function ProfileTab() {
     {
       icon: Phone,
       label: 'Help & Concierge Support',
-      sub: 'WhatsApp, direct helpline & live chat',
+      sub: 'WhatsApp & 24/7 dedicated assistance',
       color: '#10b981',
       bg: '#ecfdf5',
       action: () => router.push('/help-support'),
@@ -193,7 +192,7 @@ export default function ProfileTab() {
     {
       icon: Shield,
       label: 'Privacy & Security',
-      sub: 'Data protection & device safety',
+      sub: 'Account encryption & permissions',
       color: '#64748b',
       bg: '#f8fafc',
       action: () => router.push('/privacy-security'),
@@ -201,7 +200,7 @@ export default function ProfileTab() {
     {
       icon: Settings,
       label: 'App Settings',
-      sub: 'OTA updates & language',
+      sub: 'OTA updates & cache',
       color: '#475569',
       bg: '#f1f5f9',
       action: () => router.push('/settings'),
@@ -229,100 +228,67 @@ export default function ProfileTab() {
           <Text style={styles.brandTitle}>happylokam</Text>
         </View>
 
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={() => router.push('/notifications')}
+          activeOpacity={0.8}
+        >
+          <Bell size={19} color="#334155" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomScrollPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Card Header */}
+        {/* 1. Buttery Smooth Curved Profile Header Card */}
         <View style={styles.profileHeaderCard}>
-          {isLoggedIn ? (
-            <View style={styles.profileRow}>
-              <View style={[styles.avatarContainer, { backgroundColor: '#ffe4e6', alignItems: 'center', justifyContent: 'center' }]}>
-                {userData.name && userData.name !== 'Guest User' ? (
-                  <Text style={{ fontSize: 24, fontWeight: '900', color: '#e11d48' }}>
+          <View style={styles.profileRow}>
+            {/* Avatar with Camera Badge */}
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatarInner}>
+                {isLoggedIn && userData.name && userData.name !== 'Welcome, Guest' ? (
+                  <Text style={styles.avatarLetter}>
                     {userData.name.charAt(0).toUpperCase()}
                   </Text>
                 ) : (
-                  <User size={28} color="#e11d48" />
+                  <User size={30} color="#e11d48" />
                 )}
               </View>
-
-              <View style={styles.profileTextInfo}>
-                <Text style={styles.profileName}>{userData.name}</Text>
-                <Text style={styles.profileEmail}>{userData.email}</Text>
-                <View style={styles.premiumBadge}>
-                  <Sparkles size={12} color="#e11d48" />
-                  <Text style={styles.premiumBadgeText}>Verified Celebration Host</Text>
-                </View>
+              <View style={styles.cameraBadge}>
+                <Camera size={12} color="#ffffff" />
               </View>
             </View>
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
-              <View style={[styles.avatarContainer, { backgroundColor: '#ffe4e6', alignItems: 'center', justifyContent: 'center' }]}>
-                <User size={28} color="#e11d48" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.profileName}>Welcome, Guest!</Text>
-                <Text style={styles.profileEmail}>Sign in to view your celebration bookings & passes</Text>
+
+            {/* Profile Info */}
+            <View style={styles.profileTextInfo}>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {userData.name}
+              </Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {userData.email}
+              </Text>
+
+              {isLoggedIn ? (
+                <View style={styles.premiumBadge}>
+                  <Sparkles size={11} color="#e11d48" />
+                  <Text style={styles.premiumBadgeText}>VIP CELEBRATION HOST</Text>
+                </View>
+              ) : (
                 <TouchableOpacity
-                  style={{
-                    backgroundColor: '#e11d48',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 12,
-                    alignSelf: 'flex-start',
-                    marginTop: 8,
-                  }}
+                  style={styles.signInPill}
                   onPress={() => router.push('/login')}
                   activeOpacity={0.85}
                 >
-                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 12 }}>Sign In / Register</Text>
+                  <Text style={styles.signInPillText}>Sign In / Register</Text>
+                  <ChevronRight size={12} color="#ffffff" />
                 </TouchableOpacity>
-              </View>
+              )}
             </View>
-          )}
+          </View>
         </View>
 
-        {/* Quick Stats Metric Bar */}
-        <View style={styles.statsBar}>
-          <TouchableOpacity
-            style={styles.statBox}
-            onPress={() => (isLoggedIn ? router.push('/(tabs)/bookings') : router.push('/login'))}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.statNumber}>{bookingsCount}</Text>
-            <Text style={styles.statLabel}>My Bookings</Text>
-          </TouchableOpacity>
-
-          <View style={styles.statDivider} />
-
-          <TouchableOpacity
-            style={styles.statBox}
-            onPress={() => (isLoggedIn ? router.push('/wallet') : router.push('/login'))}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.statNumber, { color: '#059669' }]}>
-              ₹{userData.balance.toLocaleString('en-IN')}
-            </Text>
-            <Text style={styles.statLabel}>Wallet Cash</Text>
-          </TouchableOpacity>
-
-          <View style={styles.statDivider} />
-
-          <TouchableOpacity
-            style={styles.statBox}
-            onPress={() => router.push('/favorites')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.statNumber}>{favoritesCount}</Text>
-            <Text style={styles.statLabel}>Saved Venues</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Floating Celebration Wallet Banner Card */}
+        {/* 2. Overlapping Floating Dark Wallet Card */}
         <View style={styles.walletContainer}>
           <TouchableOpacity
             style={styles.walletCard}
@@ -331,83 +297,59 @@ export default function ProfileTab() {
           >
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.walletLabel}>Celebration Wallet</Text>
+                <Text style={styles.walletLabel}>HAPPYWALLET BALANCE</Text>
                 <View style={styles.walletActiveBadge}>
                   <Text style={styles.walletActiveText}>AUTO-APPLIED</Text>
                 </View>
               </View>
-              <Text style={styles.walletBalance}>
-                {isLoggedIn ? `₹${userData.balance.toLocaleString('en-IN')}` : 'Sign in to access Wallet'}
-              </Text>
-              <Text style={styles.walletHint}>
-                Non-withdrawable credits • Deducts at checkout up to 100% off
+
+              <View style={styles.walletBalanceRow}>
+                <Text style={styles.walletBalance}>
+                  ₹{userData.balance.toLocaleString('en-IN')}
+                </Text>
+                <Text style={styles.walletBonusBadge}>+ ₹500 Bonus Active</Text>
+              </View>
+
+              <Text style={styles.walletSub}>
+                Tap to view statement, cashback & coupon history
               </Text>
             </View>
 
             <View style={styles.walletIconBox}>
-              <CreditCard size={24} color="#e11d48" />
+              <CreditCard size={22} color="#fda4af" />
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Latest Confirmed Pass Preview Card (If any booking exists) */}
+        {/* 3. Latest Confirmed Pass Pill (If present) */}
         {latestBooking && (
-          <View style={styles.recentBookingContainer}>
-            <View style={styles.recentBookingHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ticket size={16} color="#e11d48" />
-                <Text style={styles.recentBookingTitle}>Latest Confirmed Pass</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/bookings')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllText}>View All ({bookingsCount})</Text>
-              </TouchableOpacity>
-            </View>
-
+          <View style={styles.passSection}>
             <TouchableOpacity
-              style={styles.bookingPassCard}
+              style={styles.passCard}
               onPress={() => router.push('/(tabs)/bookings')}
               activeOpacity={0.85}
             >
-              <View style={styles.bookingPassTopRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.bookingPassName} numberOfLines={1}>
-                    {latestBooking.title}
-                  </Text>
-                  <View style={styles.bookingPassMetaRow}>
-                    <Calendar size={12} color="#64748b" />
-                    <Text style={styles.bookingPassMetaText}>{latestBooking.date}</Text>
-                    <Text style={styles.bookingPassDot}>•</Text>
-                    <Text style={styles.bookingPassMetaText}>
-                      Code: {latestBooking.qrCode || `HL-${latestBooking.id.slice(-6).toUpperCase()}`}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.confirmedPill}>
-                  <CheckCircle2 size={12} color="#059669" />
-                  <Text style={styles.confirmedPillText}>CONFIRMED</Text>
-                </View>
+              <View style={styles.passIconCircle}>
+                <Ticket size={20} color="#e11d48" />
               </View>
-
-              <View style={styles.bookingPassFooterRow}>
-                <Text style={styles.bookingAmountText}>
-                  Total Paid: <Text style={{ color: '#0f172a', fontWeight: '900' }}>₹{latestBooking.amount.toLocaleString('en-IN')}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.passHeaderTitle} numberOfLines={1}>
+                  {latestBooking.title}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Text style={styles.viewPassLink}>View Pass</Text>
-                  <ArrowRight size={13} color="#e11d48" />
-                </View>
+                <Text style={styles.passSubText}>
+                  {latestBooking.date || 'Active Booking'} • Tap to open QR Pass
+                </Text>
               </View>
+              <ChevronRight size={18} color="#94a3b8" />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Celebration Services Group */}
+        {/* 4. Grouped Menu Sections */}
         <View style={styles.menuSections}>
+          {/* Section: Celebrations & Passes */}
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeader}>Celebration Management</Text>
+            <Text style={styles.sectionHeader}>Celebrations & Passes</Text>
             <View style={styles.cardGroup}>
               {celebrationItems.map((item, idx) => (
                 <TouchableOpacity
@@ -420,64 +362,80 @@ export default function ProfileTab() {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
-                    <item.icon size={19} color={item.color} />
+                    <item.icon size={20} color={item.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuSubLabel}>{item.sub}</Text>
+                    <Text style={styles.menuSubText}>{item.sub}</Text>
                   </View>
-                  <ChevronRight size={17} color="#cbd5e1" />
+                  <ChevronRight size={18} color="#cbd5e1" />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Account & Support Group */}
+          {/* Section: Account & Preferences */}
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeader}>Account & Help Desk</Text>
+            <Text style={styles.sectionHeader}>Account & Preferences</Text>
             <View style={styles.cardGroup}>
-              {accountItems.map((item, idx) => (
+              {preferenceItems.map((item, idx) => (
                 <TouchableOpacity
                   key={item.label}
                   style={[
                     styles.menuRow,
-                    idx !== accountItems.length - 1 && styles.menuRowBorder,
+                    idx !== preferenceItems.length - 1 && styles.menuRowBorder,
                   ]}
                   onPress={item.action}
                   activeOpacity={0.7}
                 >
                   <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
-                    <item.icon size={19} color={item.color} />
+                    <item.icon size={20} color={item.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuSubLabel}>{item.sub}</Text>
+                    <Text style={styles.menuSubText}>{item.sub}</Text>
                   </View>
-                  <ChevronRight size={17} color="#cbd5e1" />
+                  <ChevronRight size={18} color="#cbd5e1" />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Log Out Button */}
-          {isLoggedIn && (
+          {/* 5. Buttery Smooth Log Out / Sign In Button */}
+          {isLoggedIn ? (
             <TouchableOpacity
               style={styles.logoutBtn}
               onPress={handleLogout}
               activeOpacity={0.85}
             >
-              <LogOut size={18} color="#e11d48" />
+              <LogOut size={19} color="#e11d48" />
               <Text style={styles.logoutText}>Log Out Account</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.logoutBtn, { borderColor: '#e11d48', backgroundColor: '#fff1f2' }]}
+              onPress={() => router.push('/login')}
+              activeOpacity={0.85}
+            >
+              <User size={19} color="#e11d48" />
+              <Text style={styles.logoutText}>Sign In / Register</Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
+      {/* Wallet Modal */}
+      <WalletModal
+        visible={isWalletOpen}
+        onClose={() => setWalletOpen(false)}
+        balance={userData.balance}
+      />
+
       {/* Sidebar Drawer */}
       <SidebarDrawer
         visible={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        onOpenWallet={() => router.push('/wallet')}
+        onOpenWallet={() => setWalletOpen(true)}
         user={{ name: userData.name, email: userData.email }}
       />
     </View>
@@ -487,11 +445,10 @@ export default function ProfileTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f8fafc', // Slate-50
   },
   topHeader: {
-    height: Platform.OS === 'ios' ? 96 : 74,
-    paddingTop: Platform.OS === 'ios' ? 36 : 10,
+    height: Platform.OS === 'ios' ? 96 : 72,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
@@ -521,283 +478,287 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   scrollContent: {
-    paddingTop: 16,
+    paddingBottom: 96,
   },
+
+  // 1. Buttery Curved Profile Header
   profileHeaderCard: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#0f172a',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 44,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 3,
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
   },
   avatarContainer: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    position: 'relative',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#fff1f2',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  avatarInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 38,
+    backgroundColor: '#ffe4e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarLetter: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#e11d48',
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#e11d48',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   profileTextInfo: {
     flex: 1,
-    marginLeft: 14,
   },
   profileName: {
-    fontSize: 18,
+    fontSize: 21,
     fontWeight: '900',
     color: '#0f172a',
+    letterSpacing: -0.4,
+    marginBottom: 2,
   },
   profileEmail: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: '#64748b',
-    marginTop: 2,
+    marginBottom: 6,
   },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#fff1f2',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ffe4e6',
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    marginTop: 6,
   },
   premiumBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
     color: '#e11d48',
-  },
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 18,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    alignItems: 'center',
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 17,
+    fontSize: 10.5,
     fontWeight: '900',
-    color: '#0f172a',
+    letterSpacing: 0.5,
   },
-  statLabel: {
+  signInPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#e11d48',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  signInPillText: {
+    color: '#ffffff',
     fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-    marginTop: 2,
+    fontWeight: '800',
   },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#e2e8f0',
-  },
+
+  // 2. Overlapping Floating Dark Wallet Card
   walletContainer: {
-    marginHorizontal: 16,
-    marginTop: 14,
+    paddingHorizontal: 20,
+    marginTop: -26,
+    zIndex: 20,
+    marginBottom: 24,
   },
   walletCard: {
+    backgroundColor: '#0f172a', // Slate-900
+    borderRadius: 24,
+    padding: 20,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 18,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    shadowColor: '#e11d48',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    borderColor: '#1e293b',
   },
   walletLabel: {
-    fontSize: 12,
+    color: '#94a3b8',
+    fontSize: 10,
     fontWeight: '800',
-    color: '#0f172a',
     textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   walletActiveBadge: {
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: '#059669',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   walletActiveText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
-    color: '#059669',
+    color: '#ffffff',
+    letterSpacing: 0.4,
+  },
+  walletBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 4,
   },
   walletBalance: {
-    fontSize: 22,
+    fontSize: 30,
     fontWeight: '900',
-    color: '#e11d48',
-    marginTop: 3,
+    color: '#ffffff',
+    letterSpacing: -0.5,
   },
-  walletHint: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 2,
+  walletBonusBadge: {
+    color: '#34d399', // Emerald-400
+    fontSize: 11.5,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  walletSub: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
   walletIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+
+  // 3. Latest Confirmed Pass Preview
+  passSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  passCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  passIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#fff1f2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
-  recentBookingContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-  },
-  recentBookingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  recentBookingTitle: {
+  passHeaderTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
   },
-  viewAllText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#e11d48',
-  },
-  bookingPassCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  bookingPassTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  bookingPassName: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0f172a',
-  },
-  bookingPassMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  bookingPassMetaText: {
+  passSubText: {
     fontSize: 11,
+    fontWeight: '500',
     color: '#64748b',
+    marginTop: 1,
   },
-  bookingPassDot: {
-    fontSize: 10,
-    color: '#cbd5e1',
-  },
-  confirmedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  confirmedPillText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#059669',
-  },
-  bookingPassFooterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  bookingAmountText: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  viewPassLink: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#e11d48',
-  },
+
+  // 4. Menu Sections
   menuSections: {
-    marginHorizontal: 16,
-    marginTop: 16,
+    paddingHorizontal: 20,
+    gap: 22,
   },
   sectionBlock: {
-    marginBottom: 16,
+    gap: 8,
   },
   sectionHeader: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#94a3b8',
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
     marginLeft: 4,
   },
   cardGroup: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#f1f5f9',
     overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    padding: 14,
+    gap: 14,
   },
   menuRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#f8fafc',
   },
   menuIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
   },
   menuLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#1e293b',
   },
-  menuSubLabel: {
+  menuSubText: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#94a3b8',
+    fontWeight: '500',
     marginTop: 1,
   },
   logoutBtn: {
@@ -807,14 +768,17 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#fff1f2',
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    borderRadius: 18,
-    paddingVertical: 14,
+    borderColor: '#ffe4e6',
+    borderRadius: 22,
+    paddingVertical: 15,
     marginTop: 6,
-    marginBottom: 16,
+    shadowColor: '#e11d48',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
   },
   logoutText: {
-    fontSize: 13,
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#e11d48',
   },

@@ -47,7 +47,7 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import Svg, { Defs, LinearGradient as SvgGradient, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { getHeroSlides, getVenues, getPackages, getUserWallet } from '../../services/api';
-import { DbHeroSlide, DbVenue, DbPackage } from '../../constants/databaseModels';
+import { DbHeroSlide, DbVenue, DbPackage, DB_HERO_SLIDES } from '../../constants/databaseModels';
 import RoomDatabase from '../../services/roomDatabase';
 import {
   AdminCustomSection,
@@ -67,6 +67,30 @@ import AdvancedFilterModal, {
 import OtaSync from '../../services/otaSync';
 
 const { width } = Dimensions.get('window');
+
+const getHeroImageSource = (img: any) => {
+  if (!img) return require('../../../assets/hero_vedic_vivah.jpg');
+  if (typeof img === 'number') return img;
+  if (typeof img === 'string') {
+    const lower = img.toLowerCase();
+    if (lower.includes('vedic') || lower.includes('havan') || lower.includes('mandap')) {
+      return require('../../../assets/hero_vedic_vivah.jpg');
+    }
+    if (lower.includes('corporate') || lower.includes('secret') || lower.includes('buffet')) {
+      return require('../../../assets/hero_corporate_events.jpg');
+    }
+    if (lower.includes('birthday') || lower.includes('throne') || lower.includes('fiesta')) {
+      return require('../../../assets/hero_birthday_throne.jpg');
+    }
+    if (lower.includes('ring') || lower.includes('lakeside') || lower.includes('palace')) {
+      return require('../../../assets/hero_wedding_rings.jpg');
+    }
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      return { uri: img };
+    }
+  }
+  return require('../../../assets/hero_vedic_vivah.jpg');
+};
 
 const QUICK_CATEGORIES = [
   { id: 'q1', name: 'Weddings', icon: Sparkles, color: '#e11d48', bg: '#ffe4e6', border: '#fecdd3' },
@@ -176,49 +200,8 @@ export default function HomeTab() {
 
       if (heroData && heroData.length > 0) {
         setSlides(heroData);
-      } else if (customSecs && customSecs.length > 0) {
-        // Automatically populate hero slides from admin uploaded items
-        const dynamicHeroSlides: DbHeroSlide[] = [];
-        customSecs.forEach((sec) => {
-          (sec.items || []).forEach((it: any) => {
-            if (it.image && dynamicHeroSlides.length < 5) {
-              dynamicHeroSlides.push({
-                id: it.id || `slide-${dynamicHeroSlides.length}`,
-                title: it.title || sec.title,
-                subtitle: it.subtitle || sec.subtitle || 'Book with HappyLokam',
-                image: it.image,
-                badge: it.cornerTag || sec.tag || 'FEATURED',
-                gradient: 'from-rose-900/80 to-rose-500/40',
-              });
-            }
-          });
-        });
-
-        if (dynamicHeroSlides.length > 0) {
-          setSlides(dynamicHeroSlides);
-        } else {
-          setSlides([
-            {
-              id: 'hero-def-1',
-              title: 'Royal Celebration Passes & Venues',
-              subtitle: 'Handcrafted luxury celebrations & digital passes',
-              image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
-              badge: 'Exclusive',
-              gradient: 'from-rose-900/80 to-rose-500/40',
-            },
-          ]);
-        }
       } else {
-        setSlides([
-          {
-            id: 'hero-def-1',
-            title: 'Royal Celebration Passes & Venues',
-            subtitle: 'Handcrafted luxury celebrations & digital passes',
-            image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
-            badge: 'Exclusive',
-            gradient: 'from-rose-900/80 to-rose-500/40',
-          },
-        ]);
+        setSlides(DB_HERO_SLIDES);
       }
 
       setVenues(venueData);
@@ -397,7 +380,7 @@ export default function HomeTab() {
         <View style={[styles.heroBanner, { height: heroBannerHeight }]}>
           {/* Background Image */}
           <Animated.Image
-            source={{ uri: activeHero.image }}
+            source={getHeroImageSource(activeHero.image)}
             style={[styles.heroImage, { opacity: slideOpacity }]}
           />
 

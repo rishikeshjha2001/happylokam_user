@@ -62,7 +62,7 @@ export const getHeroSlides = async (): Promise<DbHeroSlide[]> => {
         id: s.id || `hero-${idx}`,
         title: s.title1 ? `${s.title1} ${s.title2 || ''}`.trim() : (s.title || 'Celebration Offer'),
         subtitle: s.desc || s.subtitle || 'Exclusive deals on grand celebrations',
-        image: s.image && s.image.startsWith('http') ? s.image : 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
+        image: s.image || 'hero_vedic_vivah',
         badge: s.badge || 'Featured',
         gradient: s.gradient ? `from-${s.gradient}` : 'from-rose-500',
         ctaText: s.ctaText,
