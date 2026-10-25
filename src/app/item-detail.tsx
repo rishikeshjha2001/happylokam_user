@@ -128,7 +128,7 @@ export default function ItemDetailScreen() {
         location: params.location || 'Verified Celebration Venue',
         description: params.description || params.subtitle || 'Exclusive celebration service package curated with highest quality and satisfaction guarantee.',
         features: [
-          'Dedicated Event Manager & On-Site Coordinator',
+          'Dedicated Event Concierge & On-Site Coordinator',
           'Premium Custom Themes & Floral Installations',
           'Professional Sound, Stage & Lighting Setup',
           'Full Hygiene Verified & Catering Oversight',

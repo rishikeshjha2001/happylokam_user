@@ -301,7 +301,7 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
             {customSections.length > 0 && (
               <>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionHeading}>ADMIN SECTIONS</Text>
+                  <Text style={styles.sectionHeading}>FEATURED SECTIONS</Text>
                   <View style={styles.adminBadge}>
                     <Text style={styles.adminBadgeText}>LIVE SECTIONS</Text>
                   </View>
@@ -377,7 +377,7 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
             {customCategories.length > 0 && (
               <>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionHeading}>ADMIN CATEGORIES</Text>
+                  <Text style={styles.sectionHeading}>CURATED THEMES</Text>
                   <View style={styles.adminBadge}>
                     <Text style={styles.adminBadgeText}>LIVE THEMES</Text>
                   </View>

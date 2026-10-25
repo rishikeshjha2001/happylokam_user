@@ -107,10 +107,10 @@ export default function BookingDetailScreen() {
   };
 
   const handleSupport = () => {
-    const phone = '919988776655';
-    const message = `Hello HappyLokam Concierge, I need assistance with my booking #${booking?.id || params.id} (${booking?.title || params.title}).`;
-    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-    Linking.openURL(url).catch(() => Linking.openURL(`tel:+919988776655`));
+    const phone = '918292888200';
+    const message = `Hello HappyLokam Support, I need assistance with my booking #${booking?.id || params.id} (${booking?.title || params.title}).`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url).catch(() => Linking.openURL(`tel:+918292888200`));
   };
 
   const ticketCode = booking?.qrCode || params.qrCode || `HL-TCK-${Date.now().toString(36).toUpperCase()}`;

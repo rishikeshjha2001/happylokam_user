@@ -353,10 +353,10 @@ export default function AdminSectionModal({
             <View style={styles.badgeRow}>
               <View style={styles.adminBadge}>
                 <Sparkles size={12} color="#ffffff" />
-                <Text style={styles.adminBadgeText}>ADMIN CONTROL</Text>
+                <Text style={styles.adminBadgeText}>HAPPY LOKAM SUPPORT</Text>
               </View>
             </View>
-            <Text style={styles.headerTitle}>Section & Category Manager</Text>
+            <Text style={styles.headerTitle}>Curated Sections & Themes</Text>
             <Text style={styles.headerSubtitle}>Add new dynamic sections, categories & items</Text>
           </View>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>

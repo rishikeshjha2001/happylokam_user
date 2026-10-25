@@ -1177,7 +1177,7 @@ export default function HomeTab() {
               Welcome to HappyLokam
             </Text>
             <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-              New celebrations, custom sections, and venue passes uploaded via the Admin Portal will appear here live.
+              New celebrations, curated themes, and venue passes verified by HappyLokam Support will appear here live.
             </Text>
             <TouchableOpacity
               style={{ marginTop: 18, backgroundColor: '#e11d48', paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20 }}
