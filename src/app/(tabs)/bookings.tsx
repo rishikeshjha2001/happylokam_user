@@ -29,6 +29,7 @@ import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
 import { apiClient } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
+import SwipeTabContainer from '../../components/SwipeTabContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -157,7 +158,8 @@ export default function BookingsTab() {
   const bottomScrollPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <View style={styles.container}>
+    <SwipeTabContainer currentTab="bookings">
+      <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Top Header */}
@@ -321,6 +323,7 @@ export default function BookingsTab() {
         onClose={() => setWalletOpen(false)}
       />
     </View>
+    </SwipeTabContainer>
   );
 }
 

@@ -149,62 +149,19 @@ function CustomAnimatedTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function TabLayout() {
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        const { dx, dy, vx } = gestureState;
-        // Dominant horizontal swipe: dx > 40px, |dx| > 2 * |dy|, velocity > 0.22
-        return (
-          Math.abs(dx) > 40 &&
-          Math.abs(dx) > Math.abs(dy) * 2.0 &&
-          Math.abs(vx) > 0.22
-        );
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const { dx } = gestureState;
-        const bridge = tabNavigatorBridge.current;
-        if (!bridge) return;
-
-        const { state, navigation } = bridge;
-        const currentIndex = state.index;
-        const routes = state.routes;
-
-        if (dx < -45) {
-          // Swipe Left -> Next Tab (e.g. Home -> Explore -> LokSafari -> Bookings -> Profile)
-          if (currentIndex < routes.length - 1) {
-            const nextRoute = routes[currentIndex + 1];
-            navigation.navigate(nextRoute.name);
-          }
-        } else if (dx > 45) {
-          // Swipe Right -> Previous Tab (e.g. Profile -> Bookings -> LokSafari -> Explore -> Home)
-          if (currentIndex > 0) {
-            const prevRoute = routes[currentIndex - 1];
-            navigation.navigate(prevRoute.name);
-          }
-        }
-      },
-      onPanResponderTerminationRequest: () => true,
-    })
-  ).current;
-
   return (
-    <View style={{ flex: 1 }} {...panResponder.panHandlers}>
-      <Tabs
-        tabBar={(props) => <CustomAnimatedTabBar {...props} />}
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Tabs.Screen name="index" options={{ title: 'Home' }} />
-        <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
-        <Tabs.Screen name="loksafari" options={{ title: 'LokSafari' }} />
-        <Tabs.Screen name="bookings" options={{ title: 'Bookings' }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      </Tabs>
-    </View>
+    <Tabs
+      tabBar={(props) => <CustomAnimatedTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
+      <Tabs.Screen name="loksafari" options={{ title: 'LokSafari' }} />
+      <Tabs.Screen name="bookings" options={{ title: 'Bookings' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+    </Tabs>
   );
 }
 

@@ -39,6 +39,7 @@ import PaymentModal from '../../components/PaymentModal';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import OtaSync from '../../services/otaSync';
+import SwipeTabContainer from '../../components/SwipeTabContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -155,21 +156,35 @@ export default function ExploreTab() {
         setVenues(vList);
         setPackages(pList);
 
-        // Build dynamic categories list from admin panel + backend
+        // Build dynamic categories list from admin panel + backend with strict deduplication
+        const seenCatIds = new Set<string>();
+        const seenCatTypes = new Set<string>();
         const dynamicCats: DbCategory[] = [];
+
         (adminCats || []).forEach((c: any) => {
-          const itemCount = Array.isArray(c.items) ? c.items.length : 0;
-          dynamicCats.push({
-            id: c.id,
-            type: c.name,
-            title: c.name,
-            count: itemCount > 0 ? `${itemCount} Options` : '',
-            image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-            size: 'large',
-          });
+          const normType = (c.name || '').trim().toLowerCase();
+          const cId = c.id || `admin_cat_${normType}`;
+          if (normType && !seenCatTypes.has(normType)) {
+            seenCatIds.add(cId);
+            seenCatTypes.add(normType);
+            const itemCount = Array.isArray(c.items) ? c.items.length : 0;
+            dynamicCats.push({
+              id: cId,
+              type: c.name,
+              title: c.name,
+              count: itemCount > 0 ? `${itemCount} Options` : '',
+              image: c.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+              size: 'large',
+            });
+          }
         });
+
         (apiCats || []).forEach((c: any) => {
-          if (!dynamicCats.some((dc) => dc.type.toLowerCase() === c.type.toLowerCase())) {
+          const normType = (c.type || c.name || '').trim().toLowerCase();
+          const cId = c.id || `api_cat_${normType}`;
+          if (normType && !seenCatTypes.has(normType)) {
+            seenCatIds.add(cId);
+            seenCatTypes.add(normType);
             dynamicCats.push(c);
           }
         });
@@ -412,8 +427,9 @@ export default function ExploreTab() {
   const bottomScrollPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SwipeTabContainer currentTab="explore">
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Top Header matching exact theme */}
       <View style={[styles.header, { paddingTop: topHeaderPadding }]}>
@@ -562,7 +578,7 @@ export default function ExploreTab() {
               const isLarge = cat.size === 'large';
               return (
                 <TouchableOpacity
-                  key={cat.id || `cat-${idx}`}
+                  key={`cat-${cat.id || ''}-${cat.type || ''}-${idx}`}
                   style={[styles.gridItem, isLarge ? styles.gridItemLarge : styles.gridItemSmall]}
                   onPress={() => setActiveCategory(cat.type)}
                   activeOpacity={0.9}
@@ -716,7 +732,8 @@ export default function ExploreTab() {
         onClose={() => setWalletOpen(false)}
         balance={2450}
       />
-    </View>
+      </View>
+    </SwipeTabContainer>
   );
 }
 

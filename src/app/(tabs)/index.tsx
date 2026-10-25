@@ -55,6 +55,7 @@ import Svg, { Defs, LinearGradient as SvgGradient, RadialGradient, Stop, Rect } 
 import { getHeroSlides, getVenues, getPackages, getUserWallet } from '../../services/api';
 import { DbHeroSlide, DbVenue, DbPackage, DB_HERO_SLIDES } from '../../constants/databaseModels';
 import RoomDatabase from '../../services/roomDatabase';
+import SwipeTabContainer from '../../components/SwipeTabContainer';
 import {
   AdminCustomSection,
   AdminCustomCategory,
@@ -457,8 +458,9 @@ export default function HomeTab() {
   const contentBottomPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <SwipeTabContainer currentTab="index">
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
@@ -1682,7 +1684,8 @@ export default function HomeTab() {
         onConfirm={() => BackHandler.exitApp()}
         onCancel={() => setShowExitDialog(false)}
       />
-    </View>
+      </View>
+    </SwipeTabContainer>
   );
 }
 

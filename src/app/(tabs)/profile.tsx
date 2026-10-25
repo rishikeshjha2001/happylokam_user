@@ -39,6 +39,7 @@ import { router, useFocusEffect } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
+import SwipeTabContainer from '../../components/SwipeTabContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -229,7 +230,8 @@ export default function ProfileTab() {
   const bottomScrollPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <View style={styles.container}>
+    <SwipeTabContainer currentTab="profile">
+      <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Top Header */}
@@ -457,6 +459,7 @@ export default function ProfileTab() {
         user={{ name: userData.name, email: userData.email }}
       />
     </View>
+    </SwipeTabContainer>
   );
 }
 

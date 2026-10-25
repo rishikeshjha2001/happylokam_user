@@ -27,6 +27,7 @@ import { getAdminCustomSections } from '../../services/adminSections';
 import PaymentModal from '../../components/PaymentModal';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
+import SwipeTabContainer from '../../components/SwipeTabContainer';
 
 const { width } = Dimensions.get('window');
 
@@ -81,8 +82,9 @@ export default function LokSafariTab() {
   const bottomScrollPadding = 90 + Math.max(insets.bottom, 24);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+    <SwipeTabContainer currentTab="loksafari">
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
 
       {/* Top Header */}
       <View style={[styles.header, { paddingTop: topHeaderPadding }]}>
@@ -222,7 +224,8 @@ export default function LokSafariTab() {
         visible={isWalletOpen}
         onClose={() => setWalletOpen(false)}
       />
-    </View>
+      </View>
+    </SwipeTabContainer>
   );
 }
 
