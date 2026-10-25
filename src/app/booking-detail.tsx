@@ -92,8 +92,8 @@ export default function BookingDetailScreen() {
     try {
       const code = booking?.qrCode || params.qrCode || 'HL-VIP-PASS';
       await Share.share({
-        message: `🎟️ HappyLokam Digital Celebration Pass\nEvent: ${booking?.title || params.title}\nDate: ${booking?.date || params.date}\nPass Code: ${code}\nStatus: Confirmed & Verified ✨\nShow this ticket at entry gate!`,
-        title: 'HappyLokam Digital Ticket Pass',
+        message: `🎟️ happylokam Digital Celebration Pass\nEvent: ${booking?.title || params.title}\nDate: ${booking?.date || params.date}\nPass Code: ${code}\nStatus: Confirmed & Verified ✨\nShow this ticket at entry gate!`,
+        title: 'happylokam Digital Ticket Pass',
       });
     } catch (e) {
       console.warn('Share error:', e);
@@ -108,7 +108,7 @@ export default function BookingDetailScreen() {
 
   const handleSupport = () => {
     const phone = '918292888200';
-    const message = `Hello HappyLokam Support, I need assistance with my booking #${booking?.id || params.id} (${booking?.title || params.title}).`;
+    const message = `Hello happylokam Support, I need assistance with my booking #${booking?.id || params.id} (${booking?.title || params.title}).`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url).catch(() => Linking.openURL(`tel:+918292888200`));
   };
@@ -263,7 +263,7 @@ export default function BookingDetailScreen() {
           </View>
           <View style={styles.bulletRow}>
             <CheckCircle2 size={14} color="#10b981" />
-            <Text style={styles.bulletText}>Need changes or reschedule? Contact HappyLokam VIP Concierge anytime.</Text>
+            <Text style={styles.bulletText}>Need changes or reschedule? Contact happylokam VIP Concierge anytime.</Text>
           </View>
         </View>
 

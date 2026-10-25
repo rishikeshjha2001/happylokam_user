@@ -88,7 +88,7 @@ export default function NotificationsScreen() {
           </View>
           <Text style={styles.emptyTitle}>No New Notifications</Text>
           <Text style={styles.emptySubtitle}>
-            Special discounts, HappyLokam Support updates, and celebration booking updates will appear here.
+            Special discounts, happylokam Support updates, and celebration booking updates will appear here.
           </Text>
         </View>
       ) : (

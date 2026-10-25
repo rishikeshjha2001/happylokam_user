@@ -41,7 +41,7 @@ export default function PrivacySecurityScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
-      'Are you sure you want to delete your HappyLokam account? This action will forfeit remaining wallet cash and cannot be undone.',
+      'Are you sure you want to delete your happylokam account? This action will forfeit remaining wallet cash and cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -112,7 +112,7 @@ export default function PrivacySecurityScreen() {
           <Text style={styles.cardHeader}>Terms & Legal Policies</Text>
           <TouchableOpacity
             style={styles.linkRow}
-            onPress={() => Alert.alert('Terms of Service', 'HappyLokam guarantees genuine celebration experiences and verified vendor contracts. View full legal terms at https://happylokam.com/terms')}
+            onPress={() => Alert.alert('Terms of Service', 'happylokam guarantees genuine celebration experiences and verified vendor contracts. View full legal terms at https://happylokam.com/terms')}
             activeOpacity={0.8}
           >
             <FileText size={18} color="#64748b" />
@@ -121,7 +121,7 @@ export default function PrivacySecurityScreen() {
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.linkRow}
-            onPress={() => Alert.alert('Privacy Policy', 'HappyLokam is committed to protecting your celebration data and booking privacy. View full privacy policy at https://happylokam.com/privacy')}
+            onPress={() => Alert.alert('Privacy Policy', 'happylokam is committed to protecting your celebration data and booking privacy. View full privacy policy at https://happylokam.com/privacy')}
             activeOpacity={0.8}
           >
             <Lock size={18} color="#64748b" />

@@ -180,7 +180,7 @@ export default function SettingsScreen() {
 
         {/* App Version Info */}
         <View style={styles.versionBox}>
-          <Text style={styles.versionTitle}>HappyLokam Celebrations</Text>
+          <Text style={styles.versionTitle}>happylokam Celebrations</Text>
           <Text style={styles.versionText}>Version 13.9.8 (Build 121) • Google Play Release</Text>
           <Text style={styles.versionSub}>Razorpay 256-Bit SSL Secured • OTA Hotpatch Active</Text>
         </View>

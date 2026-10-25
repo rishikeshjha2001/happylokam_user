@@ -177,7 +177,7 @@ export default function WalletScreen() {
             <View style={styles.cardHeaderRow}>
               <View style={styles.brandBadge}>
                 <Sparkles size={12} color="#fbbf24" />
-                <Text style={styles.brandBadgeText}>HappyLokam Virtual Cash</Text>
+                <Text style={styles.brandBadgeText}>happylokam Virtual Cash</Text>
               </View>
               <CreditCard size={24} color="#fbcfe8" />
             </View>
@@ -226,8 +226,8 @@ export default function WalletScreen() {
             <View style={styles.ruleItem}>
               <CheckCircle2 size={15} color="#10b981" style={{ marginTop: 2 }} />
               <Text style={styles.ruleText}>
-                <Text style={styles.boldText}>HappyLokam Support Rewards & Cashback: </Text>
-                Loyalty drops, cancellation refunds, and promotional gifts from HappyLokam Support are credited here automatically.
+                <Text style={styles.boldText}>happylokam Support Rewards & Cashback: </Text>
+                Loyalty drops, cancellation refunds, and promotional gifts from happylokam Support are credited here automatically.
               </Text>
             </View>
           </View>

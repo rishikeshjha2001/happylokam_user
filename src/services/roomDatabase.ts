@@ -474,9 +474,9 @@ export const RoomDatabase = {
           {
             id: 'msg_welcome',
             sender: 'concierge',
-            text: 'Namaste! 🙏 Welcome to HappyLokam Celebration Concierge. How can we make your wedding, birthday, or party unforgettable today?',
+            text: 'Namaste! 🙏 Welcome to happylokam Celebration Concierge. How can we make your wedding, birthday, or party unforgettable today?',
             timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-            senderName: 'HappyLokam Concierge',
+            senderName: 'happylokam Concierge',
           },
         ];
       }
@@ -494,7 +494,7 @@ export const RoomDatabase = {
         sender: msg.sender,
         text: msg.text,
         timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-        senderName: msg.senderName || (msg.sender === 'user' ? 'You' : 'HappyLokam Concierge'),
+        senderName: msg.senderName || (msg.sender === 'user' ? 'You' : 'happylokam Concierge'),
       };
       const updated = [...current, newMsg];
       await AsyncStorage.setItem(STORAGE_KEYS.SUPPORT_MESSAGES, JSON.stringify(updated));

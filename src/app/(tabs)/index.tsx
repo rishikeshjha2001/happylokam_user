@@ -66,6 +66,7 @@ import AdvancedFilterModal, {
   DEFAULT_FILTERS,
 } from '../../components/AdvancedFilterModal';
 import OtaSync from '../../services/otaSync';
+import MLRecommendation, { MLRecommendationResult } from '../../services/mlRecommendationEngine';
 
 const { width } = Dimensions.get('window');
 
@@ -126,6 +127,9 @@ export default function HomeTab() {
   const [detectingGps, setDetectingGps] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [homeFilters, setHomeFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [mlRecommendations, setMlRecommendations] = useState<MLRecommendationResult[]>([]);
+  const [mlTargetGuests, setMlTargetGuests] = useState<number>(150);
+  const [mlCategoryFilter, setMlCategoryFilter] = useState<string>('ALL');
 
   const CITIES_LIST = [
     'All India',
@@ -247,6 +251,67 @@ export default function HomeTab() {
       OtaSync.stopAutoSync();
     };
   }, []);
+
+  // Re-run ML Recommendation Inference whenever catalog or user context updates
+  useEffect(() => {
+    const allItems: any[] = [];
+    adminSections.forEach((sec) => {
+      if (sec.items) {
+        sec.items.forEach((it) => {
+          allItems.push({
+            id: it.id,
+            title: it.title,
+            category: it.type || sec.title || 'Celebration',
+            price: it.price || 45000,
+            rating: it.rating || 4.9,
+            capacity: it.capacity || 250,
+            image: it.image,
+            location: it.location,
+            cornerTag: it.cornerTag,
+            tags: it.tags,
+            isTicket: it.itemType === 'TICKET',
+          });
+        });
+      }
+    });
+
+    venues.forEach((v) => {
+      allItems.push({
+        id: v.id,
+        title: v.title,
+        category: v.category || 'Venue',
+        price: typeof v.price === 'number' ? v.price : (parseInt(String(v.price).replace(/\D/g, ''), 10) || 50000),
+        rating: v.rating || 4.9,
+        capacity: 350,
+        image: v.image,
+        location: v.location,
+        isTicket: false,
+      });
+    });
+
+    packages.forEach((p) => {
+      allItems.push({
+        id: p.id,
+        title: p.title,
+        category: p.type || 'Pass',
+        price: typeof p.price === 'number' ? p.price : (parseInt(String(p.price).replace(/\D/g, ''), 10) || 1499),
+        rating: p.rating || 4.9,
+        capacity: 500,
+        image: p.image,
+        location: p.location,
+        isTicket: true,
+      });
+    });
+
+    if (allItems.length > 0) {
+      const results = MLRecommendation.recommend(allItems, {
+        targetGuestCount: mlTargetGuests,
+        preferredCategory: mlCategoryFilter,
+        limit: 6,
+      });
+      setMlRecommendations(results);
+    }
+  }, [adminSections, venues, packages, mlTargetGuests, mlCategoryFilter]);
 
   // Slide rotation timer synchronized with ScrollView
   const heroScrollRef = useRef<ScrollView>(null);
@@ -835,6 +900,153 @@ export default function HomeTab() {
           </View>
         )}
 
+        {/* ======================================================== */}
+        {/* MACHINE LEARNING RECOMMENDATION SYSTEM                   */}
+        {/* ======================================================== */}
+        {mlRecommendations.length > 0 && (
+          <View style={styles.mlSectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <View style={styles.mlBadgePill}>
+                  <Sparkles size={11} color="#059669" />
+                  <Text style={styles.mlBadgePillText}>ML Neural Recommendation Engine</Text>
+                </View>
+                <Text style={styles.sectionTitle}>AI Curated For You</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Personalized via 12-factor affinity vector & guest capacity matching
+                </Text>
+              </View>
+            </View>
+
+            {/* Interactive Target Guest Count Filters */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mlFilterScroll}>
+              {[
+                { label: 'All Guests', value: 0 },
+                { label: '50-100 Guests', value: 75 },
+                { label: '200-300 Guests', value: 250 },
+                { label: '500+ Guests', value: 500 },
+              ].map((g) => {
+                const isSelected = mlTargetGuests === g.value;
+                return (
+                  <TouchableOpacity
+                    key={g.label}
+                    style={[styles.mlFilterChip, isSelected && styles.mlFilterChipActive]}
+                    onPress={() => setMlTargetGuests(g.value)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.mlFilterChipText, isSelected && styles.mlFilterChipTextActive]}>
+                      {g.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Recommendation Cards */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {mlRecommendations.map((rec) => {
+                const it = rec.item;
+                const isLiked = likedIds.includes(it.id);
+                return (
+                  <View key={it.id} style={styles.horizontalCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => {
+                        MLRecommendation.recordInteraction(it, 'click');
+                        router.push({
+                          pathname: '/item-detail',
+                          params: {
+                            id: it.id,
+                            title: it.title,
+                            price: String(it.price),
+                            image: it.image,
+                            type: it.type || it.category,
+                            cornerTag: it.cornerTag,
+                            location: it.location,
+                          },
+                        });
+                      }}
+                      style={styles.cardImageContainer}
+                    >
+                      <Image source={{ uri: it.image }} style={styles.cardImage} />
+                      <View style={styles.cardImageOverlay} />
+
+                      {/* ML Match % Badge */}
+                      <View style={styles.mlMatchBadge}>
+                        <Sparkles size={11} color="#ffffff" />
+                        <Text style={styles.mlMatchBadgeText}>{rec.matchScore}% Match</Text>
+                      </View>
+
+                      {/* Favorite Button */}
+                      <TouchableOpacity
+                        style={styles.cardFavBtn}
+                        onPress={() => {
+                          MLRecommendation.recordInteraction(it, 'favorite');
+                          handleToggleLike(it.id);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Heart
+                          size={15}
+                          color={isLiked ? '#e11d48' : '#ffffff'}
+                          fill={isLiked ? '#e11d48' : 'rgba(0,0,0,0.3)'}
+                        />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+
+                    {/* Card Content */}
+                    <View style={styles.cardContent}>
+                      <Text style={styles.cardCategory} numberOfLines={1}>{it.category}</Text>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{it.title}</Text>
+
+                      {/* Primary ML Reason Chip */}
+                      {rec.reasons && rec.reasons.length > 0 && (
+                        <View style={styles.mlReasonPill}>
+                          <Text style={styles.mlReasonText} numberOfLines={1}>
+                            💡 {rec.reasons[0]}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.cardBottomRow}>
+                        <View>
+                          <Text style={styles.startsAtText}>Starting from</Text>
+                          <Text style={styles.priceValue}>₹{typeof it.price === 'number' ? it.price.toLocaleString('en-IN') : it.price}</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.cardBookNowBtn}
+                          onPress={() => {
+                            MLRecommendation.recordInteraction(it, 'click');
+                            router.push({
+                              pathname: '/item-detail',
+                              params: {
+                                id: it.id,
+                                title: it.title,
+                                price: String(it.price),
+                                image: it.image,
+                                type: it.type || it.category,
+                                cornerTag: it.cornerTag,
+                                location: it.location,
+                              },
+                            });
+                          }}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.cardBookNowText}>View ➔</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
         {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
         {/* ========================================== */}
@@ -1174,10 +1386,10 @@ export default function HomeTab() {
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
             <Sparkles size={40} color="#e11d48" />
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 14 }}>
-              Welcome to HappyLokam
+              Welcome to happylokam
             </Text>
             <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-              New celebrations, curated themes, and venue passes verified by HappyLokam Support will appear here live.
+              New celebrations, curated themes, and venue passes verified by happylokam Support will appear here live.
             </Text>
             <TouchableOpacity
               style={{ marginTop: 18, backgroundColor: '#e11d48', paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20 }}
@@ -1320,7 +1532,7 @@ export default function HomeTab() {
         visible={showExitDialog}
         type="exit"
         badgeText="EXIT APPLICATION"
-        title="Leaving HappyLokam? 🏰"
+        title="Leaving happylokam? 🏰"
         message="Are you sure you want to exit the application, or would you like to stay and continue exploring grand venues and celebration passes?"
         confirmText="Exit App"
         cancelText="Stay & Explore ✨"
@@ -2238,6 +2450,93 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
+  },
+  mlSectionContainer: {
+    marginTop: 22,
+    backgroundColor: '#f8fafc',
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  mlBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  mlBadgePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065f46',
+    letterSpacing: 0.3,
+  },
+  mlFilterScroll: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  mlFilterChip: {
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    marginRight: 8,
+  },
+  mlFilterChipActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  mlFilterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  mlFilterChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  mlMatchBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    shadowColor: '#059669',
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  mlMatchBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  mlReasonPill: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 4,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  mlReasonText: {
+    fontSize: 10,
+    color: '#334155',
+    fontWeight: '600',
   },
 });
 

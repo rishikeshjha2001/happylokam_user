@@ -126,7 +126,7 @@ export default function LokSafariTab() {
               <Compass size={48} color="#94a3b8" strokeWidth={1.5} />
               <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700', marginTop: 16 }}>No Active Expeditions</Text>
               <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-                Curated wilderness tours and safari packages verified by HappyLokam Support will appear right here.
+                Curated wilderness tours and safari packages verified by happylokam Support will appear right here.
               </Text>
             </View>
           ) : (

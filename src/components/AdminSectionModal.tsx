@@ -97,7 +97,7 @@ export default function AdminSectionModal({
   // Hero Banner Form States
   const [bannerTitle1, setBannerTitle1] = useState('Happy Birthday Grand Celebrations');
   const [bannerTitle2, setBannerTitle2] = useState('Live party decor, gourmet cake & DJ fun');
-  const [bannerBadge, setBannerBadge] = useState('Happylokam Special');
+  const [bannerBadge, setBannerBadge] = useState('happylokam Special');
   const [bannerDesc, setBannerDesc] = useState('Book handcrafted birthday celebration passes & themes');
   const [bannerCtaText, setBannerCtaText] = useState('Explore Birthday Themes');
   const [bannerCtaLink, setBannerCtaLink] = useState('/explore?category=Birthday Themes');
@@ -138,7 +138,7 @@ export default function AdminSectionModal({
         image: finalImage,
         title1: bannerTitle1.trim(),
         title2: bannerTitle2.trim(),
-        badge: bannerBadge.trim() || 'Happylokam Special',
+        badge: bannerBadge.trim() || 'happylokam Special',
         desc: bannerDesc.trim(),
         ctaText: bannerCtaText.trim() || 'Explore Celebration',
         ctaLink: bannerCtaLink.trim() || '/explore',
@@ -773,7 +773,7 @@ export default function AdminSectionModal({
                     <Text style={styles.inputLabel}>Badge Tag</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="e.g. Happylokam Special"
+                      placeholder="e.g. happylokam Special"
                       placeholderTextColor="#94a3b8"
                       value={bannerBadge}
                       onChangeText={setBannerBadge}

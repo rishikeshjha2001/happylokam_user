@@ -125,8 +125,8 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
     try {
       const referralCode = user?.referralCode || 'LOKAM-VIP';
       await Share.share({
-        message: `Join me on HappyLokam for luxury weddings, banquets & dandiya passes! Use my invite code ${referralCode} to get instant discounts on your booking: https://happylokam.com/ref/${referralCode}`,
-        title: 'HappyLokam VIP Invite',
+        message: `Join me on happylokam for luxury weddings, banquets & dandiya passes! Use my invite code ${referralCode} to get instant discounts on your booking: https://happylokam.com/ref/${referralCode}`,
+        title: 'happylokam VIP Invite',
       });
     } catch (e) {
       console.warn('Share error', e);
@@ -135,7 +135,7 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
 
   const handleConciergeSupport = () => {
     const phone = '918292888200';
-    const message = `Hello HappyLokam Support, I need assistance with my celebration booking / wallet discount. User: ${user?.name || 'Guest'}`;
+    const message = `Hello happylokam Support, I need assistance with my celebration booking / wallet discount. User: ${user?.name || 'Guest'}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url).catch(() => Linking.openURL(`tel:+918292888200`));
   };
@@ -240,7 +240,7 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
               </View>
               <View style={styles.walletFooter}>
                 <Text style={styles.walletNote}>
-                  ✨ HappyLokam Support instant discount applied at checkout
+                  ✨ happylokam Support instant discount applied at checkout
                 </Text>
                 <ChevronRight size={13} color="#f59e0b" />
               </View>
@@ -393,7 +393,7 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={styles.footerVersion}>HappyLokam OS v2.4 (Enterprise Edition)</Text>
+              <Text style={styles.footerVersion}>happylokam OS v2.4 (Enterprise Edition)</Text>
               <Text style={styles.footerTagline}>Bihar's #1 Luxury Wedding & Celebration Network</Text>
             </View>
           </ScrollView>
@@ -426,7 +426,7 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
               <Text style={styles.wbLabel}>CURRENT DISCOUNT CREDIT</Text>
               <Text style={styles.wbAmount}>₹{walletBalance.toLocaleString('en-IN')}</Text>
               <Text style={styles.wbDesc}>
-                HappyLokam Support allocates discount amounts directly to your wallet for your next booking or pass reservation.
+                happylokam Support allocates discount amounts directly to your wallet for your next booking or pass reservation.
               </Text>
             </View>
 
@@ -475,7 +475,7 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>Active Promo Coupons</Text>
-                <Text style={styles.modalSubtitle}>Curated by HappyLokam Support & Brand Partners</Text>
+                <Text style={styles.modalSubtitle}>Curated by happylokam Support & Brand Partners</Text>
               </View>
               <TouchableOpacity onPress={() => setCouponsModalVisible(false)} style={styles.modalCloseBtn}>
                 <X size={18} color="#64748b" />

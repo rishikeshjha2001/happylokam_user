@@ -71,7 +71,7 @@ export function openRazorpayCheckout(
     order_id: orderId,
     amount: String(amount * 100),
     currency: 'INR',
-    name: 'HappyLokam Celebrations',
+    name: 'happylokam Celebrations',
     description,
     'prefill[name]': customerName,
     'prefill[email]': customerEmail,

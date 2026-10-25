@@ -113,7 +113,7 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
 
       setTransactions((prev) => [newTx, ...prev]);
       setShowAddMoney(false);
-      Alert.alert('Wallet Credited! 🎉', `₹${num.toLocaleString('en-IN')} has been added to your HappyLokam Wallet successfully.`);
+      Alert.alert('Wallet Credited! 🎉', `₹${num.toLocaleString('en-IN')} has been added to your happylokam Wallet successfully.`);
     } catch (err: any) {
       console.warn('Topup error:', err);
       Alert.alert('Payment Notice', err?.message || 'Could not complete wallet top-up. Please try again.');
@@ -421,7 +421,7 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
           <View style={styles.modalBackdrop}>
             <View style={styles.addMoneyCard}>
               <View style={styles.modalHeaderRow}>
-                <Text style={styles.modalTitle}>HappyLokam Wallet Guide</Text>
+                <Text style={styles.modalTitle}>happylokam Wallet Guide</Text>
                 <TouchableOpacity onPress={() => setShowInfo(false)} style={styles.modalCloseBtn}>
                   <X size={18} color="#64748b" />
                 </TouchableOpacity>

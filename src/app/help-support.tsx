@@ -37,7 +37,7 @@ import { apiClient } from '../services/api';
 
 const FAQS = [
   {
-    q: 'How does the HappyLokam Celebration Wallet work?',
+    q: 'How does the happylokam Celebration Wallet work?',
     a: 'Your wallet holds virtual celebration credits. When booking any pass, package, or event, you can toggle "Apply Wallet Balance" at checkout to instantly reduce your payable amount (up to 100% discount). Note that wallet credits are virtual celebration funds and cannot be withdrawn or transferred to bank accounts.',
   },
   {
@@ -101,7 +101,7 @@ export default function HelpSupportScreen() {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL('https://wa.me/919876543210?text=Hello%20HappyLokam%20Support%2C%20I%20need%20assistance%20with%20my%20celebration%20booking.').catch(() => {
+    Linking.openURL('https://wa.me/919876543210?text=Hello%20happylokam%20Support%2C%20I%20need%20assistance%20with%20my%20celebration%20booking.').catch(() => {
       Alert.alert('WhatsApp Helpline', 'WhatsApp our concierge directly at +91 98765 43210.');
     });
   };
@@ -115,7 +115,7 @@ export default function HelpSupportScreen() {
   const getAutoResponse = (query: string): string => {
     const q = query.toLowerCase();
     if (q.includes('wallet') || q.includes('balance') || q.includes('money') || q.includes('withdraw')) {
-      return '💰 HappyLokam Wallet holds Virtual Celebration Cash. It automatically reduces the total bill when booking passes and celebration services at checkout. To prevent misuse, wallet credits are non-withdrawable to bank accounts and stay safely in your account for all future events.';
+      return '💰 happylokam Wallet holds Virtual Celebration Cash. It automatically reduces the total bill when booking passes and celebration services at checkout. To prevent misuse, wallet credits are non-withdrawable to bank accounts and stay safely in your account for all future events.';
     }
     if (q.includes('ticket') || q.includes('pass') || q.includes('qr') || q.includes('where is')) {
       return '🎟️ Your confirmed passes are stored permanently in the "My Bookings" tab! Each pass includes a verified QR code, date, guest count, and Razorpay transaction receipt for gate entry.';
@@ -179,7 +179,7 @@ export default function HelpSupportScreen() {
       const replyMsg = await RoomDatabase.addSupportMessage({
         sender: 'concierge',
         text: replyText,
-        senderName: 'HappyLokam Concierge',
+        senderName: 'happylokam Concierge',
       });
       setIsTyping(false);
       setMessages((prev) => [...prev, replyMsg]);
@@ -340,7 +340,7 @@ export default function HelpSupportScreen() {
           <View style={styles.securitySealCard}>
             <ShieldCheck size={20} color="#059669" />
             <Text style={styles.securitySealText}>
-              All transactions & communication are 256-bit encrypted under HappyLokam Escrow Protection.
+              All transactions & communication are 256-bit encrypted under happylokam Escrow Protection.
             </Text>
           </View>
         </ScrollView>
@@ -383,7 +383,7 @@ export default function HelpSupportScreen() {
                   )}
                   <View style={[styles.bubbleContent, isMe ? styles.myBubble : styles.otherBubble]}>
                     <Text style={[styles.senderName, isMe ? styles.mySenderName : styles.otherSenderName]}>
-                      {m.senderName || (isMe ? 'You' : 'HappyLokam Concierge')}
+                      {m.senderName || (isMe ? 'You' : 'happylokam Concierge')}
                     </Text>
                     <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
                       {m.text}
@@ -405,7 +405,7 @@ export default function HelpSupportScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ActivityIndicator size="small" color="#e11d48" />
                     <Text style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
-                      HappyLokam Concierge is typing...
+                      happylokam Concierge is typing...
                     </Text>
                   </View>
                 </View>

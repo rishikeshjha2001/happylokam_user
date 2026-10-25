@@ -115,7 +115,11 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
     ? item.price 
     : (parseInt(String(item.price).replace(/\D/g, ''), 10) || 499);
 
-  const subtotal = basePriceNum * quantity;
+  const bookingDays = item.bookingDays || 1;
+  const guestCount = item.guestCount || item.capacity || 100;
+  const subtotal = item.calculatedSubtotal !== undefined
+    ? item.calculatedSubtotal
+    : (isTicket ? basePriceNum * quantity : basePriceNum * bookingDays);
   const taxes = Math.round(subtotal * 0.05); // 5% GST
   const discount = Math.min(100, Math.round(subtotal * 0.1));
   const subtotalAfterPromo = Math.max(0, subtotal + taxes - discount);
@@ -215,7 +219,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                   currency: 'INR',
                   key: RAZORPAY_KEY,
                   amount: Math.round(total * 100),
-                  name: 'HappyLokam Celebrations',
+                  name: 'happylokam Celebrations',
                   order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
                   prefill: {
                     email: userSession?.email || 'guest@happylokam.com',
@@ -246,7 +250,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               currency: 'INR',
               key: RAZORPAY_KEY,
               amount: Math.round(total * 100), // in paise
-              name: 'HappyLokam Celebrations',
+              name: 'happylokam Celebrations',
               order_id: orderId,
               prefill: {
                 email: userSession?.email || 'guest@happylokam.com',
@@ -484,30 +488,41 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               })}
             </ScrollView>
 
-            {/* 2. Quantity Counter */}
-            <View style={styles.qtyCard}>
-              <View>
-                <Text style={styles.qtyLabel}>{isTicket ? 'Number of Tickets' : 'Number of Slots / Guests'}</Text>
-                <Text style={styles.qtySub}>Instant digital verification upon booking</Text>
+            {/* 2. Quantity Counter for Tickets / Schedule Summary for Services */}
+            {isTicket ? (
+              <View style={styles.qtyCard}>
+                <View>
+                  <Text style={styles.qtyLabel}>Number of Digital Passes</Text>
+                  <Text style={styles.qtySub}>Instant digital verification upon booking</Text>
+                </View>
+                <View style={styles.counterRow}>
+                  <TouchableOpacity
+                    style={styles.counterBtn}
+                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                    activeOpacity={0.7}
+                  >
+                    <Minus size={15} color="#0f172a" />
+                  </TouchableOpacity>
+                  <Text style={styles.counterNum}>{quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.counterBtn}
+                    onPress={() => setQuantity(quantity + 1)}
+                    activeOpacity={0.7}
+                  >
+                    <Plus size={15} color="#0f172a" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.counterRow}>
-                <TouchableOpacity
-                  style={styles.counterBtn}
-                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                  activeOpacity={0.7}
-                >
-                  <Minus size={15} color="#0f172a" />
-                </TouchableOpacity>
-                <Text style={styles.counterNum}>{quantity}</Text>
-                <TouchableOpacity
-                  style={styles.counterBtn}
-                  onPress={() => setQuantity(quantity + 1)}
-                  activeOpacity={0.7}
-                >
-                  <Plus size={15} color="#0f172a" />
-                </TouchableOpacity>
+            ) : (
+              <View style={styles.qtyCard}>
+                <View>
+                  <Text style={styles.qtyLabel}>Celebration Booking Schedule</Text>
+                  <Text style={styles.qtySub}>
+                    {bookingDays} Day(s) • {guestCount} Guests to Feed / Accommodate
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
 
             {/* 3. Guest Details */}
             <Text style={styles.sectionTitle}>Guest Information</Text>
@@ -542,7 +557,9 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
             <View style={styles.billCard}>
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>
-                  {isTicket ? 'Ticket Price' : 'Base Rate'} (₹{basePriceNum} × {quantity})
+                  {isTicket
+                    ? `Ticket Pass (₹${basePriceNum} × ${quantity})`
+                    : `Celebration Service (${bookingDays} Day(s) • ${guestCount} Guests)`}
                 </Text>
                 <Text style={styles.billValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
               </View>
@@ -551,7 +568,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                 <Text style={styles.billValue}>₹{taxes}</Text>
               </View>
               <View style={styles.billRow}>
-                <Text style={styles.discountLabel}>HappyLokam Discount</Text>
+                <Text style={styles.discountLabel}>happylokam Discount</Text>
                 <Text style={styles.discountValue}>-₹{discount}</Text>
               </View>
               {useWallet && walletDiscount > 0 && (
@@ -603,7 +620,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
-                      Use HappyLokam Wallet Balance
+                      Use happylokam Wallet Balance
                     </Text>
                     <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                       Available: ₹{walletBalance.toLocaleString('en-IN')} (Save ₹{maxWalletApplicable})

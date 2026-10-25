@@ -1,5 +1,5 @@
 /**
- * Master Database Models & Seed Data for HappyLokam Celebration OS
+ * Master Database Models & Seed Data for happylokam Celebration OS
  * Corresponds 1-to-1 with PostgreSQL database tables:
  * - HeroSlide (Hero Banners)
  * - Venue (Premium Venues)

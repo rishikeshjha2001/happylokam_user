@@ -43,6 +43,7 @@ import {
 import RoomDatabase from '../services/roomDatabase';
 import { getAdminSectionItemById, AdminSectionItem } from '../services/adminSections';
 import PaymentModal from '../components/PaymentModal';
+import MLRecommendation from '../services/mlRecommendationEngine';
 
 const { width } = Dimensions.get('window');
 
@@ -53,7 +54,7 @@ const AMENITIES_LIST = [
   { icon: '⚡', title: '100% DG Backup', desc: 'Uninterrupted power' },
   { icon: '🥗', title: 'Pure Veg Kitchen', desc: 'Dedicated prep area' },
   { icon: '🎶', title: 'Concert Stage & DJ', desc: 'Intelligent sound system' },
-  { icon: '🛡️', title: 'Quality Assured', desc: 'On-site HappyLokam team' },
+  { icon: '🛡️', title: 'Quality Assured', desc: 'On-site happylokam team' },
   { icon: '💐', title: 'Bespoke Decor', desc: 'Custom theme & lighting' },
 ];
 
@@ -80,6 +81,7 @@ export default function ItemDetailScreen() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [guestCount, setGuestCount] = useState(150);
+  const [bookingDays, setBookingDays] = useState(1);
 
   // Rating & Review State
   const [ratings, setRatings] = useState<any[]>([]);
@@ -120,7 +122,7 @@ export default function ItemDetailScreen() {
       const fallbackItem: any = {
         id: params.id || 'sec_item_1',
         title: params.title || 'Grand Celebration Experience',
-        subtitle: params.subtitle || 'Exclusive celebration service package by HappyLokam',
+        subtitle: params.subtitle || 'Exclusive celebration service package by happylokam',
         price: params.price ? (parseInt(params.price.replace(/\D/g, ''), 10) || 1499) : 1499,
         image: params.image || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
         cornerTag: params.cornerTag || 'SPECIAL',
@@ -210,6 +212,15 @@ export default function ItemDetailScreen() {
     ? item.price 
     : (parseInt(String(item.price).replace(/\D/g, ''), 10) || 1499);
 
+  const isPerPerson = (item.priceUnit && (item.priceUnit.toLowerCase().includes('plate') || item.priceUnit.toLowerCase().includes('person'))) ||
+    (item.category && (item.category.toLowerCase().includes('cater') || item.category.toLowerCase().includes('buffet')));
+
+  const calculatedBase = isTicket
+    ? basePriceNum
+    : (isPerPerson
+        ? basePriceNum * guestCount * bookingDays
+        : basePriceNum * bookingDays);
+
   const mainPhoto = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80';
   const galleryImages = [
     mainPhoto,
@@ -230,7 +241,7 @@ export default function ItemDetailScreen() {
 
   const handleWhatsAppInquiry = () => {
     const text = encodeURIComponent(
-      `Hello HappyLokam! I am interested in booking: "${item.title}" (${item.location || 'Pan-India'}). Please share package details and availability.`
+      `Hello happylokam! I am interested in booking: "${item.title}" (${item.location || 'Pan-India'}). Please share package details and availability.`
     );
     Linking.openURL(`https://wa.me/919429693155?text=${text}`);
   };
@@ -413,7 +424,7 @@ export default function ItemDetailScreen() {
                 <Sparkles size={20} color="#e11d48" />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.conciergeTitle}>HappyLokam Celebration Concierge</Text>
+                <Text style={styles.conciergeTitle}>happylokam Celebration Concierge</Text>
                 <Text style={styles.conciergeSub}>
                   Need custom floral arrangements, catering changes, or private venue tour? Connect with our senior event planner.
                 </Text>
@@ -439,82 +450,190 @@ export default function ItemDetailScreen() {
             </View>
           </View>
 
-          {/* Interactive Guest Count Picker */}
-          {!isTicket && (
+          {/* ============================================================== */}
+          {/* 1. TICKET PASSES FLOW: ADMIN SETS AVAILABLE DAYS/DATES        */}
+          {/* ============================================================== */}
+          {isTicket && (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Expected Guests</Text>
-              <View style={styles.guestPickerCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <View>
-                  <Text style={styles.guestPickerLabel}>Guest Attendance</Text>
-                  <Text style={styles.guestPickerSub}>Seating & dining arrangements will scale</Text>
+                  <Text style={styles.sectionTitle}>Celebration Pass Dates</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Validity configured by admin ({item.availableDates?.length || 1} available date{item.availableDates?.length === 1 ? '' : 's'})
+                  </Text>
                 </View>
-                <View style={styles.guestCounterRow}>
-                  <TouchableOpacity
-                    style={styles.counterBtn}
-                    onPress={() => setGuestCount(Math.max(25, guestCount - 25))}
-                  >
-                    <Minus size={16} color="#0f172a" />
-                  </TouchableOpacity>
-                  <Text style={styles.guestCountVal}>{guestCount}</Text>
-                  <TouchableOpacity
-                    style={styles.counterBtn}
-                    onPress={() => setGuestCount(guestCount + 25)}
-                  >
-                    <Plus size={16} color="#0f172a" />
-                  </TouchableOpacity>
+                <View style={styles.adminVerifiedPill}>
+                  <ShieldCheck size={12} color="#10b981" />
+                  <Text style={styles.adminVerifiedPillText}>Admin Verified</Text>
                 </View>
               </View>
+
+              {item.availableDates && item.availableDates.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+                  {item.availableDates.map((date: string) => {
+                    const isSelected = selectedDate === date;
+                    return (
+                      <TouchableOpacity
+                        key={date}
+                        style={[styles.dateChip, isSelected && styles.dateChipSelected]}
+                        onPress={() => setSelectedDate(date)}
+                        activeOpacity={0.8}
+                      >
+                        <Calendar size={13} color={isSelected ? '#ffffff' : '#64748b'} />
+                        <Text style={[styles.dateChipText, isSelected && styles.dateChipTextSelected]}>
+                          {date}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <View style={styles.adminDateNotice}>
+                  <Calendar size={15} color="#3b82f6" />
+                  <Text style={styles.adminDateNoticeText}>
+                    Date: {selectedDate || 'Valid for Scheduled Event Dates'}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
-          {/* Available Dates Selection */}
-          {item.availableDates && item.availableDates.length > 0 && (
-            <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Available Celebration Dates</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-                {item.availableDates.map((date: string) => {
-                  const isSelected = selectedDate === date;
-                  return (
-                    <TouchableOpacity
-                      key={date}
-                      style={[styles.dateChip, isSelected && styles.dateChipSelected]}
-                      onPress={() => setSelectedDate(date)}
-                      activeOpacity={0.8}
-                    >
-                      <Calendar size={13} color={isSelected ? '#ffffff' : '#64748b'} />
-                      <Text style={[styles.dateChipText, isSelected && styles.dateChipTextSelected]}>
-                        {date}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
+          {/* ============================================================== */}
+          {/* 2. ALL OTHER SERVICES: DATES PICKER, HOW MANY DAYS & GUEST FEED */}
+          {/*    (NO TIME OKAY: TIME SLOTS COMPLETELY REMOVED)             */}
+          {/* ============================================================== */}
+          {!isTicket && (
+            <>
+              {/* Start Date Picker */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>Celebration Start Date</Text>
+                  <Text style={styles.sectionSubtitle}>Pick your event date</Text>
+                </View>
 
-          {/* Available Times Selection */}
-          {item.availableTimes && item.availableTimes.length > 0 && (
-            <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Available Time Slots</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-                {item.availableTimes.map((timeStr: string) => {
-                  const isSelected = selectedTime === timeStr;
-                  return (
+                {/* Interactive Date Scroll (Next 14 Days) */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+                  {Array.from({ length: 14 }).map((_, idx) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + idx + 1);
+                    const isoDate = d.toISOString().split('T')[0];
+                    const label = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+                    const isSelected = selectedDate === isoDate;
+                    return (
+                      <TouchableOpacity
+                        key={isoDate}
+                        style={[styles.dateChip, isSelected && styles.dateChipSelected]}
+                        onPress={() => setSelectedDate(isoDate)}
+                        activeOpacity={0.8}
+                      >
+                        <Calendar size={13} color={isSelected ? '#ffffff' : '#64748b'} />
+                        <Text style={[styles.dateChipText, isSelected && styles.dateChipTextSelected]}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* How Many Days Stepper & Quick Selector */}
+              <View style={styles.sectionBlock}>
+                <Text style={styles.sectionTitle}>Booking Duration (How Many Days?)</Text>
+                <View style={styles.guestPickerCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.guestPickerLabel}>Number of Days</Text>
+                    <Text style={styles.guestPickerSub}>
+                      {bookingDays === 1 ? '1 Day Celebration' : `${bookingDays} Days Multi-Day Booking`}
+                    </Text>
+                  </View>
+                  <View style={styles.guestCounterRow}>
                     <TouchableOpacity
-                      key={timeStr}
-                      style={[styles.timeChip, isSelected && styles.timeChipSelected]}
-                      onPress={() => setSelectedTime(timeStr)}
-                      activeOpacity={0.8}
+                      style={styles.counterBtn}
+                      onPress={() => setBookingDays(Math.max(1, bookingDays - 1))}
                     >
-                      <Clock size={13} color={isSelected ? '#ffffff' : '#64748b'} />
-                      <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>
-                        {timeStr}
+                      <Minus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                    <Text style={styles.guestCountVal}>{bookingDays} {bookingDays === 1 ? 'Day' : 'Days'}</Text>
+                    <TouchableOpacity
+                      style={styles.counterBtn}
+                      onPress={() => setBookingDays(bookingDays + 1)}
+                    >
+                      <Plus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Quick Days Selector Pills */}
+                <View style={styles.quickChipsRow}>
+                  {[1, 2, 3, 5, 7].map((num) => (
+                    <TouchableOpacity
+                      key={num}
+                      style={[styles.quickChip, bookingDays === num && styles.quickChipActive]}
+                      onPress={() => setBookingDays(num)}
+                    >
+                      <Text style={[styles.quickChipText, bookingDays === num && styles.quickChipTextActive]}>
+                        {num} {num === 1 ? 'Day' : 'Days'}
                       </Text>
                     </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Number of Guests they can feed / accommodate */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.sectionTitle}>Number of Guests to Feed / Accommodate</Text>
+                  <Text style={styles.capacityBadge}>
+                    Max: {item.capacity || 1000}
+                  </Text>
+                </View>
+
+                <View style={styles.guestPickerCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.guestPickerLabel}>Guest Count</Text>
+                    <Text style={styles.guestPickerSub}>Catering, buffet plates & seating scale automatically</Text>
+                  </View>
+                  <View style={styles.guestCounterRow}>
+                    <TouchableOpacity
+                      style={styles.counterBtn}
+                      onPress={() => setGuestCount(Math.max(25, guestCount - 25))}
+                    >
+                      <Minus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.guestInput}
+                      keyboardType="numeric"
+                      value={String(guestCount)}
+                      onChangeText={(val) => {
+                        const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                        if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
+                      }}
+                    />
+                    <TouchableOpacity
+                      style={styles.counterBtn}
+                      onPress={() => setGuestCount(guestCount + 25)}
+                    >
+                      <Plus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Quick Guest Count Pills */}
+                <View style={styles.quickChipsRow}>
+                  {[50, 100, 250, 500, 1000].map((count) => (
+                    <TouchableOpacity
+                      key={count}
+                      style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
+                      onPress={() => setGuestCount(count)}
+                    >
+                      <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
+                        {count} Guests
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
           )}
 
           {/* Features Included */}
@@ -539,18 +658,34 @@ export default function ItemDetailScreen() {
               <Text style={styles.priceBreakdownTitle}>Transparent Price Breakdown</Text>
             </View>
 
+            {/* Base Calculation Formula */}
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Base Celebration Package</Text>
-              <Text style={styles.breakdownVal}>₹{basePriceNum.toLocaleString('en-IN')}</Text>
+              <Text style={styles.breakdownLabel}>
+                {isTicket
+                  ? 'Digital Pass Price'
+                  : isPerPerson
+                    ? `Per-Plate Rate (₹${basePriceNum} × ${guestCount} Guests × ${bookingDays} Days)`
+                    : `Daily Package Rate (₹${basePriceNum.toLocaleString('en-IN')} × ${bookingDays} Days)`}
+              </Text>
+              <Text style={styles.breakdownVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
             </View>
+
+            {!isTicket && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Duration & Attendance</Text>
+                <Text style={styles.breakdownValHighlight}>
+                  {bookingDays} Day{bookingDays === 1 ? '' : 's'} • {guestCount} Guests
+                </Text>
+              </View>
+            )}
 
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>GST & Regulatory Taxes (18%)</Text>
-              <Text style={styles.breakdownValGreen}>Included in package</Text>
+              <Text style={styles.breakdownValGreen}>Included in estimate</Text>
             </View>
 
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>HappyLokam Assurance Fee</Text>
+              <Text style={styles.breakdownLabel}>happylokam Assurance Fee</Text>
               <Text style={styles.breakdownValGreen}>FREE (₹0)</Text>
             </View>
 
@@ -563,7 +698,7 @@ export default function ItemDetailScreen() {
 
             <View style={styles.breakdownRowTotal}>
               <Text style={styles.breakdownTotalLabel}>Net Estimated Total</Text>
-              <Text style={styles.breakdownTotalVal}>₹{basePriceNum.toLocaleString('en-IN')}</Text>
+              <Text style={styles.breakdownTotalVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
             </View>
           </View>
 
@@ -579,7 +714,7 @@ export default function ItemDetailScreen() {
           <View style={styles.guaranteeCard}>
             <ShieldCheck size={26} color="#059669" />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.guaranteeTitle}>HappyLokam 100% Quality Assured</Text>
+              <Text style={styles.guaranteeTitle}>happylokam 100% Quality Assured</Text>
               <Text style={styles.guaranteeSub}>
                 Verified vendors, on-site backup staff, secure online payments with instant digital ticket passes.
               </Text>
@@ -635,8 +770,10 @@ export default function ItemDetailScreen() {
       {/* Bottom Sticky Action Footer */}
       <View style={[styles.bottomFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View>
-          <Text style={styles.footerPriceLabel}>Total Package</Text>
-          <Text style={styles.footerPrice}>₹{basePriceNum.toLocaleString('en-IN')}</Text>
+          <Text style={styles.footerPriceLabel}>
+            {isTicket ? 'Per Digital Pass' : `${bookingDays} Day(s) • ${guestCount} Guests`}
+          </Text>
+          <Text style={styles.footerPrice}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
         </View>
         <TouchableOpacity
           style={styles.bookBtn}
@@ -654,7 +791,14 @@ export default function ItemDetailScreen() {
       {showPayment && (
         <PaymentModal
           visible={showPayment}
-          item={item}
+          item={{
+            ...item,
+            calculatedSubtotal: calculatedBase,
+            price: calculatedBase,
+            bookingDays,
+            guestCount,
+            selectedDate,
+          }}
           onClose={() => setShowPayment(false)}
           onSuccess={() => {
             setShowPayment(false);
@@ -1436,6 +1580,90 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  adminVerifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  adminVerifiedPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065f46',
+  },
+  adminDateNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  adminDateNoticeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  quickChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  quickChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  quickChipActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
+  },
+  quickChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  quickChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  capacityBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  guestInput: {
+    width: 60,
+    height: 36,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  breakdownValHighlight: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#e11d48',
   },
 });
 
