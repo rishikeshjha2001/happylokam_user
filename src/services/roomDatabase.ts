@@ -595,7 +595,22 @@ export const RoomDatabase = {
     } catch (e) {
       console.warn('RoomDatabase.setDefaultAddress error:', e);
     }
-  }
+  },
+
+  /**
+   * Cleans stale cached events, venues, notifications, and transient storage
+   */
+  async cleanCache(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.EVENTS,
+        STORAGE_KEYS.VENUES,
+        STORAGE_KEYS.NOTIFICATIONS,
+      ]);
+    } catch (e) {
+      console.warn('RoomDatabase.cleanCache error:', e);
+    }
+  },
 };
 
 export default RoomDatabase;

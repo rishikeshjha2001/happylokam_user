@@ -12,7 +12,7 @@ import {
   DbCategory,
 } from '../constants/databaseModels';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.happylokam.com/api/v1').replace(/\/$/, '');
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://happylokam.com/api/v1').replace(/\/$/, '');
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
   const session = await RoomDatabase.getUserSession();

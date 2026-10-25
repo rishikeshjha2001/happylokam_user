@@ -194,8 +194,8 @@ export async function bookSectionItem(
 }
 
 export const PRESET_CELEBRATION_IMAGES = [
-  { label: 'Happy Birthday Party', title: 'Happy Birthday Party', url: 'https://api.happylokam.com/uploads/birthday_hero.jpg' },
-  { label: 'Royal Wedding Varmala', title: 'Royal Wedding Varmala', url: 'https://api.happylokam.com/uploads/wedding_hero.jpg' },
+  { label: 'Happy Birthday Party', title: 'Happy Birthday Party', url: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Royal Wedding Varmala', title: 'Royal Wedding Varmala', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80' },
   { label: 'Mandap Decor', title: 'Mandap', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80' },
   { label: 'Heritage Palace', title: 'Heritage', url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80' },
   { label: 'Glasshouse Lawn', title: 'Glasshouse', url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80' },
