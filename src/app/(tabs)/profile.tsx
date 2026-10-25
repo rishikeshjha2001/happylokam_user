@@ -31,6 +31,8 @@ import {
   Clock,
   ArrowRight,
   Gift,
+  Tag,
+  Calculator,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -161,6 +163,22 @@ export default function ProfileTab() {
       color: '#e11d48',
       bg: '#fff1f2',
       action: () => router.push('/favorites'),
+    },
+    {
+      icon: Tag,
+      label: 'Coupons & Promo Codes',
+      sub: 'Save with active celebration discount codes',
+      color: '#16a34a',
+      bg: '#dcfce7',
+      action: () => router.push('/coupons'),
+    },
+    {
+      icon: Calculator,
+      label: 'AI Event Budget Planner',
+      sub: 'Calculate food, venue & decor estimates',
+      color: '#7c3aed',
+      bg: '#ede9fe',
+      action: () => router.push('/event-planner'),
     },
   ];
 

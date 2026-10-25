@@ -43,6 +43,11 @@ import {
   User as UserIcon,
   Navigation,
   X,
+  Tag,
+  Calculator,
+  Compass,
+  QrCode,
+  Building2,
 } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -840,6 +845,144 @@ export default function HomeTab() {
           ))}
         </View>
 
+
+        {/* ========================================== */}
+        {/* VIP SMART TOOLS & CELEBRATION SERVICES     */}
+        {/* ========================================== */}
+        <View style={{ marginTop: 18, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '900', color: '#0f172a', textTransform: 'lowercase' }}>
+                smart tools & vip perks
+              </Text>
+              <Text style={{ fontSize: 11, color: '#64748b' }}>
+                Exclusive celebration calculators, coupons & passes
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#fff1f2',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#fecdd3',
+              }}
+              onPress={() => router.push('/coupons')}
+              activeOpacity={0.8}
+            >
+              <Tag size={18} color="#e11d48" />
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#e11d48', textTransform: 'lowercase' }}>
+                  ₹500 coupons
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>Active vouchers</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#ede9fe',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#ddd6fe',
+              }}
+              onPress={() => router.push('/event-planner')}
+              activeOpacity={0.8}
+            >
+              <Calculator size={18} color="#7c3aed" />
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#7c3aed', textTransform: 'lowercase' }}>
+                  ai budget planner
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>Instant estimate</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#e0f2fe',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#bae6fd',
+              }}
+              onPress={() => router.push('/city-experiences')}
+              activeOpacity={0.8}
+            >
+              <Compass size={18} color="#0284c7" />
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0284c7', textTransform: 'lowercase' }}>
+                  city passes
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>VIP event entry</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#ecfdf5',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#a7f3d0',
+              }}
+              onPress={() => router.push('/ticket-wallet')}
+              activeOpacity={0.8}
+            >
+              <QrCode size={18} color="#059669" />
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669', textTransform: 'lowercase' }}>
+                  pass wallet
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>Gate QR tickets</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#fef3c7',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#fde68a',
+              }}
+              onPress={() => router.push('/vendor-spotlight')}
+              activeOpacity={0.8}
+            >
+              <Building2 size={18} color="#d97706" />
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#d97706', textTransform: 'lowercase' }}>
+                  top vendors
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>Verified teams</Text>
+              </View>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
 
         {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM CATEGORIES            */}

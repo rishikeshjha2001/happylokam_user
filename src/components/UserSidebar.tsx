@@ -33,6 +33,9 @@ import {
   ArrowRight,
   ExternalLink,
   Compass,
+  Calculator,
+  QrCode,
+  Building2,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import RoomDatabase, { RoomUser } from '../services/roomDatabase';
@@ -305,25 +308,11 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
 
             {/* Discounts & Perks Section */}
             <View style={styles.navSection}>
-              <Text style={styles.sectionTitle}>REWARDS & SAVINGS</Text>
+              <Text style={styles.sectionTitle}>REWARDS & SERVICES</Text>
 
               <TouchableOpacity
                 style={styles.navItem}
-                onPress={() => setWalletModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.navIconBox, { backgroundColor: '#fef3c7' }]}>
-                  <Zap size={18} color="#d97706" />
-                </View>
-                <Text style={styles.navText}>Wallet Discount Perks</Text>
-                <View style={styles.balanceTag}>
-                  <Text style={styles.balanceTagText}>₹{walletBalance}</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.navItem}
-                onPress={() => setCouponsModalVisible(true)}
+                onPress={() => navigateTo('/coupons')}
                 activeOpacity={0.7}
               >
                 <View style={[styles.navIconBox, { backgroundColor: '#dcfce7' }]}>
@@ -331,8 +320,58 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
                 </View>
                 <Text style={styles.navText}>Coupons & Promo Codes</Text>
                 <View style={styles.couponCountPill}>
-                  <Text style={styles.couponCountText}>{coupons.length > 0 ? `${coupons.length} Active` : 'Offers'}</Text>
+                  <Text style={styles.couponCountText}>Active Codes</Text>
                 </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={() => navigateTo('/event-planner')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconBox, { backgroundColor: '#fff1f2' }]}>
+                  <Calculator size={18} color="#e11d48" />
+                </View>
+                <Text style={styles.navText}>AI Event Budget Calculator</Text>
+                <View style={styles.hotBadge}>
+                  <Text style={styles.hotBadgeText}>AI</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={() => navigateTo('/city-experiences')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconBox, { backgroundColor: '#ede9fe' }]}>
+                  <Compass size={18} color="#7c3aed" />
+                </View>
+                <Text style={styles.navText}>City Experiences & Passes</Text>
+                <ChevronRight size={15} color="#cbd5e1" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={() => navigateTo('/ticket-wallet')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconBox, { backgroundColor: '#e0f2fe' }]}>
+                  <QrCode size={18} color="#0284c7" />
+                </View>
+                <Text style={styles.navText}>Digital Pass QR Wallet</Text>
+                <ChevronRight size={15} color="#cbd5e1" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={() => navigateTo('/vendor-spotlight')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconBox, { backgroundColor: '#fef3c7' }]}>
+                  <Building2 size={18} color="#d97706" />
+                </View>
+                <Text style={styles.navText}>Verified Vendor Directory</Text>
+                <ChevronRight size={15} color="#cbd5e1" />
               </TouchableOpacity>
             </View>
 

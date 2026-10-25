@@ -87,7 +87,14 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animation: "slide_from_right",
+        }}
+      >
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
@@ -102,6 +109,11 @@ export default function RootLayout() {
         <Stack.Screen name="help-support" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="privacy-security" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="booking-detail" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="coupons" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="event-planner" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="city-experiences" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="ticket-wallet" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="vendor-spotlight" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="ai" options={{ presentation: "transparentModal", animation: "fade" }} />
       </Stack>
 
