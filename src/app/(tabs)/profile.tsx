@@ -37,6 +37,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
+import { getUserWallet } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import SwipeTabContainer from '../../components/SwipeTabContainer';
@@ -63,12 +64,14 @@ export default function ProfileTab() {
 
   const loadProfileData = async () => {
     try {
-      const [session, bList, fList, bal] = await Promise.all([
+      const [session, bList, fList, serverWallet] = await Promise.all([
         RoomDatabase.getUserSession(),
         RoomDatabase.getBookings(),
         RoomDatabase.getFavorites(),
-        RoomDatabase.getWalletBalance(),
+        getUserWallet().catch(() => ({ walletBalance: 0 })),
       ]);
+
+      const bal = typeof serverWallet?.walletBalance === 'number' ? serverWallet.walletBalance : await RoomDatabase.getWalletBalance();
 
       if (session && session.name) {
         setIsLoggedIn(true);

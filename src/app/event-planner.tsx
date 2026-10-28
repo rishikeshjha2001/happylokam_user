@@ -28,6 +28,7 @@ import ComingSoonPlaceholder from '../components/ComingSoonPlaceholder';
 
 const EVENT_TYPES = [
   { id: 'wedding', label: 'royal wedding', basePlate: 1200, baseVenue: 150000, decorBase: 80000 },
+  { id: 'birthday', label: 'birthday & milestone bash', basePlate: 550, baseVenue: 35000, decorBase: 25000 },
   { id: 'reception', label: 'banquet reception', basePlate: 950, baseVenue: 90000, decorBase: 50000 },
   { id: 'dandiya', label: 'dandiya / festival gala', basePlate: 450, baseVenue: 60000, decorBase: 40000 },
   { id: 'corporate', label: 'corporate conference', basePlate: 800, baseVenue: 50000, decorBase: 30000 },
@@ -85,8 +86,8 @@ export default function EventPlannerScreen() {
     const msg = encodeURIComponent(
       `Hello happylokam Support, I used the Event Budget Calculator for a ${currentEventConfig.label} with ${guestCount} guests in ${selectedCity}. Estimated budget: ₹${calculations.grandTotal.toLocaleString('en-IN')}. Please help me book matching venues & caterers!`
     );
-    Linking.openURL(`https://wa.me/918292888200?text=${msg}`).catch(() => {
-      Linking.openURL('tel:+918292888200');
+    Linking.openURL(`https://wa.me/918969255561?text=${msg}`).catch(() => {
+      Linking.openURL('tel:+918969255561');
     });
   };
 

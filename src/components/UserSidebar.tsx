@@ -36,6 +36,7 @@ import {
   Calculator,
   QrCode,
   Building2,
+  RefreshCw,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import RoomDatabase, { RoomUser } from '../services/roomDatabase';
@@ -137,10 +138,10 @@ export default function UserSidebar({ visible, onClose, user, onLogout }: UserSi
   };
 
   const handleConciergeSupport = () => {
-    const phone = '918292888200';
+    const phone = '918969255561';
     const message = `Hello happylokam Support, I need assistance with my celebration booking / wallet discount. User: ${user?.name || 'Guest'}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    Linking.openURL(url).catch(() => Linking.openURL(`tel:+918292888200`));
+    Linking.openURL(url).catch(() => Linking.openURL(`tel:+918969255561`));
   };
 
   const navigateTo = (path: any) => {

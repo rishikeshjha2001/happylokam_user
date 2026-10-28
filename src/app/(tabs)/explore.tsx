@@ -912,11 +912,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
   },
-  clearAllBtn: {
+  clearAllBtnSecondary: {
     paddingHorizontal: 6,
     paddingVertical: 3,
   },
-  clearAllBtnText: {
+  clearAllBtnTextSecondary: {
     fontSize: 11,
     fontWeight: '800',
     color: '#e11d48',
@@ -1045,6 +1045,21 @@ const styles = StyleSheet.create({
   resetFiltersBtnText: {
     color: '#e11d48',
     fontSize: 12,
+    fontWeight: '800',
+  },
+  clearAllBtn: {
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearAllBtnText: {
+    color: '#e11d48',
+    fontSize: 11,
     fontWeight: '800',
   },
   cardsGrid: {

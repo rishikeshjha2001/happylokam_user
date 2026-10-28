@@ -71,26 +71,6 @@ export interface DbCategory {
 // 1. Hero Slides (Synchronized with HeroSlide table)
 export const DB_HERO_SLIDES: DbHeroSlide[] = [
   {
-    id: 'hero_vedic_vivah',
-    title: 'Traditional Vedic Vivah & Sacred Mandaps',
-    subtitle: 'Certified Vedic Pandits, Sacred Havan & Bespoke Mandaps',
-    image: 'hero_vedic_vivah',
-    badge: 'ROYAL VEDIC CELEBRATION',
-    gradient: 'from-amber-600 to-rose-700',
-    ctaText: 'Explore Weddings',
-    ctaLink: '/(tabs)/explore?category=Weddings',
-  },
-  {
-    id: 'hero_corporate_events',
-    title: 'The Secret Behind Memorable Corporate Events',
-    subtitle: 'Executive Summits, Luxury Banquets & 5-Star Gourmet Buffets',
-    image: 'hero_corporate_events',
-    badge: 'EXECUTIVE GATHERINGS',
-    gradient: 'from-slate-900 to-amber-900',
-    ctaText: 'Discover Packages',
-    ctaLink: '/(tabs)/explore?category=Packages',
-  },
-  {
     id: 'hero_birthday_throne',
     title: 'Grand Royal Birthday & Fiesta Themes',
     subtitle: 'Golden Royal Thrones, Balloon Arches & Live Magicians',
@@ -108,6 +88,26 @@ export const DB_HERO_SLIDES: DbHeroSlide[] = [
     badge: 'DESTINATION PALACES',
     gradient: 'from-rose-500 to-amber-700',
     ctaText: 'View Palaces',
+    ctaLink: '/(tabs)/explore?category=Weddings',
+  },
+  {
+    id: 'hero_corporate_events',
+    title: 'The Secret Behind Memorable Corporate Events',
+    subtitle: 'Executive Summits, Luxury Banquets & 5-Star Gourmet Buffets',
+    image: 'hero_corporate_events',
+    badge: 'EXECUTIVE GATHERINGS',
+    gradient: 'from-slate-900 to-amber-900',
+    ctaText: 'Discover Packages',
+    ctaLink: '/(tabs)/explore?category=Packages',
+  },
+  {
+    id: 'hero_vedic_vivah',
+    title: 'Traditional Vedic Vivah & Sacred Mandaps',
+    subtitle: 'Certified Vedic Pandits, Sacred Havan & Bespoke Mandaps',
+    image: 'hero_vedic_vivah',
+    badge: 'ROYAL VEDIC CELEBRATION',
+    gradient: 'from-amber-600 to-rose-700',
+    ctaText: 'Explore Weddings',
     ctaLink: '/(tabs)/explore?category=Weddings',
   },
 ];

@@ -52,16 +52,16 @@ export default function TicketWalletScreen() {
       const bookings = await RoomDatabase.getBookings();
       // Filter bookings that are tickets/passes
       const ticketBookings = bookings
-        .filter((b: any) => b.isTicket || b.serviceTitle?.toLowerCase().includes('pass') || b.serviceTitle?.toLowerCase().includes('dandiya') || b.serviceTitle?.toLowerCase().includes('safari'))
+        .filter((b: any) => b.serverVerified === true && (b.category?.toLowerCase().includes('ticket') || b.category?.toLowerCase().includes('pass')))
         .map((b: any) => ({
-          id: b.id || `TKT-${Math.floor(100000 + Math.random() * 900000)}`,
-          eventName: b.serviceTitle || 'happylokam celebration pass',
-          venueName: b.venueName || 'Patna Royal Event Arena',
-          passType: b.tierName || 'VIP Stage Pass',
-          date: b.date || '2026-10-28',
+          id: b.id,
+          eventName: b.title,
+          venueName: b.location || 'Venue details available in booking',
+          passType: b.tierName || 'Ticket Pass',
+          date: b.date,
           time: '6:30 PM Onwards',
-          guests: b.guestCount || 2,
-          qrPayload: `HL-PASS-${b.id || 'DEMO'}-${b.serviceTitle || 'EVENT'}`,
+          guests: b.ticketsCount || 1,
+          qrPayload: b.qrCode || `HL-TKT:${b.id}`,
           status: 'VALID' as const,
         }));
 

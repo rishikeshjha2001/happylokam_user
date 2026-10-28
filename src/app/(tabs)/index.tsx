@@ -77,27 +77,27 @@ import MLRecommendation, { MLRecommendationResult } from '../../services/mlRecom
 const { width } = Dimensions.get('window');
 
 const getHeroImageSource = (img: any) => {
-  if (!img) return require('../../../assets/hero_vedic_vivah.jpg');
+  if (!img) return require('../../../assets/hero_birthday_throne.jpg');
   if (typeof img === 'number') return img;
   if (typeof img === 'string') {
     const lower = img.toLowerCase();
-    if (lower.includes('vedic') || lower.includes('havan') || lower.includes('mandap')) {
-      return require('../../../assets/hero_vedic_vivah.jpg');
-    }
-    if (lower.includes('corporate') || lower.includes('secret') || lower.includes('buffet')) {
-      return require('../../../assets/hero_corporate_events.jpg');
-    }
     if (lower.includes('birthday') || lower.includes('throne') || lower.includes('fiesta')) {
       return require('../../../assets/hero_birthday_throne.jpg');
     }
-    if (lower.includes('ring') || lower.includes('lakeside') || lower.includes('palace')) {
+    if (lower.includes('ring') || lower.includes('lakeside') || lower.includes('palace') || lower.includes('engagement')) {
       return require('../../../assets/hero_wedding_rings.jpg');
+    }
+    if (lower.includes('corporate') || lower.includes('secret') || lower.includes('buffet') || lower.includes('summit') || lower.includes('galas')) {
+      return require('../../../assets/hero_corporate_events.jpg');
+    }
+    if (lower.includes('vedic') || lower.includes('havan') || lower.includes('mandap') || lower.includes('vivah')) {
+      return require('../../../assets/hero_vedic_vivah.jpg');
     }
     if (img.startsWith('http://') || img.startsWith('https://')) {
       return { uri: img };
     }
   }
-  return require('../../../assets/hero_vedic_vivah.jpg');
+  return require('../../../assets/hero_birthday_throne.jpg');
 };
 
 const QUICK_CATEGORIES = [
@@ -110,7 +110,8 @@ const QUICK_CATEGORIES = [
 export default function HomeTab() {
   const insets = useSafeAreaInsets();
 
-  const [slides, setSlides] = useState<DbHeroSlide[]>([]);
+  const [slides, setSlides] = useState<DbHeroSlide[]>(DB_HERO_SLIDES);
+  const [carouselWidth, setCarouselWidth] = useState(width);
   const [venues, setVenues] = useState<DbVenue[]>([]);
   const [packages, setPackages] = useState<DbPackage[]>([]);
   const [adminSections, setAdminSections] = useState<AdminCustomSection[]>([]);
@@ -121,6 +122,9 @@ export default function HomeTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('All India');
   const [likedIds, setLikedIds] = useState<string[]>([]);
+  const handleToggleLike = (id: string) => {
+    setLikedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  };
   const [refreshing, setRefreshing] = useState(false);
 
   // Modals & Filters
@@ -190,7 +194,7 @@ export default function HomeTab() {
 
   const loadData = async () => {
     try {
-      const [heroData, venueData, pkgData, session, customSecs, customCats, savedLoc, favs] = await Promise.all([
+      const [heroData, venueData, pkgData, session, customSecs, customCats, savedLoc, favs, serverWallet] = await Promise.all([
         getHeroSlides(),
         getVenues(),
         getPackages(),
@@ -199,6 +203,7 @@ export default function HomeTab() {
         getAdminCustomCategories(),
         RoomDatabase.getLocation(),
         RoomDatabase.getFavorites(),
+        getUserWallet().catch(() => ({ walletBalance: 0 })),
       ]);
 
       if (favs && Array.isArray(favs)) {
@@ -221,11 +226,12 @@ export default function HomeTab() {
       if (savedLoc) {
         setSelectedCity(savedLoc);
       }
+      const liveBal = typeof serverWallet?.walletBalance === 'number' ? serverWallet.walletBalance : (session?.walletBalance || 0);
       if (session && session.name) {
         setUserProfile({
           name: session.name,
           email: session.email || '',
-          balance: session.walletBalance || 0,
+          balance: liveBal,
         });
       } else {
         setUserProfile(null);
@@ -285,7 +291,7 @@ export default function HomeTab() {
       allItems.push({
         id: v.id,
         title: v.title,
-        category: v.category || 'Venue',
+        category: v.type || 'Venue',
         price: typeof v.price === 'number' ? v.price : (parseInt(String(v.price).replace(/\D/g, ''), 10) || 50000),
         rating: v.rating || 4.9,
         capacity: 350,
@@ -309,45 +315,56 @@ export default function HomeTab() {
       });
     });
 
-    if (allItems.length > 0) {
-      const results = MLRecommendation.recommend(allItems, {
-        targetGuestCount: mlTargetGuests,
-        preferredCategory: mlCategoryFilter,
-        limit: 6,
-      });
-      setMlRecommendations(results);
-    }
-  }, [adminSections, venues, packages, mlTargetGuests, mlCategoryFilter]);
+    const results = MLRecommendation.recommend(allItems, {
+      targetGuestCount: mlTargetGuests,
+      preferredCategory: mlCategoryFilter,
+      limit: 6,
+      userCity: selectedCity || 'Patna',
+    });
+    setMlRecommendations(results);
+  }, [adminSections, venues, packages, mlTargetGuests, mlCategoryFilter, selectedCity]);
 
-  // Slide rotation timer synchronized with ScrollView
-  const heroScrollRef = useRef<ScrollView>(null);
+  // Slide rotation timer synchronized with smooth cinematic crossfade
+  const currentSlideRef = useRef(0);
+  const touchStartX = useRef(0);
+
+  useEffect(() => {
+    currentSlideRef.current = currentSlide;
+  }, [currentSlide]);
 
   const goToSlide = (index: number) => {
     if (index < 0 || index >= slides.length) return;
-    heroScrollRef.current?.scrollTo({ x: index * width, animated: true });
-    setCurrentSlide(index);
+    Animated.timing(slideOpacity, {
+      toValue: 0.35,
+      duration: 120,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentSlide(index);
+      Animated.timing(slideOpacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const handleNextSlide = () => {
     if (slides.length <= 1) return;
-    const next = (currentSlide + 1) % slides.length;
+    const next = (currentSlideRef.current + 1) % slides.length;
     goToSlide(next);
   };
 
   const handlePrevSlide = () => {
     if (slides.length <= 1) return;
-    const prev = (currentSlide - 1 + slides.length) % slides.length;
+    const prev = (currentSlideRef.current - 1 + slides.length) % slides.length;
     goToSlide(prev);
   };
 
   useEffect(() => {
     if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const next = (prev + 1) % slides.length;
-        heroScrollRef.current?.scrollTo({ x: next * width, animated: true });
-        return next;
-      });
+      const next = (currentSlideRef.current + 1) % slides.length;
+      goToSlide(next);
     }, 4500);
     return () => clearInterval(timer);
   }, [slides.length]);
@@ -470,31 +487,28 @@ export default function HomeTab() {
         {/* ========================================== */}
         {/* HERO SLIDER WITH INTEGRATED HEADER         */}
         {/* ========================================== */}
-        <View style={[styles.heroBanner, { height: heroBannerHeight }]}>
-          {/* Swipable Horizontal Multi-Image Carousel */}
-          <ScrollView
-            ref={heroScrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => {
-              const slideIdx = Math.round(e.nativeEvent.contentOffset.x / width);
-              if (slideIdx !== currentSlide && slideIdx >= 0 && slideIdx < slides.length) {
-                setCurrentSlide(slideIdx);
-              }
-            }}
-            style={StyleSheet.absoluteFill}
-          >
-            {slides.map((slide, idx) => (
-              <View key={slide.id || idx} style={{ width, height: heroBannerHeight }}>
-                <Image
-                  source={getHeroImageSource(slide.image)}
-                  style={styles.heroImage}
-                  resizeMode="cover"
-                />
-              </View>
-            ))}
-          </ScrollView>
+        <View
+          style={[styles.heroBanner, { height: heroBannerHeight }]}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={(e) => {
+            touchStartX.current = e.nativeEvent.pageX;
+          }}
+          onResponderRelease={(e) => {
+            const dx = e.nativeEvent.pageX - touchStartX.current;
+            if (dx < -35) {
+              handleNextSlide();
+            } else if (dx > 35) {
+              handlePrevSlide();
+            }
+          }}
+        >
+          {/* Synchronized Hero Image with Smooth Cinematic Crossfade */}
+          <Animated.Image
+            key={activeHero.id || currentSlide}
+            source={getHeroImageSource(activeHero.image)}
+            style={[styles.heroImage, { opacity: slideOpacity }]}
+            resizeMode="cover"
+          />
 
           {/* Advanced Multi-Layer Optical Cinema Lens Vignette */}
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -848,143 +862,7 @@ export default function HomeTab() {
         </View>
 
 
-        {/* ========================================== */}
-        {/* VIP SMART TOOLS & CELEBRATION SERVICES     */}
-        {/* ========================================== */}
-        <View style={{ marginTop: 18, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <View>
-              <Text style={{ fontSize: 15, fontWeight: '900', color: '#0f172a', textTransform: 'lowercase' }}>
-                smart tools & vip perks
-              </Text>
-              <Text style={{ fontSize: 11, color: '#64748b' }}>
-                Exclusive celebration calculators, coupons & passes
-              </Text>
-            </View>
-          </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#fff1f2',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#fecdd3',
-              }}
-              onPress={() => router.push('/coupons')}
-              activeOpacity={0.8}
-            >
-              <Tag size={18} color="#e11d48" />
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#e11d48', textTransform: 'lowercase' }}>
-                  ₹500 coupons
-                </Text>
-                <Text style={{ fontSize: 10, color: '#64748b' }}>Active vouchers</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#ede9fe',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#ddd6fe',
-              }}
-              onPress={() => router.push('/event-planner')}
-              activeOpacity={0.8}
-            >
-              <Calculator size={18} color="#7c3aed" />
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#7c3aed', textTransform: 'lowercase' }}>
-                  ai budget planner
-                </Text>
-                <Text style={{ fontSize: 10, color: '#64748b' }}>Instant estimate</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#e0f2fe',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#bae6fd',
-              }}
-              onPress={() => router.push('/city-experiences')}
-              activeOpacity={0.8}
-            >
-              <Compass size={18} color="#0284c7" />
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0284c7', textTransform: 'lowercase' }}>
-                  city passes
-                </Text>
-                <Text style={{ fontSize: 10, color: '#64748b' }}>VIP event entry</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#ecfdf5',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#a7f3d0',
-              }}
-              onPress={() => router.push('/ticket-wallet')}
-              activeOpacity={0.8}
-            >
-              <QrCode size={18} color="#059669" />
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669', textTransform: 'lowercase' }}>
-                  pass wallet
-                </Text>
-                <Text style={{ fontSize: 10, color: '#64748b' }}>Gate QR tickets</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#fef3c7',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: '#fde68a',
-              }}
-              onPress={() => router.push('/vendor-spotlight')}
-              activeOpacity={0.8}
-            >
-              <Building2 size={18} color="#d97706" />
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#d97706', textTransform: 'lowercase' }}>
-                  top vendors
-                </Text>
-                <Text style={{ fontSize: 10, color: '#64748b' }}>Verified teams</Text>
-              </View>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
 
         {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM CATEGORIES            */}
@@ -1046,7 +924,7 @@ export default function HomeTab() {
         )}
 
         {/* ======================================================== */}
-        {/* MACHINE LEARNING RECOMMENDATION SYSTEM                   */}
+        {/* RECOMMENDED FOR YOU (Based on User Activity)            */}
         {/* ======================================================== */}
         {mlRecommendations.length > 0 && (
           <View style={styles.mlSectionContainer}>
@@ -1054,38 +932,14 @@ export default function HomeTab() {
               <View>
                 <View style={styles.mlBadgePill}>
                   <Sparkles size={11} color="#059669" />
-                  <Text style={styles.mlBadgePillText}>ML Neural Recommendation Engine</Text>
+                  <Text style={styles.mlBadgePillText}>Tailored For You</Text>
                 </View>
-                <Text style={styles.sectionTitle}>AI Curated For You</Text>
+                <Text style={styles.sectionTitle}>Recommended For You</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Personalized via 12-factor affinity vector & guest capacity matching
+                  Celebrations & packages based on your views & favorite themes
                 </Text>
               </View>
             </View>
-
-            {/* Interactive Target Guest Count Filters */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mlFilterScroll}>
-              {[
-                { label: 'All Guests', value: 0 },
-                { label: '50-100 Guests', value: 75 },
-                { label: '200-300 Guests', value: 250 },
-                { label: '500+ Guests', value: 500 },
-              ].map((g) => {
-                const isSelected = mlTargetGuests === g.value;
-                return (
-                  <TouchableOpacity
-                    key={g.label}
-                    style={[styles.mlFilterChip, isSelected && styles.mlFilterChipActive]}
-                    onPress={() => setMlTargetGuests(g.value)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.mlFilterChipText, isSelected && styles.mlFilterChipTextActive]}>
-                      {g.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
 
             {/* Recommendation Cards */}
             <ScrollView
@@ -1120,10 +974,10 @@ export default function HomeTab() {
                       <Image source={{ uri: it.image }} style={styles.cardImage} />
                       <View style={styles.cardImageOverlay} />
 
-                      {/* ML Match % Badge */}
+                      {/* Clean Badge */}
                       <View style={styles.mlMatchBadge}>
                         <Sparkles size={11} color="#ffffff" />
-                        <Text style={styles.mlMatchBadgeText}>{rec.matchScore}% Match</Text>
+                        <Text style={styles.mlMatchBadgeText}>{(it as any).cornerTag || (it as any).badge || 'Popular'}</Text>
                       </View>
 
                       {/* Favorite Button */}
@@ -1147,15 +1001,6 @@ export default function HomeTab() {
                     <View style={styles.cardContent}>
                       <Text style={styles.cardCategory} numberOfLines={1}>{it.category}</Text>
                       <Text style={styles.cardTitle} numberOfLines={1}>{it.title}</Text>
-
-                      {/* Primary ML Reason Chip */}
-                      {rec.reasons && rec.reasons.length > 0 && (
-                        <View style={styles.mlReasonPill}>
-                          <Text style={styles.mlReasonText} numberOfLines={1}>
-                            💡 {rec.reasons[0]}
-                          </Text>
-                        </View>
-                      )}
 
                       <View style={styles.cardBottomRow}>
                         <View>
@@ -2684,5 +2529,8 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontWeight: '600',
   },
+  cardFavBtn: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(15,23,42,0.45)', alignItems: 'center', justifyContent: 'center' },
+  cardCategory: { fontSize: 11, fontWeight: '700', color: '#e11d48', textTransform: 'uppercase' },
+  cardBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 },
 });
 

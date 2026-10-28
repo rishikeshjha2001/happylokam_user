@@ -68,8 +68,8 @@ export default function ComingSoonPlaceholder({
     const text = encodeURIComponent(
       `Hello happylokam Support, I am looking for ${category || 'event venues & passes'} in ${selectedCity}. Please let me know when services become available or share custom concierge options!`
     );
-    Linking.openURL(`https://wa.me/918292888200?text=${text}`).catch(() => {
-      Linking.openURL('tel:+918292888200');
+    Linking.openURL(`https://wa.me/918969255561?text=${text}`).catch(() => {
+      Linking.openURL('tel:+918969255561');
     });
   };
 

@@ -21,8 +21,11 @@ import {
   ChevronRight,
   ShieldCheck,
   Smartphone,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
+import OtaSync from '../services/otaSync';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -71,6 +74,8 @@ export default function SettingsScreen() {
       ]
     );
   };
+
+  const [lastUpdateText] = useState('All assets synced');
 
   return (
     <View style={styles.container}>
@@ -178,11 +183,30 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Section: Live Cloud Sync */}
+        <Text style={styles.sectionHeader}>Live Cloud Sync</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowInfo}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.rowTitle}>Automatic Silent Sync</Text>
+                <View style={styles.otaBadge}>
+                  <Text style={styles.otaBadgeText}>AUTO</Text>
+                </View>
+              </View>
+              <Text style={styles.rowSub}>
+                Themes, pricing, and celebration catalog sync automatically in real time
+              </Text>
+            </View>
+            <ShieldCheck size={18} color="#10b981" />
+          </View>
+        </View>
+
         {/* App Version Info */}
         <View style={styles.versionBox}>
           <Text style={styles.versionTitle}>happylokam Celebrations</Text>
-          <Text style={styles.versionText}>Version 13.9.8 (Build 121) • Google Play Release</Text>
-          <Text style={styles.versionSub}>Razorpay 256-Bit SSL Secured • OTA Hotpatch Active</Text>
+          <Text style={styles.versionText}>Version 14.0.3 (Build 126) • Google Play Release</Text>
+          <Text style={styles.versionSub}>Razorpay 256-Bit SSL Secured • Real-Time Cloud Sync Active</Text>
         </View>
       </ScrollView>
     </View>
@@ -278,5 +302,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94a3b8',
     marginTop: 2,
+  },
+  otaBadge: {
+    backgroundColor: '#ffe4e6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  otaBadgeText: {
+    color: '#e11d48',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

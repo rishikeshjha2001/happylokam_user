@@ -68,7 +68,7 @@ const CATEGORIES_STORAGE_KEY = '@happylokam_admin_custom_categories_v4';
 export async function getAdminCustomSections(): Promise<AdminCustomSection[]> {
   try {
     const res = await apiClient.get('/sections');
-    if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+    if (res?.success && Array.isArray(res.data)) {
       await AsyncStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(res.data));
       return res.data;
     }
@@ -80,7 +80,7 @@ export async function getAdminCustomSections(): Promise<AdminCustomSection[]> {
     const raw = await AsyncStorage.getItem(SECTIONS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {}
 
@@ -93,7 +93,7 @@ export async function getAdminCustomSections(): Promise<AdminCustomSection[]> {
 export async function getAdminCustomCategories(): Promise<AdminCustomCategory[]> {
   try {
     const res = await apiClient.get('/categories');
-    if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+    if (res?.success && Array.isArray(res.data)) {
       await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(res.data));
       return res.data;
     }
@@ -105,7 +105,7 @@ export async function getAdminCustomCategories(): Promise<AdminCustomCategory[]>
     const raw = await AsyncStorage.getItem(CATEGORIES_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {}
 
@@ -163,27 +163,30 @@ export async function bookSectionItem(
     userPhone: string;
     userEmail?: string;
     notes?: string;
+    walletDiscount?: number;
   }
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const res = await apiClient.post(`/sections/items/${itemId}/book`, payload);
     if (res?.success) {
-      // Also save booking locally in RoomDatabase for offline/instant access
-      try {
-        await RoomDatabase.saveBooking({
-          id: res.data?.id || `bkg_${Date.now()}`,
-          title: res.data?.item?.title || 'Celebration Booking',
-          category: res.data?.item?.itemType || 'Custom Section',
-          date: payload.bookingDate,
-          amount: res.data?.totalAmount || 0,
-          status: 'CONFIRMED',
-          ticketsCount: payload.quantity || 1,
-          createdAt: new Date().toISOString(),
-          qrCode: res.data?.ticketCode || 'HL-TCK-PASS',
-          serverVerified: true,
-        });
-      } catch (err) {
-        console.warn('Failed to cache booking locally:', err);
+      // If server confirmed immediately (e.g. free pass), save locally in RoomDatabase
+      if (res.data?.status === 'CONFIRMED') {
+        try {
+          await RoomDatabase.saveBooking({
+            id: res.data?.id || `bkg_${Date.now()}`,
+            title: res.data?.item?.title || 'Celebration Booking',
+            category: res.data?.item?.itemType || 'Custom Section',
+            date: payload.bookingDate,
+            amount: res.data?.totalAmount || 0,
+            status: 'CONFIRMED',
+            ticketsCount: payload.quantity || 1,
+            createdAt: new Date().toISOString(),
+            qrCode: res.data?.ticketCode || 'HL-TCK-PASS',
+            serverVerified: true,
+          });
+        } catch (err) {
+          console.warn('Failed to cache booking locally:', err);
+        }
       }
       return { success: true, data: res.data };
     }

@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { View, Text, StyleSheet, Animated, Dimensions, Easing } from "react-native";
 import { useEffect, useState, useRef } from "react";
 import * as SplashScreen from "expo-splash-screen";
+import OtaSync from "../services/otaSync";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,7 +22,11 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Here you can load fonts, icons, check auth, etc.
+        // Start automatic silent cloud sync (Instagram style background updates)
+        OtaSync.startAutoSync();
+        // Download compatible OTA code in the background. It becomes active on
+        // the next launch rather than disrupting someone mid-booking.
+        void OtaSync.checkForCodeUpdate();
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (e) {
         console.warn(e);

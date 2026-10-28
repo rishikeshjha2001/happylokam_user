@@ -2,7 +2,7 @@
   "expo": {
     "name": "happylokam",
     "slug": "happylokam-user",
-    "version": "14.0.0",
+    "version": "14.0.3",
     "orientation": "portrait",
     "icon": "./assets/favicon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.happylokam.app",
-      "buildNumber": "123"
+      "buildNumber": "126"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,18 +23,19 @@
         "backgroundColor": "#e11d48"
       },
       "package": "com.happylokam.app",
-      "versionCode": 123,
+      "versionCode": 126,
       "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-updates"
     ],
     "updates": {
       "enabled": true,
-      "fallbackToCacheTimeout": 3000,
+      "fallbackToCacheTimeout": 0,
       "checkAutomatically": "ON_LOAD"
     },
     "runtimeVersion": {

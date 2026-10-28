@@ -243,11 +243,11 @@ export default function ItemDetailScreen() {
     const text = encodeURIComponent(
       `Hello happylokam! I am interested in booking: "${item.title}" (${item.location || 'Pan-India'}). Please share package details and availability.`
     );
-    Linking.openURL(`https://wa.me/919429693155?text=${text}`);
+    Linking.openURL(`https://wa.me/918969255561?text=${text}`);
   };
 
   const handlePhoneCall = () => {
-    Linking.openURL('tel:+919429693155');
+    Linking.openURL('tel:+918969255561');
   };
 
   const handleInitiateBooking = async () => {
@@ -1243,6 +1243,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     marginBottom: 12,
   },
+  sectionSubtitle: { fontSize: 12, color: '#64748b', marginTop: 4 },
   chipsScroll: {
     flexDirection: 'row',
   },

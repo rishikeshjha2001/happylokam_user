@@ -29,8 +29,9 @@ import {
   Clock,
   CheckCircle2,
 } from 'lucide-react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import RoomDatabase, { RoomWalletTransaction } from '../services/roomDatabase';
-import { createRazorpayOrder, verifyRazorpayPayment } from '../services/api';
+import { createRazorpayOrder, verifyRazorpayPayment, getUserWallet } from '../services/api';
 
 const RAZORPAY_KEY = 'rzp_live_SjBHhCXWmZhVK6';
 
@@ -65,33 +66,16 @@ export default function WalletScreen() {
   const loadWalletData = async () => {
     setLoading(true);
     try {
-      const bal = await RoomDatabase.getWalletBalance();
+      const serverWallet = await getUserWallet();
+      const bal = typeof serverWallet?.walletBalance === 'number' ? serverWallet.walletBalance : await RoomDatabase.getWalletBalance();
       const txs = await RoomDatabase.getWalletTransactions();
 
       setBalance(bal);
-      if (txs.length === 0) {
-        // Initialize default welcome credit for new users
-        const welcomeTx: RoomWalletTransaction = {
-          id: 'tx_welcome_bonus',
-          title: 'Welcome Celebration Credit 🎁',
-          amount: 200,
-          type: 'credit',
-          date: new Date().toISOString(),
-          formattedDate: 'Registration Gift',
-          category: 'Promotional Welcome Bonus',
-          notes: 'Applicable on any celebration booking or pass at checkout.',
-        };
-        await RoomDatabase.addWalletTransaction(welcomeTx);
-        if (bal === 0) {
-          await RoomDatabase.setWalletBalance(200);
-          setBalance(200);
-        }
-        setTransactions([welcomeTx]);
-      } else {
-        setTransactions(txs);
-      }
+      setTransactions(txs);
     } catch (e) {
       console.warn('Wallet load error:', e);
+      const bal = await RoomDatabase.getWalletBalance();
+      setBalance(bal);
     } finally {
       setLoading(false);
     }
@@ -104,40 +88,123 @@ export default function WalletScreen() {
       return;
     }
 
-    setProcessingTopUp(true);
     try {
-      let paymentId = `pay_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-      let orderId = `order_${Date.now()}`;
-
-      // Backend order creation
-      try {
-        const orderRes = await createRazorpayOrder(amountNum, `topup_${Date.now()}`);
-        if (orderRes?.id) orderId = orderRes.id;
-      } catch (err) {
-        console.warn('Top-up order creation notice:', err);
+      setProcessingTopUp(true);
+      const userSession = await RoomDatabase.getUserSession();
+      if (!userSession) {
+        Alert.alert('Sign In Required', 'Please sign in to add money to your celebration wallet.', [
+          { text: 'Sign In', onPress: () => router.push('/login') },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+        setProcessingTopUp(false);
+        return;
       }
 
-      // Add to RoomDatabase
-      const newBal = await RoomDatabase.addWalletBalance(amountNum);
-      const newTx = await RoomDatabase.addWalletTransaction({
-        title: 'Celebration Wallet Top-Up',
+      // 1. Create Razorpay Order on backend
+      const razorpayOrder = await createRazorpayOrder(amountNum, `hl_topup_${Date.now()}`);
+      const orderId = razorpayOrder.id;
+
+      let paymentId = '';
+      let signature = '';
+
+      // 2. Trigger Razorpay Checkout
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        await new Promise((resolve) => {
+          if ((window as any).Razorpay) return resolve(true);
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+
+        if ((window as any).Razorpay) {
+          await new Promise((resolve) => {
+            const rzp = new (window as any).Razorpay({
+              description: 'Celebration Wallet Top-Up',
+              image: 'https://happylokam.com/favicon.png',
+              currency: 'INR',
+              key: RAZORPAY_KEY,
+              amount: Math.round(amountNum * 100),
+              name: 'happylokam Wallet',
+              order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
+              prefill: {
+                email: userSession.email || 'user@happylokam.com',
+                contact: userSession.phone || '',
+                name: userSession.name || 'Celebration User',
+              },
+              theme: { color: '#e11d48' },
+              handler: (resp: any) => {
+                paymentId = resp?.razorpay_payment_id || '';
+                signature = resp?.razorpay_signature || '';
+                resolve(true);
+              },
+              modal: {
+                ondismiss: () => resolve(false),
+              },
+            });
+            rzp.open();
+          });
+        }
+      } else if (RazorpayCheckout && typeof RazorpayCheckout.open === 'function') {
+        const rzpOptions = {
+          description: 'Celebration Wallet Top-Up',
+          image: 'https://happylokam.com/favicon.png',
+          currency: 'INR',
+          key: RAZORPAY_KEY,
+          amount: Math.round(amountNum * 100),
+          name: 'happylokam Wallet',
+          order_id: orderId,
+          prefill: {
+            email: userSession.email || 'user@happylokam.com',
+            contact: userSession.phone || '',
+            name: userSession.name || 'Celebration User',
+          },
+          theme: { color: '#e11d48' },
+        };
+        const rzpRes: any = await RazorpayCheckout.open(rzpOptions);
+        paymentId = rzpRes?.razorpay_payment_id || '';
+        signature = rzpRes?.razorpay_signature || '';
+      }
+
+      if (!paymentId) {
+        setProcessingTopUp(false);
+        return;
+      }
+
+      // 3. Verify Payment with backend
+      await verifyRazorpayPayment({
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
         amount: amountNum,
-        type: 'credit',
-        date: new Date().toISOString(),
-        category: 'Razorpay Online Top-Up',
-        referenceId: paymentId,
-        notes: 'Credited instantly for future event discounts',
+        isWalletTopUp: true,
+        purpose: 'WALLET_TOPUP',
       });
 
+      // 4. Update local RoomDatabase & refresh balance
+      const newBal = (balance || 0) + amountNum;
       setBalance(newBal);
-      setTransactions((prev) => [newTx, ...prev]);
+      await RoomDatabase.setWalletBalance(newBal);
+      await RoomDatabase.addWalletTransaction({
+        type: 'credit',
+        amount: amountNum,
+        title: 'Razorpay Wallet Top-Up',
+        date: new Date().toISOString(),
+      });
+
       setTopUpModal(false);
       Alert.alert(
         'Top-Up Successful! 🎉',
-        `₹${amountNum.toLocaleString('en-IN')} has been added to your Celebration Wallet. Your balance is now ₹${newBal.toLocaleString('en-IN')}.`
+        `₹${amountNum.toLocaleString('en-IN')} has been added to your celebration wallet balance.`
       );
+      loadWalletData();
     } catch (err: any) {
-      Alert.alert('Top-Up Notice', err.message || 'Payment could not be completed.');
+      if (err?.code === 0 || err?.description?.toLowerCase().includes('cancel')) {
+        return;
+      }
+      console.warn('Top-up error:', err);
+      Alert.alert('Top-Up Notice', err?.message || 'Payment processing was cancelled or interrupted.');
     } finally {
       setProcessingTopUp(false);
     }

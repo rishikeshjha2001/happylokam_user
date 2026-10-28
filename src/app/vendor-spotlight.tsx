@@ -119,8 +119,8 @@ export default function VendorSpotlightScreen() {
     const msg = encodeURIComponent(
       `Hello happylokam Support, I want to book verified vendor: ${v.name} (${v.category}) for my celebration in ${v.city}. Please connect me!`
     );
-    Linking.openURL(`https://wa.me/918292888200?text=${msg}`).catch(() => {
-      Linking.openURL('tel:+918292888200');
+    Linking.openURL(`https://wa.me/918969255561?text=${msg}`).catch(() => {
+      Linking.openURL('tel:+918969255561');
     });
   };
 

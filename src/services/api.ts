@@ -57,7 +57,7 @@ export const getHeroSlides = async (): Promise<DbHeroSlide[]> => {
   try {
     const data = await apiClient.get('/hero-slides');
     const slides = data?.data || data?.slides || [];
-    if (Array.isArray(slides) && slides.length >= 4) {
+    if (Array.isArray(slides) && slides.length > 0) {
       return slides.map((s: any, idx: number) => ({
         id: s.id || `hero-${idx}`,
         title: s.title1 ? `${s.title1} ${s.title2 || ''}`.trim() : (s.title || 'Celebration Offer'),
@@ -189,22 +189,33 @@ export const getCategories = async (): Promise<DbCategory[]> => {
 };
 
 // 6. User Profile & Wallet from Database
-export const getUserWallet = async (): Promise<{ balance: number; bonus: number; name: string; email: string }> => {
+export const getUserWallet = async (): Promise<{ balance: number; walletBalance: number; bonus: number; name: string; email: string }> => {
   try {
     const isAuth = await RoomDatabase.isAuthenticated();
     if (isAuth) {
       try {
         const res = await apiClient.get('/user/wallet');
-        if (res && res.data && typeof res.data.walletBalance === 'number') {
-          await RoomDatabase.setWalletBalance(res.data.walletBalance);
+        if (res?.success && res.data && typeof res.data.walletBalance === 'number') {
+          const bal = Number(res.data.walletBalance);
+          await RoomDatabase.setWalletBalance(bal);
+          const session = await RoomDatabase.getUserSession();
+          return {
+            balance: bal,
+            walletBalance: bal,
+            bonus: 0,
+            name: session?.name || '',
+            email: session?.email || '',
+          };
         }
-      } catch {
-        // Fallback to local session on network error
+      } catch (err) {
+        console.warn('getUserWallet server error:', err);
       }
     }
     const session = await RoomDatabase.getUserSession();
+    const localBal = typeof session?.walletBalance === 'number' ? session.walletBalance : 0;
     return {
-      balance: typeof session?.walletBalance === 'number' ? session.walletBalance : 0,
+      balance: localBal,
+      walletBalance: localBal,
       bonus: 0,
       name: session?.name || '',
       email: session?.email || '',
@@ -212,6 +223,7 @@ export const getUserWallet = async (): Promise<{ balance: number; bonus: number;
   } catch {
     return {
       balance: 0,
+      walletBalance: 0,
       bonus: 0,
       name: '',
       email: '',
@@ -225,17 +237,35 @@ export const getUserNotifications = async (): Promise<any[]> => {
     const isAuth = await RoomDatabase.isAuthenticated();
     const endpoint = isAuth ? '/notifications/my' : '/notifications/public';
     const res = await apiClient.get(endpoint);
-    const list = res?.data || [];
-    if (Array.isArray(list) && list.length > 0) {
+    const rawList = res?.data || [];
+    if (Array.isArray(rawList)) {
+      const list = rawList.map((item: any) => ({
+        id: item.id || item.notificationId || String(Math.random()),
+        title: item.title || item.notification?.title || 'Happy Lokam Notification',
+        message: item.message || item.notification?.message || '',
+        type: item.type || item.notification?.type || 'IN_APP',
+        isRead: item.isRead ?? false,
+        sentAt: item.sentAt || item.createdAt || item.notification?.createdAt || new Date().toISOString(),
+      }));
       await RoomDatabase.saveNotifications(list);
       return list;
     }
-  } catch {
-    // Graceful offline fallback to RoomDatabase cache
+  } catch (e) {
+    console.warn('getUserNotifications error:', e);
   }
 
   const cached = await RoomDatabase.getNotifications();
   return cached || [];
+};
+
+// 7c. Change User Password
+export const changeUserPassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await apiClient.post('/user/change-password', { currentPassword, newPassword });
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to change password' };
+  }
 };
 
 // 8. Offers & Promo Coupons from Admin Panel
@@ -268,23 +298,29 @@ export const getOffers = async (): Promise<any[]> => {
 };
 
 // 9. Razorpay Payment Gateway API
-export const createRazorpayOrder = async (amount: number, receipt?: string): Promise<any> => {
+export const createRazorpayOrder = async (
+  amount: number,
+  receipt?: string,
+  options?: {
+    bookingId?: string;
+    sectionBookingId?: string;
+    eventBookingId?: string;
+    purpose?: string;
+  }
+): Promise<any> => {
   try {
     const res = await apiClient.post('/payments/create-order', {
       amount,
       currency: 'INR',
       receipt: receipt || `hl_app_${Date.now()}`,
+      ...(options || {}),
     });
-    return res?.data || res;
+    const order = res?.data || res;
+    if (!res?.success || !order?.id) throw new Error(res?.error || 'Unable to create secure payment order');
+    return order;
   } catch (err: any) {
-    console.warn('createRazorpayOrder error, falling back to local order ID:', err);
-    return {
-      id: `order_local_${Date.now()}`,
-      amount: Math.round(amount * 100),
-      currency: 'INR',
-      receipt: receipt || `hl_app_${Date.now()}`,
-      status: 'created',
-    };
+    console.warn('createRazorpayOrder error:', err);
+    throw err;
   }
 };
 
@@ -295,12 +331,15 @@ export const verifyRazorpayPayment = async (payload: {
   sectionBookingId?: string;
   bookingId?: string;
   amount?: number;
+  isWalletTopUp?: boolean;
+  purpose?: string;
 }): Promise<any> => {
   try {
     const res = await apiClient.post('/payments/verify', payload);
+    if (!res?.success) throw new Error(res?.error || 'Payment verification failed');
     return res;
   } catch (err: any) {
     console.warn('verifyRazorpayPayment warning:', err);
-    return { success: true, verified: true };
+    throw err;
   }
 };

@@ -86,23 +86,72 @@ export default function HelpSupportScreen() {
   useEffect(() => {
     const backSub = BackHandler.addEventListener('hardwareBackPress', handleGoBack);
     loadMessages();
-    return () => backSub.remove();
+
+    // Auto-poll every 6 seconds while on support screen so admin replies show live!
+    const pollTimer = setInterval(() => {
+      loadMessages();
+    }, 6000);
+
+    return () => {
+      backSub.remove();
+      clearInterval(pollTimer);
+    };
   }, []);
 
   const loadMessages = async () => {
-    const msgs = await RoomDatabase.getSupportMessages();
-    setMessages(msgs);
+    const localMsgs = await RoomDatabase.getSupportMessages();
+
+    try {
+      const res = await apiClient.get('/support/my-tickets');
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+        const serverMsgs: RoomSupportMessage[] = [];
+        res.data.forEach((t: any) => {
+          if (t.message) {
+            serverMsgs.push({
+              id: `ticket_q_${t.id}`,
+              sender: 'user',
+              text: t.message,
+              timestamp: new Date(t.createdAt).toISOString(),
+            });
+          }
+          if (t.adminReply) {
+            serverMsgs.push({
+              id: `ticket_a_${t.id}`,
+              sender: 'concierge',
+              text: t.adminReply,
+              senderName: 'Admin Desk (Dedicated Support)',
+              timestamp: new Date(t.resolvedAt || t.updatedAt || t.createdAt).toISOString(),
+            });
+          }
+        });
+
+        const existingTexts = new Set(localMsgs.map((m) => m.text.trim()));
+        const newServerReplies = serverMsgs.filter((sm) => !existingTexts.has(sm.text.trim()));
+
+        if (newServerReplies.length > 0) {
+          const combined = [...localMsgs, ...newServerReplies].sort(
+            (a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+          );
+          setMessages(combined);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Support tickets sync error:', err);
+    }
+
+    setMessages(localMsgs);
   };
 
   const handleCall = () => {
-    Linking.openURL('tel:+919876543210').catch(() => {
-      Alert.alert('Phone Helpline', 'Our concierge desk is reachable at +91 98765 43210 (9 AM - 9 PM).');
+    Linking.openURL('tel:+918969255561').catch(() => {
+      Alert.alert('Phone Helpline', 'Our concierge desk is reachable at +91 89692 55561 (9 AM - 9 PM).');
     });
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL('https://wa.me/919876543210?text=Hello%20happylokam%20Support%2C%20I%20need%20assistance%20with%20my%20celebration%20booking.').catch(() => {
-      Alert.alert('WhatsApp Helpline', 'WhatsApp our concierge directly at +91 98765 43210.');
+    Linking.openURL('https://wa.me/918969255561?text=Hello%20happylokam%20Support%2C%20I%20need%20assistance%20with%20my%20celebration%20booking.').catch(() => {
+      Alert.alert('WhatsApp Helpline', 'WhatsApp our concierge directly at +91 89692 55561.');
     });
   };
 
@@ -157,7 +206,7 @@ export default function HelpSupportScreen() {
 
         apiClient.post('/support/create', {
           userName: session?.name || 'Mobile App User',
-          userPhone: session?.phone || '9570729072',
+          userPhone: session?.phone || null,
           userEmail: session?.email || null,
           category: cat,
           subject: query.slice(0, 50),

@@ -31,7 +31,6 @@ import {
   Lock,
 } from 'lucide-react-native';
 import RoomDatabase, { RoomWalletTransaction } from '../services/roomDatabase';
-import { createRazorpayOrder, verifyRazorpayPayment } from '../services/api';
 
 interface WalletModalProps {
   visible: boolean;
@@ -44,11 +43,6 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
   const [transactions, setTransactions] = useState<RoomWalletTransaction[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'CREDITS' | 'DEBITS'>('ALL');
   const [loading, setLoading] = useState(false);
-
-  // Add Money Modal State
-  const [showAddMoney, setShowAddMoney] = useState(false);
-  const [addAmount, setAddAmount] = useState('500');
-  const [processingTopup, setProcessingTopup] = useState(false);
 
   // Info Modal State
   const [showInfo, setShowInfo] = useState(false);
@@ -72,53 +66,6 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
       console.warn('loadWalletData error:', e);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTopup = async () => {
-    const num = parseInt(addAmount, 10);
-    if (isNaN(num) || num < 10) {
-      Alert.alert('Invalid Amount', 'Please enter a valid top-up amount of at least ₹10.');
-      return;
-    }
-
-    setProcessingTopup(true);
-    try {
-      // 1. Create order on backend Razorpay
-      const order = await createRazorpayOrder(num, `hl_topup_${Date.now()}`);
-
-      // 2. Open Razorpay Checkout (or fallback verified)
-      const payId = `pay_topup_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-      await verifyRazorpayPayment({
-        razorpay_order_id: order?.id || `order_topup_${Date.now()}`,
-        razorpay_payment_id: payId,
-        razorpay_signature: 'sig_verified_topup',
-        amount: num,
-      });
-
-      // 3. Add to local wallet balance
-      const newBal = await RoomDatabase.addWalletBalance(num);
-      setBalance(newBal);
-
-      // 4. Record credit transaction
-      const newTx = await RoomDatabase.addWalletTransaction({
-        title: 'Wallet Top-up',
-        amount: num,
-        type: 'credit',
-        date: new Date().toISOString(),
-        category: 'Top-up',
-        referenceId: payId,
-        notes: `Online top-up via Razorpay (${payId})`,
-      });
-
-      setTransactions((prev) => [newTx, ...prev]);
-      setShowAddMoney(false);
-      Alert.alert('Wallet Credited! 🎉', `₹${num.toLocaleString('en-IN')} has been added to your happylokam Wallet successfully.`);
-    } catch (err: any) {
-      console.warn('Topup error:', err);
-      Alert.alert('Payment Notice', err?.message || 'Could not complete wallet top-up. Please try again.');
-    } finally {
-      setProcessingTopup(false);
     }
   };
 
@@ -195,25 +142,17 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
 
             <Text style={styles.balanceAmount}>₹{balance.toLocaleString('en-IN')}</Text>
             <Text style={styles.bonusText}>
-              Virtual credits automatically reduce payment at checkout for any booking
+              Virtual credits credited by Admin • Auto-applied at checkout for instant booking discount
             </Text>
 
             <View style={styles.btnRow}>
-              <TouchableOpacity
-                style={styles.addMoneyBtn}
-                onPress={() => setShowAddMoney(true)}
-                activeOpacity={0.85}
-              >
-                <Plus size={18} color="#0f172a" />
-                <Text style={styles.addMoneyText}>Add Money</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.transferBtn}
                 onPress={() => setShowInfo(true)}
                 activeOpacity={0.85}
               >
                 <Info size={18} color="#ffffff" />
-                <Text style={styles.transferText}>How to Use</Text>
+                <Text style={styles.transferText}>How Wallet Credits Work</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -277,19 +216,15 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
               <Text style={styles.emptyTitle}>No Transactions Found</Text>
               <Text style={styles.emptySub}>
                 {filter === 'CREDITS'
-                  ? 'No wallet credit entries found yet. Cashbacks and top-ups will be listed here.'
+                  ? 'No wallet credit entries found yet. Admin-issued promotional credits and cashbacks will appear here.'
                   : filter === 'DEBITS'
                   ? 'No wallet debits recorded. Your celebration payments made via wallet will appear here.'
-                  : 'Your celebration cashback rewards, refunds, top-ups, and booking debits will appear here with full date and amount breakdown.'}
+                  : 'Your celebration cashback rewards, refunds, and booking debits will appear here with full date and amount breakdown.'}
               </Text>
-              <TouchableOpacity
-                style={styles.emptyAddBtn}
-                onPress={() => setShowAddMoney(true)}
-                activeOpacity={0.85}
-              >
-                <Plus size={16} color="#ffffff" />
-                <Text style={styles.emptyAddBtnText}>Add Money to Wallet</Text>
-              </TouchableOpacity>
+              <View style={styles.adminNoticeBadge}>
+                <ShieldCheck size={16} color="#059669" />
+                <Text style={styles.adminNoticeText}>Only happylokam Admin can credit wallet balances</Text>
+              </View>
             </View>
           ) : (
             <View style={styles.txList}>
@@ -337,80 +272,6 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
           )}
         </ScrollView>
 
-        {/* Add Money Modal */}
-        <Modal
-          visible={showAddMoney}
-          animationType="fade"
-          transparent
-          onRequestClose={() => setShowAddMoney(false)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.addMoneyCard}>
-              <View style={styles.modalHeaderRow}>
-                <Text style={styles.modalTitle}>Add Money to Wallet</Text>
-                <TouchableOpacity onPress={() => setShowAddMoney(false)} style={styles.modalCloseBtn}>
-                  <X size={18} color="#64748b" />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.modalSub}>
-                Funds are credited instantly and can be applied at checkout for tickets and celebration bookings.
-              </Text>
-
-              <View style={styles.amountInputRow}>
-                <Text style={styles.currencySymbol}>₹</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={addAmount}
-                  onChangeText={(val) => setAddAmount(val.replace(/\D/g, ''))}
-                  placeholder="0"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="numeric"
-                />
-              </View>
-
-              {/* Quick Preset Buttons */}
-              <View style={styles.presetRow}>
-                {['200', '500', '1000', '2000'].map((preset) => (
-                  <TouchableOpacity
-                    key={preset}
-                    style={[styles.presetChip, addAmount === preset && styles.presetChipActive]}
-                    onPress={() => setAddAmount(preset)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.presetChipText,
-                        addAmount === preset && styles.presetChipTextActive,
-                      ]}
-                    >
-                      +₹{preset}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TouchableOpacity
-                style={styles.confirmTopupBtn}
-                onPress={handleTopup}
-                disabled={processingTopup}
-                activeOpacity={0.88}
-              >
-                {processingTopup ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <ShieldCheck size={18} color="#ffffff" />
-                    <Text style={styles.confirmTopupText}>
-                      Proceed to Pay ₹{parseInt(addAmount || '0', 10).toLocaleString('en-IN')}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
         {/* Info & Transfer Modal */}
         <Modal
           visible={showInfo}
@@ -431,9 +292,9 @@ export default function WalletModal({ visible, onClose, balance: initialBalance 
                 <View style={styles.infoItem}>
                   <ShieldCheck size={20} color="#059669" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoHeading}>Virtual Celebration Credits</Text>
+                    <Text style={styles.infoHeading}>Admin-Credited Virtual Balance</Text>
                     <Text style={styles.infoDesc}>
-                      Your wallet holds virtual celebration credits earned via top-ups, promo rewards, and instant booking cashbacks.
+                      Your wallet holds virtual celebration credits issued exclusively by happylokam admin for bookings, cashback rewards, and special promotions. Users cannot manually top up funds.
                     </Text>
                   </View>
                 </View>
@@ -935,5 +796,22 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
+  },
+  adminNoticeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    marginTop: 14,
+  },
+  adminNoticeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065f46',
   },
 });

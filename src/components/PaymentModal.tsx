@@ -37,7 +37,7 @@ import RoomDatabase from '../services/roomDatabase';
 import { bookSectionItem } from '../services/adminSections';
 import { createRazorpayOrder, verifyRazorpayPayment } from '../services/api';
 
-const RAZORPAY_KEY = 'rzp_live_SjBHhCXWmZhVK6';
+const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -167,36 +167,31 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
     try {
       let bookingResult: any = null;
 
-      // 2. Real Backend Section Booking
-      if (item.id && !item.id.startsWith('mock_')) {
-        try {
-          bookingResult = await bookSectionItem(item.id, {
-            bookingDate: selectedDate,
-            quantity,
-            userName: guestName.trim(),
-            userPhone: guestPhone.trim(),
-            notes: isTicket ? 'Mobile Ticket Pass' : 'Mobile Reservation Booking',
-          });
-        } catch (apiErr) {
-          console.warn('Backend section item booking fallback to local verified pass:', apiErr);
-        }
-      }
+      // A pass exists only after the server creates the booking.
+      if (!item.id || item.id.startsWith('mock_')) throw new Error('This item is not available for secure booking.');
+      bookingResult = await bookSectionItem(item.id, {
+        bookingDate: selectedDate,
+        quantity,
+        userName: guestName.trim(),
+        userPhone: guestPhone.trim(),
+        notes: isTicket ? 'Mobile Ticket Pass' : 'Mobile Reservation Booking',
+        walletDiscount: useWallet ? walletDiscount : 0,
+      });
+      const confirmedServerId = bookingResult?.data?.id || bookingResult?.id;
+      if (!confirmedServerId) throw new Error('The booking could not be created on the server.');
 
       // 3. Razorpay Order Creation & Native Checkout
-      let paymentId = `pay_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-      let orderId = `order_${Date.now()}`;
-      let signature = 'sig_verified_user_app';
+      let paymentId = '';
+      let orderId = '';
+      let signature = '';
 
       if (total > 0) {
-        // Create live order on backend
-        try {
-          const razorpayOrder = await createRazorpayOrder(total, `hl_sec_${Date.now()}`);
-          if (razorpayOrder?.id) {
-            orderId = razorpayOrder.id;
-          }
-        } catch (orderErr) {
-          console.warn('Backend order creation notice:', orderErr);
-        }
+        const razorpayOrder = await createRazorpayOrder(
+          total,
+          `hl_sec_${Date.now()}`,
+          { sectionBookingId: confirmedServerId, purpose: 'SECTION' }
+        );
+        orderId = razorpayOrder.id;
 
         // Trigger Razorpay Checkout (Native and Web)
         try {
@@ -272,12 +267,13 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
             setPaying(false);
             return;
           }
-          console.warn('Native Razorpay Checkout notice, proceeding with verified processing:', rzpErr);
+          throw rzpErr;
         }
       }
 
-      const confirmedServerId = bookingResult?.data?.id || bookingResult?.id;
       const confirmedTicketCode = bookingResult?.data?.ticketCode || bookingResult?.ticketCode;
+
+      if (total > 0 && (!paymentId || !orderId || !signature)) throw new Error('Payment was not completed.');
 
       await verifyRazorpayPayment({
         razorpay_order_id: orderId,
@@ -287,7 +283,21 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         amount: total,
       });
 
-      // 4. Deduct Wallet Balance if applied and log transaction
+      // 4. Save verified booking in local RoomDatabase
+      await RoomDatabase.saveBooking({
+        id: confirmedServerId,
+        title: item.title || 'Celebration Booking',
+        category: item.itemType || 'Custom Section',
+        date: selectedDate,
+        amount: total,
+        status: 'CONFIRMED',
+        ticketsCount: quantity,
+        createdAt: new Date().toISOString(),
+        qrCode: confirmedTicketCode || 'HL-TCK-PASS',
+        serverVerified: true,
+      });
+
+      // 5. Deduct Wallet Balance if applied and log transaction
       if (useWallet && walletDiscount > 0) {
         await RoomDatabase.deductWalletBalance(walletDiscount);
         await RoomDatabase.addWalletTransaction({
@@ -303,7 +313,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
       }
 
       // 5. Store Confirmed Pass in RoomDatabase
-      const ticketId = confirmedTicketCode || `HL-${isTicket ? 'TCK' : 'BKG'}-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const ticketId = confirmedTicketCode || confirmedServerId;
       
       const localBooking = {
         id: confirmedServerId || ('hlc_' + Date.now()),

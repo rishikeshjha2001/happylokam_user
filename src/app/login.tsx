@@ -206,22 +206,15 @@ export default function AuthScreen() {
           onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
         });
       }
-    } catch {
-      // In offline or demo scenario, save local guest session
-      await RoomDatabase.saveLocation(location || 'Pan-India');
-      await RoomDatabase.saveUserSession({
-        id: 'u_' + Date.now(),
-        name: name.trim() || 'Guest User',
-        email: email.trim() || 'guest@happylokam.com',
-        phone: phone.trim() || undefined,
-        gender,
-        location: location || 'Pan-India',
-        role: 'USER',
-        token: 'token_guest_' + Date.now(),
-        walletBalance: 0,
-        lastLogin: Date.now(),
+    } catch (err: any) {
+      setDialogConfig({
+        visible: true,
+        type: 'danger',
+        title: 'Connection Error',
+        message: 'Could not connect to HappyLokam servers. Please check your internet connection and try again.',
+        confirmText: 'OK',
+        onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
       });
-      router.replace('/(tabs)');
     } finally {
       setLoading(false);
     }
