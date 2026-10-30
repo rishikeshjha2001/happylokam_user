@@ -8,7 +8,19 @@ import {
   AdminCustomCategory,
 } from './adminSections';
 import { DbHeroSlide } from '../constants/databaseModels';
-import * as Updates from 'expo-updates';
+
+// Optional expo-updates fallback (gracefully disabled when native module is unavailable)
+let Updates: any = { isEnabled: false };
+try {
+  Updates = require('expo-updates');
+} catch {
+  Updates = {
+    isEnabled: false,
+    checkForUpdateAsync: async () => ({ isAvailable: false }),
+    fetchUpdateAsync: async () => {},
+    reloadAsync: async () => {},
+  };
+}
 
 type SyncListener = (event: 'all' | 'hero' | 'sections' | 'categories') => void;
 
