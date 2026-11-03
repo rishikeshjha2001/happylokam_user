@@ -85,6 +85,7 @@ export default function AdminSectionModal({
   const [targetId, setTargetId] = useState<string>('');
   const [itemTitle, setItemTitle] = useState('');
   const [itemLocation, setItemLocation] = useState('');
+  const [itemMapUrl, setItemMapUrl] = useState('');
   const [itemPrice, setItemPrice] = useState('₹1.2L');
   const [itemType, setItemType] = useState('Premium Venue');
   const [itemBookingType, setItemBookingType] = useState<'TICKET' | 'BOOKING'>('BOOKING');
@@ -189,6 +190,7 @@ export default function AdminSectionModal({
       id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       title: itemTitle.trim(),
       location: itemLocation.trim() || 'Pan-India',
+      mapUrl: itemMapUrl.trim() || undefined,
       type: itemType.trim() || 'Featured',
       itemType: itemBookingType,
       price: parseFloat(itemPrice.replace(/[^\d.]/g, '')) || 50000,
@@ -276,6 +278,7 @@ export default function AdminSectionModal({
       categoryId: itemTargetType === 'category' ? targetId : undefined,
       title: itemTitle.trim(),
       location: itemLocation.trim() || 'Pan-India',
+      mapUrl: itemMapUrl.trim() || undefined,
       type: itemType.trim() || 'Featured',
       itemType: itemBookingType,
       price: parseFloat(itemPrice.replace(/[^\d.]/g, '')) || 50000,
@@ -490,6 +493,15 @@ export default function AdminSectionModal({
                   </View>
                 </View>
 
+                <Text style={styles.inputLabel}>Google Maps Direction Link (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://maps.app.goo.gl/... or Google Maps URL"
+                  placeholderTextColor="#94a3b8"
+                  value={itemMapUrl}
+                  onChangeText={setItemMapUrl}
+                />
+
                 {/* Booking Type Selector */}
                 <Text style={styles.inputLabel}>Admission / Reservation Type</Text>
                 <View style={styles.typeSelectorRow}>
@@ -701,6 +713,15 @@ export default function AdminSectionModal({
                     />
                   </View>
                 </View>
+
+                <Text style={styles.inputLabel}>Google Maps Direction Link (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://maps.app.goo.gl/... or Google Maps URL"
+                  placeholderTextColor="#94a3b8"
+                  value={itemMapUrl}
+                  onChangeText={setItemMapUrl}
+                />
 
                 <Text style={styles.inputLabel}>Tags / Amenities (comma separated)</Text>
                 <TextInput

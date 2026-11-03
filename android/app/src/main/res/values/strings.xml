@@ -1,3 +1,4 @@
 <resources>
   <string name="app_name">happylokam</string>
+  <string name="expo_runtime_version">14.0.9</string>
 </resources>

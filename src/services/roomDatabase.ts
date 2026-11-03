@@ -54,7 +54,7 @@ export interface RoomBooking {
   category: string;
   date: string;
   amount: number;
-  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED';
   tierType?: string;
   tierName?: string;
   ticketsCount?: number;
@@ -122,9 +122,67 @@ const STORAGE_KEYS = {
   WALLET_TRANSACTIONS: '@happylokam_room_wallet_transactions',
   SUPPORT_MESSAGES: '@happylokam_room_support_messages',
   ADDRESSES: '@happylokam_room_saved_addresses',
+  DATA_VERSION: '@happylokam_room_data_version',
 };
 
 export const RoomDatabase = {
+  /**
+   * Removes only outdated local operational data after an app data migration.
+   * Accounts and authentication remain intact; the server remains the source of
+   * truth for wallet balances and confirmed bookings.
+   */
+  /**
+   * Deeply resets RoomDB wallet, transactions, and local bookings on the phone.
+   * Can be called during app data migrations or explicitly by the user.
+   */
+  async resetWalletAndBookings(newBalance: number = 0): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.BOOKINGS,
+        STORAGE_KEYS.WALLET_TRANSACTIONS,
+      ]);
+      const user = await this.getUserSession();
+      if (user) {
+        user.walletBalance = Math.max(0, newBalance);
+        await this.saveUserSession(user);
+      }
+    } catch (error) {
+      console.warn('RoomDatabase.resetWalletAndBookings error:', error);
+    }
+  },
+
+  /**
+   * Removes outdated local operational data after an app data migration.
+   * Accounts and authentication remain intact; the server remains the source of
+   * truth for wallet balances and confirmed bookings.
+   */
+  async migrateOperationalCache(version: string): Promise<void> {
+    try {
+      const installedVersion = await AsyncStorage.getItem(STORAGE_KEYS.DATA_VERSION);
+      if (installedVersion === version) return;
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.BOOKINGS,
+        STORAGE_KEYS.WALLET_TRANSACTIONS,
+        STORAGE_KEYS.NOTIFICATIONS,
+        STORAGE_KEYS.EVENTS,
+        STORAGE_KEYS.VENUES,
+        STORAGE_KEYS.ADDRESSES,
+        '@happylokam_admin_custom_sections_v4',
+        '@happylokam_admin_custom_categories_v4',
+        '@happylokam_user_affinity_vector',
+        '@happylokam_ml_user_interactions',
+      ]);
+      // Deeply reset local cached wallet balance so stale test amounts are zeroed out
+      const user = await this.getUserSession();
+      if (user) {
+        user.walletBalance = 0;
+        await this.saveUserSession(user);
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.DATA_VERSION, version);
+    } catch (error) {
+      console.warn('RoomDatabase.migrateOperationalCache error:', error);
+    }
+  },
   // --- Favorites DAO ---
   async getFavorites(): Promise<any[]> {
     try {
@@ -300,6 +358,14 @@ export const RoomDatabase = {
       await AsyncStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(updated));
     } catch (e) {
       console.warn('RoomDatabase.saveBooking error:', e);
+    }
+  },
+
+  async replaceBookings(bookings: RoomBooking[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+    } catch (e) {
+      console.warn('RoomDatabase.replaceBookings error:', e);
     }
   },
 
@@ -523,19 +589,7 @@ export const RoomDatabase = {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.ADDRESSES);
       if (!raw) {
-        // Return default primary celebration address
-        return [
-          {
-            id: 'addr_default_1',
-            label: 'Home Celebration Address',
-            recipientName: 'Celebration Host',
-            phone: '+91 98765 43210',
-            street: 'Kanti Factory Road, Kankarbagh',
-            city: 'Patna, Bihar',
-            pincode: '800026',
-            isDefault: true,
-          },
-        ];
+        return [];
       }
       return JSON.parse(raw);
     } catch (e) {

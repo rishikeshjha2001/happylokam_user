@@ -730,7 +730,7 @@ export default function ExploreTab() {
       <WalletModal
         visible={isWalletOpen}
         onClose={() => setWalletOpen(false)}
-        balance={2450}
+        balance={0}
       />
       </View>
     </SwipeTabContainer>

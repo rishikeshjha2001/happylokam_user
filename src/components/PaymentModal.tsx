@@ -35,7 +35,7 @@ import { useRouter } from 'expo-router';
 import RazorpayCheckout from 'react-native-razorpay';
 import RoomDatabase from '../services/roomDatabase';
 import { bookSectionItem } from '../services/adminSections';
-import { createRazorpayOrder, verifyRazorpayPayment } from '../services/api';
+import { createRazorpayOrder, verifyRazorpayPayment, getUserWallet } from '../services/api';
 
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
 
@@ -217,9 +217,9 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                   name: 'happylokam Celebrations',
                   order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
                   prefill: {
-                    email: userSession?.email || 'guest@happylokam.com',
-                    contact: guestPhone.trim(),
-                    name: guestName.trim(),
+                    email: 'rishikeshjha1710@gmail.com',
+                    contact: '9570729077',
+                    name: guestName.trim() || 'HappyLokam Guest',
                   },
                   theme: { color: '#e11d48' },
                   handler: (resp: any) => {
@@ -248,9 +248,9 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               name: 'happylokam Celebrations',
               order_id: orderId,
               prefill: {
-                email: userSession?.email || 'guest@happylokam.com',
-                contact: guestPhone.trim(),
-                name: guestName.trim(),
+                email: 'rishikeshjha1710@gmail.com',
+                contact: '9570729077',
+                name: guestName.trim() || 'HappyLokam Guest',
               },
               theme: { color: '#e11d48' },
             };
@@ -283,21 +283,24 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         amount: total,
       });
 
-      // 4. Save verified booking in local RoomDatabase
-      await RoomDatabase.saveBooking({
-        id: confirmedServerId,
+      // 4. Store single verified pass in local RoomDatabase
+      const ticketId = confirmedTicketCode || confirmedServerId;
+      const localBooking = {
+        id: confirmedServerId || ('hlc_' + Date.now()),
         title: item.title || 'Celebration Booking',
-        category: item.itemType || 'Custom Section',
+        category: isTicket ? 'Ticket Pass' : (item.type || item.itemType || 'Reservation'),
         date: selectedDate,
         amount: total,
-        status: 'CONFIRMED',
+        status: 'CONFIRMED' as const,
+        tierName: isTicket ? 'Ticket Pass' : 'Confirmed Booking',
         ticketsCount: quantity,
-        createdAt: new Date().toISOString(),
-        qrCode: confirmedTicketCode || 'HL-TCK-PASS',
+        qrCode: ticketId,
         serverVerified: true,
-      });
+        createdAt: new Date().toISOString(),
+      };
+      await RoomDatabase.saveBooking(localBooking);
 
-      // 5. Deduct Wallet Balance if applied and log transaction
+      // 5. Deduct Wallet Balance if applied and record ledger transaction
       if (useWallet && walletDiscount > 0) {
         await RoomDatabase.deductWalletBalance(walletDiscount);
         await RoomDatabase.addWalletTransaction({
@@ -312,24 +315,16 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         setWalletBalance((prev) => Math.max(0, prev - walletDiscount));
       }
 
-      // 5. Store Confirmed Pass in RoomDatabase
-      const ticketId = confirmedTicketCode || confirmedServerId;
-      
-      const localBooking = {
-        id: confirmedServerId || ('hlc_' + Date.now()),
-        title: item.title || 'Celebration Booking',
-        category: isTicket ? 'Ticket Pass' : (item.type || 'Reservation'),
-        date: selectedDate,
-        amount: total,
-        status: 'CONFIRMED' as const,
-        tierName: isTicket ? 'Ticket Pass' : 'Confirmed Booking',
-        ticketsCount: quantity,
-        qrCode: ticketId,
-        serverVerified: true,
-        createdAt: new Date().toISOString(),
-      };
-
-      await RoomDatabase.saveBooking(localBooking);
+      // 6. Deep sync the exact new wallet balance from server into RoomDatabase
+      try {
+        const freshWallet = await getUserWallet();
+        if (typeof freshWallet?.walletBalance === 'number') {
+          await RoomDatabase.setWalletBalance(freshWallet.walletBalance);
+          setWalletBalance(freshWallet.walletBalance);
+        }
+      } catch (err) {
+        console.warn('Failed to refresh wallet post-payment:', err);
+      }
       await RoomDatabase.addNotification({
         id: 'notif_bkg_' + Date.now(),
         title: `Booking Confirmed: ${localBooking.title} 🎉`,
@@ -704,7 +699,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <ShieldCheck size={13} color="#059669" />
                 <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>
-                  Razorpay Live Gateway
+                  100% Verified Secure
                 </Text>
               </View>
             </View>
@@ -749,7 +744,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               <ShieldCheck size={18} color="#e11d48" />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>
-                  256-Bit Razorpay RBI-Compliant Gateway
+                  256-Bit SSL Encrypted Secure Gateway
                 </Text>
                 <Text style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>
                   Zero convenience fee • UPI, Cards & NetBanking • Instant QR digital pass
@@ -779,7 +774,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                   <ShieldCheck size={18} color="#ffffff" />
                   <Text style={styles.payBtnText}>
                     {total > 0
-                      ? `Pay ₹${total.toLocaleString('en-IN')} via Razorpay`
+                      ? `Pay ₹${total.toLocaleString('en-IN')} Securely`
                       : 'Confirm with Wallet Balance'}
                   </Text>
                 </>

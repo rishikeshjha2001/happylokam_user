@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Linking,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -23,7 +24,7 @@ import {
   ShieldCheck,
   Send,
 } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import ComingSoonPlaceholder from '../components/ComingSoonPlaceholder';
 
 const EVENT_TYPES = [
@@ -51,6 +52,17 @@ export default function EventPlannerScreen() {
   const [selectedTier, setSelectedTier] = useState('premium');
   const [guestCount, setGuestCount] = useState(350);
   const [selectedCity, setSelectedCity] = useState('patna');
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        router.back();
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [])
+  );
 
   const isLiveCity = ['patna', 'ranchi', 'varanasi', 'bodh gaya'].includes(selectedCity.toLowerCase());
 

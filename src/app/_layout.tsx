@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Animated, Dimensions, Easing } from "react-nati
 import { useEffect, useState, useRef } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import OtaSync from "../services/otaSync";
+import RoomDatabase from "../services/roomDatabase";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +23,9 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Removes legacy test bookings, wallet activity and cached feeds from
+        // prior app versions while preserving the signed-in user account.
+        await RoomDatabase.migrateOperationalCache('2026-11-03-clean-reset-v2');
         // Start automatic silent cloud sync (Instagram style background updates)
         OtaSync.startAutoSync();
         // Download compatible OTA code in the background. It becomes active on

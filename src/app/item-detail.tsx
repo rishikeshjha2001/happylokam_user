@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,9 @@ import {
   Linking,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  BackHandler,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
@@ -81,6 +82,7 @@ export default function ItemDetailScreen() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [guestCount, setGuestCount] = useState(150);
+  const [platesCount, setPlatesCount] = useState(100);
   const [bookingDays, setBookingDays] = useState(1);
 
   // Rating & Review State
@@ -88,6 +90,31 @@ export default function ItemDetailScreen() {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [userStars, setUserStars] = useState(5);
   const [userReviewText, setUserReviewText] = useState('');
+
+  // Hardware Back Handler: smoothly navigates back through modal and screens
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (showPayment) {
+          setShowPayment(false);
+          return true;
+        }
+        if (ratingModalVisible) {
+          setRatingModalVisible(false);
+          return true;
+        }
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
+        router.replace('/(tabs)');
+        return true;
+      };
+
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [showPayment, ratingModalVisible])
+  );
 
   const itemId = params.id || 'default_item';
 
@@ -176,6 +203,45 @@ export default function ItemDetailScreen() {
     setRatings(filtered);
   };
 
+  const handleOpenReviewModal = async () => {
+    const session = await RoomDatabase.getUserSession();
+    if (!session?.token) {
+      Alert.alert('Sign In Required 🔐', 'Please sign in to share your celebration review.', [
+        { text: 'Sign In', onPress: () => router.push('/login') },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+
+    try {
+      const bookings = await RoomDatabase.getBookings();
+      const currentItemId = item?.id || itemId;
+      const completedBooking = (bookings || []).find((b: any) => {
+        const matches = (b.itemId && b.itemId === currentItemId) ||
+                        (b.venueId && b.venueId === currentItemId) ||
+                        (b.title && item?.title && b.title.trim().toLowerCase() === item.title.trim().toLowerCase());
+        const isCompleted = b.status?.toUpperCase() === 'COMPLETED';
+        const isPastDate = b.date ? new Date(b.date).getTime() <= Date.now() : true;
+        return matches && isCompleted && isPastDate;
+      });
+
+      if (!completedBooking) {
+        Alert.alert(
+          'Verified Reviews Only 🌟',
+          'To ensure authentic celebration quality, reviews can only be submitted after your booking is completed and your celebration event date has concluded.'
+        );
+        return;
+      }
+
+      setRatingModalVisible(true);
+    } catch {
+      Alert.alert(
+        'Verified Reviews Only 🌟',
+        'To ensure authentic celebration quality, reviews can only be submitted after your booking is completed and your celebration event date has concluded.'
+      );
+    }
+  };
+
   const handleSubmitRating = async () => {
     if (!userReviewText.trim()) {
       Alert.alert('Required', 'Please write a brief review of your experience.');
@@ -215,11 +281,21 @@ export default function ItemDetailScreen() {
   const isPerPerson = (item.priceUnit && (item.priceUnit.toLowerCase().includes('plate') || item.priceUnit.toLowerCase().includes('person'))) ||
     (item.category && (item.category.toLowerCase().includes('cater') || item.category.toLowerCase().includes('buffet')));
 
+  const hasPerPlate = Boolean(item.pricePerPlate && Number(item.pricePerPlate) > 0) || isPerPerson;
+  const hasPerGuest = Boolean(item.pricePerGuest && Number(item.pricePerGuest) > 0);
+  const hasBaseHall = Boolean(item.baseHallPrice && Number(item.baseHallPrice) > 0);
+
+  const plateRate = item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 0);
+  const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
+  const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
+
   const calculatedBase = isTicket
     ? basePriceNum
-    : (isPerPerson
-        ? basePriceNum * guestCount * bookingDays
-        : basePriceNum * bookingDays);
+    : (hasPerPlate || hasPerGuest || hasBaseHall
+        ? (hallRate * bookingDays) + (hasPerPlate ? plateRate * platesCount : 0) + (hasPerGuest ? guestRate * guestCount : 0)
+        : (isPerPerson
+            ? basePriceNum * guestCount * bookingDays
+            : basePriceNum * bookingDays));
 
   const mainPhoto = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80';
   const galleryImages = [
@@ -234,9 +310,13 @@ export default function ItemDetailScreen() {
     setActiveImageIndex(slide);
   };
 
+  const mapDirectionUrl = item.mapUrl || item.googleMapsUrl || item.directionUrl;
+  const hasMapDirection = Boolean(mapDirectionUrl && typeof mapDirectionUrl === 'string' && mapDirectionUrl.trim().length > 0);
+
   const handleOpenGoogleMaps = () => {
-    const query = encodeURIComponent(`${item.title} ${item.location || ''}`);
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+    if (mapDirectionUrl) {
+      Linking.openURL(mapDirectionUrl);
+    }
   };
 
   const handleWhatsAppInquiry = () => {
@@ -391,14 +471,16 @@ export default function ItemDetailScreen() {
                 <Text style={styles.locationCardSub}>Prime central celebration hub • Verified GPS coordinates</Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.mapsBtn}
-              onPress={handleOpenGoogleMaps}
-              activeOpacity={0.85}
-            >
-              <Navigation size={15} color="#ffffff" />
-              <Text style={styles.mapsBtnText}>Get Directions on Google Maps</Text>
-            </TouchableOpacity>
+            {hasMapDirection && (
+              <TouchableOpacity
+                style={styles.mapsBtn}
+                onPress={handleOpenGoogleMaps}
+                activeOpacity={0.85}
+              >
+                <Navigation size={15} color="#ffffff" />
+                <Text style={styles.mapsBtnText}>See Location on Google Maps</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Venue & Package Amenities Grid */}
@@ -633,6 +715,62 @@ export default function ItemDetailScreen() {
                   ))}
                 </View>
               </View>
+
+              {/* Optional Per-Plate Catering Selector */}
+              {hasPerPlate && (
+                <View style={styles.sectionBlock}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.sectionTitle}>Catering Plates & Buffet Servings</Text>
+                    <Text style={styles.capacityBadge}>
+                      ₹{plateRate}/Plate
+                    </Text>
+                  </View>
+
+                  <View style={styles.guestPickerCard}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.guestPickerLabel}>Number of Plates</Text>
+                      <Text style={styles.guestPickerSub}>Add or subtract plates anytime</Text>
+                    </View>
+                    <View style={styles.guestCounterRow}>
+                      <TouchableOpacity
+                        style={styles.counterBtn}
+                        onPress={() => setPlatesCount(Math.max(10, platesCount - 25))}
+                      >
+                        <Minus size={16} color="#0f172a" />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.guestInput}
+                        keyboardType="numeric"
+                        value={String(platesCount)}
+                        onChangeText={(val) => {
+                          const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                          if (!isNaN(parsed)) setPlatesCount(Math.max(1, parsed));
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={styles.counterBtn}
+                        onPress={() => setPlatesCount(platesCount + 25)}
+                      >
+                        <Plus size={16} color="#0f172a" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.quickChipsRow}>
+                    {[50, 100, 200, 350, 500].map((count) => (
+                      <TouchableOpacity
+                        key={count}
+                        style={[styles.quickChip, platesCount === count && styles.quickChipActive]}
+                        onPress={() => setPlatesCount(count)}
+                      >
+                        <Text style={[styles.quickChipText, platesCount === count && styles.quickChipTextActive]}>
+                          {count} Plates
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
             </>
           )}
 
@@ -663,9 +801,15 @@ export default function ItemDetailScreen() {
               <Text style={styles.breakdownLabel}>
                 {isTicket
                   ? 'Digital Pass Price'
-                  : isPerPerson
-                    ? `Per-Plate Rate (₹${basePriceNum} × ${guestCount} Guests × ${bookingDays} Days)`
-                    : `Daily Package Rate (₹${basePriceNum.toLocaleString('en-IN')} × ${bookingDays} Days)`}
+                  : hasBaseHall && hasPerPlate
+                    ? `Hall Base (₹${hallRate.toLocaleString('en-IN')}) + Plates (${platesCount} × ₹${plateRate})`
+                    : hasPerPlate
+                      ? `Catering Plates (₹${plateRate} × ${platesCount} Plates)`
+                      : hasPerGuest
+                        ? `Guest Charges (₹${guestRate} × ${guestCount} Guests)`
+                        : isPerPerson
+                          ? `Per-Plate Rate (₹${basePriceNum} × ${guestCount} Guests × ${bookingDays} Days)`
+                          : `Daily Package Rate (₹${basePriceNum.toLocaleString('en-IN')} × ${bookingDays} Days)`}
               </Text>
               <Text style={styles.breakdownVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
             </View>
@@ -727,7 +871,7 @@ export default function ItemDetailScreen() {
               <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
               <TouchableOpacity
                 style={styles.addReviewBtn}
-                onPress={() => setRatingModalVisible(true)}
+                onPress={handleOpenReviewModal}
                 activeOpacity={0.8}
               >
                 <Star size={13} color="#e11d48" />
@@ -797,6 +941,10 @@ export default function ItemDetailScreen() {
             price: calculatedBase,
             bookingDays,
             guestCount,
+            platesCount,
+            pricePerPlate: plateRate,
+            baseHallPrice: hallRate,
+            pricePerGuest: guestRate,
             selectedDate,
           }}
           onClose={() => setShowPayment(false)}

@@ -33,6 +33,7 @@ import {
   Gift,
   Tag,
   Calculator,
+  Gamepad2,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -41,6 +42,7 @@ import { getUserWallet } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import SwipeTabContainer from '../../components/SwipeTabContainer';
+import TicTacToeGame from '../../components/TicTacToeGame';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +63,7 @@ export default function ProfileTab() {
   const [latestBooking, setLatestBooking] = useState<RoomBooking | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
+  const [isGameModalOpen, setGameModalOpen] = useState(false);
 
   const loadProfileData = async () => {
     try {
@@ -169,12 +172,12 @@ export default function ProfileTab() {
       action: () => router.push('/favorites'),
     },
     {
-      icon: Tag,
-      label: 'Coupons & Promo Codes',
-      sub: 'Save with active celebration discount codes',
-      color: '#16a34a',
-      bg: '#dcfce7',
-      action: () => router.push('/coupons'),
+      icon: Gamepad2,
+      label: 'Celebration Tic-Tac-Toe',
+      sub: 'Play offline vs Bot or with friends',
+      color: '#059669',
+      bg: '#d1fae5',
+      action: () => setGameModalOpen(true),
     },
     {
       icon: Calculator,
@@ -222,7 +225,7 @@ export default function ProfileTab() {
     {
       icon: Settings,
       label: 'App Settings',
-      sub: 'OTA updates & cache',
+      sub: 'Preferences & device storage',
       color: '#475569',
       bg: '#f1f5f9',
       action: () => router.push('/settings'),
@@ -235,233 +238,236 @@ export default function ProfileTab() {
   return (
     <SwipeTabContainer currentTab="profile">
       <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* Top Header */}
-      <View style={[styles.topHeader, { paddingTop: topHeaderPadding }]}>
-        <TouchableOpacity
-          style={styles.menuBtn}
-          onPress={() => setSidebarOpen(true)}
-          activeOpacity={0.8}
-        >
-          <Menu size={20} color="#334155" />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text style={styles.brandTitle}>happylokam</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.menuBtn}
-          onPress={() => router.push('/notifications')}
-          activeOpacity={0.8}
-        >
-          <Bell size={19} color="#334155" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomScrollPadding }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* 1. Buttery Smooth Curved Profile Header Card */}
-        <View style={styles.profileHeaderCard}>
-          <View style={styles.profileRow}>
-            {/* Avatar with Camera Badge */}
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarInner}>
-                {isLoggedIn && userData.name && userData.name !== 'Welcome, Guest' ? (
-                  <Text style={styles.avatarLetter}>
-                    {userData.name.charAt(0).toUpperCase()}
-                  </Text>
-                ) : (
-                  <User size={30} color="#e11d48" />
-                )}
-              </View>
-              <View style={styles.cameraBadge}>
-                <Camera size={12} color="#ffffff" />
-              </View>
-            </View>
-
-            {/* Profile Info */}
-            <View style={styles.profileTextInfo}>
-              <Text style={styles.profileName} numberOfLines={1}>
-                {userData.name}
-              </Text>
-              <Text style={styles.profileEmail} numberOfLines={1}>
-                {userData.email}
-              </Text>
-
-              {isLoggedIn ? (
-                <View style={styles.premiumBadge}>
-                  <Sparkles size={11} color="#e11d48" />
-                  <Text style={styles.premiumBadgeText}>VIP CELEBRATION HOST</Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.signInPill}
-                  onPress={() => router.push('/login')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.signInPillText}>Sign In / Register</Text>
-                  <ChevronRight size={12} color="#ffffff" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* 2. Overlapping Floating Dark Wallet Card */}
-        <View style={styles.walletContainer}>
+        {/* Top Header */}
+        <View style={[styles.topHeader, { paddingTop: topHeaderPadding }]}>
           <TouchableOpacity
-            style={styles.walletCard}
-            onPress={() => router.push('/wallet')}
-            activeOpacity={0.9}
+            style={styles.menuBtn}
+            onPress={() => setSidebarOpen(true)}
+            activeOpacity={0.8}
           >
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.walletLabel}>HAPPYWALLET BALANCE</Text>
-                <View style={styles.walletActiveBadge}>
-                  <Text style={styles.walletActiveText}>AUTO-APPLIED</Text>
-                </View>
-              </View>
+            <Menu size={20} color="#334155" />
+          </TouchableOpacity>
 
-              <View style={styles.walletBalanceRow}>
-                <Text style={styles.walletBalance}>
-                  ₹{userData.balance.toLocaleString('en-IN')}
-                </Text>
-                <Text style={styles.walletBonusBadge}>+ ₹500 Bonus Active</Text>
-              </View>
+          <View style={styles.headerCenter}>
+            <Text style={styles.brandTitle}>happylokam</Text>
+          </View>
 
-              <Text style={styles.walletSub}>
-                Tap to view statement, cashback & coupon history
-              </Text>
-            </View>
-
-            <View style={styles.walletIconBox}>
-              <CreditCard size={22} color="#fda4af" />
-            </View>
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => router.push('/notifications')}
+            activeOpacity={0.8}
+          >
+            <Bell size={19} color="#334155" />
           </TouchableOpacity>
         </View>
 
-        {/* 3. Latest Confirmed Pass Pill (If present) */}
-        {latestBooking && (
-          <View style={styles.passSection}>
-            <TouchableOpacity
-              style={styles.passCard}
-              onPress={() => router.push('/(tabs)/bookings')}
-              activeOpacity={0.85}
-            >
-              <View style={styles.passIconCircle}>
-                <Ticket size={20} color="#e11d48" />
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomScrollPadding }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 1. Buttery Smooth Curved Profile Header Card */}
+          <View style={styles.profileHeaderCard}>
+            <View style={styles.profileRow}>
+              {/* Avatar with Camera Badge */}
+              <View style={styles.avatarContainer}>
+                <View style={styles.avatarInner}>
+                  {isLoggedIn && userData.name && userData.name !== 'Welcome, Guest' ? (
+                    <Text style={styles.avatarLetter}>
+                      {userData.name.charAt(0).toUpperCase()}
+                    </Text>
+                  ) : (
+                    <User size={30} color="#e11d48" />
+                  )}
+                </View>
+                <View style={styles.cameraBadge}>
+                  <Camera size={12} color="#ffffff" />
+                </View>
               </View>
+
+              {/* Profile Info */}
+              <View style={styles.profileTextInfo}>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {userData.name}
+                </Text>
+                <Text style={styles.profileEmail} numberOfLines={1}>
+                  {userData.email}
+                </Text>
+
+                {isLoggedIn ? (
+                  <View style={styles.premiumBadge}>
+                    <Sparkles size={11} color="#e11d48" />
+                    <Text style={styles.premiumBadgeText}>VIP CELEBRATION HOST</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.signInPill}
+                    onPress={() => router.push('/login')}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.signInPillText}>Sign In / Register</Text>
+                    <ChevronRight size={12} color="#ffffff" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* 2. Overlapping Floating Dark Wallet Card */}
+          <View style={styles.walletContainer}>
+            <TouchableOpacity
+              style={styles.walletCard}
+              onPress={() => router.push('/wallet')}
+              activeOpacity={0.9}
+            >
               <View style={{ flex: 1 }}>
-                <Text style={styles.passHeaderTitle} numberOfLines={1}>
-                  {latestBooking.title}
-                </Text>
-                <Text style={styles.passSubText}>
-                  {latestBooking.date || 'Active Booking'} • Tap to open QR Pass
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.walletLabel}>HAPPYWALLET BALANCE</Text>
+                  <View style={styles.walletActiveBadge}>
+                    <Text style={styles.walletActiveText}>AUTO-APPLIED</Text>
+                  </View>
+                </View>
+
+                <View style={styles.walletBalanceRow}>
+                  <Text style={styles.walletBalance}>
+                    ₹{userData.balance.toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={styles.walletBonusBadge}>+ ₹500 Bonus Active</Text>
+                </View>
+
+                <Text style={styles.walletSub}>
+                  Tap to view statement, cashback & coupon history
                 </Text>
               </View>
-              <ChevronRight size={18} color="#94a3b8" />
+
+              <View style={styles.walletIconBox}>
+                <CreditCard size={22} color="#fda4af" />
+              </View>
             </TouchableOpacity>
           </View>
-        )}
 
-        {/* 4. Grouped Menu Sections */}
-        <View style={styles.menuSections}>
-          {/* Section: Celebrations & Passes */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeader}>Celebrations & Passes</Text>
-            <View style={styles.cardGroup}>
-              {celebrationItems.map((item, idx) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.menuRow,
-                    idx !== celebrationItems.length - 1 && styles.menuRowBorder,
-                  ]}
-                  onPress={item.action}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
-                    <item.icon size={20} color={item.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuSubText}>{item.sub}</Text>
-                  </View>
-                  <ChevronRight size={18} color="#cbd5e1" />
-                </TouchableOpacity>
-              ))}
+          {/* 3. Latest Confirmed Pass Pill (If present) */}
+          {latestBooking && (
+            <View style={styles.passSection}>
+              <TouchableOpacity
+                style={styles.passCard}
+                onPress={() => router.push('/(tabs)/bookings')}
+                activeOpacity={0.85}
+              >
+                <View style={styles.passIconCircle}>
+                  <Ticket size={20} color="#e11d48" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.passHeaderTitle} numberOfLines={1}>
+                    {latestBooking.title}
+                  </Text>
+                  <Text style={styles.passSubText}>
+                    {latestBooking.date || 'Active Booking'} • Tap to open QR Pass
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#94a3b8" />
+              </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Section: Account & Preferences */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeader}>Account & Preferences</Text>
-            <View style={styles.cardGroup}>
-              {preferenceItems.map((item, idx) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.menuRow,
-                    idx !== preferenceItems.length - 1 && styles.menuRowBorder,
-                  ]}
-                  onPress={item.action}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
-                    <item.icon size={20} color={item.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuSubText}>{item.sub}</Text>
-                  </View>
-                  <ChevronRight size={18} color="#cbd5e1" />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 5. Buttery Smooth Log Out / Sign In Button */}
-          {isLoggedIn ? (
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={handleLogout}
-              activeOpacity={0.85}
-            >
-              <LogOut size={19} color="#e11d48" />
-              <Text style={styles.logoutText}>Log Out Account</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.logoutBtn, { borderColor: '#e11d48', backgroundColor: '#fff1f2' }]}
-              onPress={() => router.push('/login')}
-              activeOpacity={0.85}
-            >
-              <User size={19} color="#e11d48" />
-              <Text style={styles.logoutText}>Sign In / Register</Text>
-            </TouchableOpacity>
           )}
-        </View>
-      </ScrollView>
 
-      {/* Wallet Modal */}
-      <WalletModal
-        visible={isWalletOpen}
-        onClose={() => setWalletOpen(false)}
-        balance={userData.balance}
-      />
+          {/* 4. Grouped Menu Sections */}
+          <View style={styles.menuSections}>
+            {/* Section: Celebrations & Passes */}
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionHeader}>Celebrations & Passes</Text>
+              <View style={styles.cardGroup}>
+                {celebrationItems.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.label}
+                    style={[
+                      styles.menuRow,
+                      idx !== celebrationItems.length - 1 && styles.menuRowBorder,
+                    ]}
+                    onPress={item.action}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
+                      <item.icon size={20} color={item.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuLabel}>{item.label}</Text>
+                      <Text style={styles.menuSubText}>{item.sub}</Text>
+                    </View>
+                    <ChevronRight size={18} color="#cbd5e1" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-      {/* Sidebar Drawer */}
-      <SidebarDrawer
-        visible={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onOpenWallet={() => setWalletOpen(true)}
-        user={{ name: userData.name, email: userData.email }}
-      />
-    </View>
+            {/* Section: Account & Preferences */}
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionHeader}>Account & Preferences</Text>
+              <View style={styles.cardGroup}>
+                {preferenceItems.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.label}
+                    style={[
+                      styles.menuRow,
+                      idx !== preferenceItems.length - 1 && styles.menuRowBorder,
+                    ]}
+                    onPress={item.action}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.menuIconBox, { backgroundColor: item.bg }]}>
+                      <item.icon size={20} color={item.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuLabel}>{item.label}</Text>
+                      <Text style={styles.menuSubText}>{item.sub}</Text>
+                    </View>
+                    <ChevronRight size={18} color="#cbd5e1" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* 5. Buttery Smooth Log Out / Sign In Button */}
+            {isLoggedIn ? (
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={handleLogout}
+                activeOpacity={0.85}
+              >
+                <LogOut size={19} color="#e11d48" />
+                <Text style={styles.logoutText}>Log Out Account</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.logoutBtn, { borderColor: '#e11d48', backgroundColor: '#fff1f2' }]}
+                onPress={() => router.push('/login')}
+                activeOpacity={0.85}
+              >
+                <User size={19} color="#e11d48" />
+                <Text style={styles.logoutText}>Sign In / Register</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Wallet Modal */}
+        <WalletModal
+          visible={isWalletOpen}
+          onClose={() => setWalletOpen(false)}
+          balance={userData.balance}
+        />
+
+        {/* Sidebar Drawer */}
+        <SidebarDrawer
+          visible={isSidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onOpenWallet={() => setWalletOpen(true)}
+          user={{ name: userData.name, email: userData.email }}
+        />
+
+        {/* Offline Celebration Tic-Tac-Toe Game */}
+        <TicTacToeGame visible={isGameModalOpen} onClose={() => setGameModalOpen(false)} />
+      </View>
     </SwipeTabContainer>
   );
 }

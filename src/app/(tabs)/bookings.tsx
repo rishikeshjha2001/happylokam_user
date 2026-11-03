@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   User,
   Sparkles,
+  Star,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -68,77 +69,91 @@ export default function BookingsTab() {
       const local = await RoomDatabase.getBookings();
 
       // Attempt live server fetch for online bookings
-      const combined = [...local];
+      let serverFetched = false;
+      const verifiedList: RoomBooking[] = [];
       try {
         const [sectionsRes, userRes] = await Promise.all([
           apiClient.get('/sections/bookings/my').catch(() => null),
           apiClient.get('/user/bookings').catch(() => null),
         ]);
 
-        if (sectionsRes?.success && Array.isArray(sectionsRes.data)) {
-          sectionsRes.data.forEach((sb: any) => {
-            if (!combined.some((c) => c.id === sb.id)) {
-              combined.push({
-                id: sb.id,
-                title: sb.item?.title || 'Celebration Pass',
-                category: sb.item?.itemType || 'Custom Booking',
-                date: sb.bookingDate || new Date().toISOString().split('T')[0],
-                amount: sb.totalAmount || 0,
-                status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
-                ticketsCount: sb.quantity || 1,
-                createdAt: sb.createdAt,
-                qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
-                serverVerified: true,
-              });
-            }
-          });
-        }
-
-        if (userRes?.success && userRes.data) {
-          const { eventBookings, vendorBookings } = userRes.data;
-          if (Array.isArray(eventBookings)) {
-            eventBookings.forEach((eb: any) => {
-              if (!combined.some((c) => c.id === eb.id)) {
-                combined.push({
-                  id: eb.id,
-                  title: eb.event?.title || 'Event Pass',
-                  category: 'EVENT',
-                  date: eb.event?.date ? new Date(eb.event.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                  amount: eb.totalAmount || 0,
-                  status: (eb.status === 'CONFIRMED' || eb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
-                  ticketsCount: eb.ticketsCount || 1,
-                  createdAt: eb.createdAt,
-                  qrCode: eb.id,
+        if (sectionsRes && typeof sectionsRes === 'object') {
+          serverFetched = true;
+          if (sectionsRes?.success && Array.isArray(sectionsRes.data)) {
+            sectionsRes.data.forEach((sb: any) => {
+              if (!verifiedList.some((c) => c.id === sb.id)) {
+                verifiedList.push({
+                  id: sb.id,
+                  title: sb.item?.title || 'Celebration Pass',
+                  category: sb.item?.itemType || 'Custom Booking',
+                  date: sb.bookingDate || new Date().toISOString().split('T')[0],
+                  amount: sb.totalAmount || 0,
+                  status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                  ticketsCount: sb.quantity || 1,
+                  createdAt: sb.createdAt,
+                  qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
                   serverVerified: true,
                 });
               }
             });
           }
+        }
 
-          if (Array.isArray(vendorBookings)) {
-            vendorBookings.forEach((vb: any) => {
-              if (!combined.some((c) => c.id === vb.id)) {
-                combined.push({
-                  id: vb.id,
-                  title: vb.partner?.businessName || 'Celebration Service',
-                  category: 'VENDOR',
-                  date: vb.date ? new Date(vb.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                  amount: vb.totalAmount || 0,
-                  status: (vb.status === 'CONFIRMED' || vb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
-                  ticketsCount: 1,
-                  createdAt: vb.createdAt,
-                  qrCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
-                  serverVerified: true,
-                });
-              }
-            });
+        if (userRes && typeof userRes === 'object') {
+          serverFetched = true;
+          if (userRes?.success && userRes.data) {
+            const { eventBookings, vendorBookings } = userRes.data;
+            if (Array.isArray(eventBookings)) {
+              eventBookings.forEach((eb: any) => {
+                if (!verifiedList.some((c) => c.id === eb.id)) {
+                  verifiedList.push({
+                    id: eb.id,
+                    title: eb.event?.title || 'Event Pass',
+                    category: 'EVENT',
+                    date: eb.event?.date ? new Date(eb.event.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    amount: eb.totalAmount || 0,
+                    status: (eb.status === 'CONFIRMED' || eb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                    ticketsCount: eb.ticketsCount || 1,
+                    createdAt: eb.createdAt,
+                    qrCode: eb.id,
+                    serverVerified: true,
+                  });
+                }
+              });
+            }
+
+            if (Array.isArray(vendorBookings)) {
+              vendorBookings.forEach((vb: any) => {
+                if (!verifiedList.some((c) => c.id === vb.id)) {
+                  verifiedList.push({
+                    id: vb.id,
+                    title: vb.partner?.businessName || 'Celebration Service',
+                    category: 'VENDOR',
+                    date: vb.date ? new Date(vb.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    amount: vb.totalAmount || 0,
+                    status: (vb.status === 'CONFIRMED' || vb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                    ticketsCount: 1,
+                    createdAt: vb.createdAt,
+                    qrCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
+                    serverVerified: true,
+                  });
+                }
+              });
+            }
           }
         }
       } catch (err) {
         console.warn('Backend bookings fetch fallback to local:', err);
       }
 
-      setBookings(combined);
+      if (serverFetched) {
+        // Authoritative server sync: prune ghost test bookings from phone's RoomDB
+        await RoomDatabase.replaceBookings(verifiedList);
+        setBookings(verifiedList);
+      } else {
+        // Offline fallback
+        setBookings(local);
+      }
     } catch (e) {
       console.warn('loadBookingsData error:', e);
     }
@@ -263,6 +278,31 @@ export default function BookingsTab() {
 
                 <View style={styles.cardFooter}>
                   <Text style={styles.passAmount}>₹{booking.amount?.toLocaleString('en-IN')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {(booking.status === 'COMPLETED' || new Date(booking.date).getTime() <= Date.now()) && (
+                      <TouchableOpacity
+                        style={[styles.viewPassBtn, { backgroundColor: '#fff1f2', borderColor: '#fecdd3' }]}
+                        onPress={() => {
+                          router.push({
+                            pathname: '/item-detail',
+                            params: {
+                              id: booking.id,
+                              title: booking.title,
+                              price: String(booking.amount),
+                              rating: '5.0',
+                              reviewsCount: '1',
+                              location: 'Patna, Bihar',
+                              category: booking.category,
+                              autoOpenReview: 'true',
+                            },
+                          });
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Star size={11} color="#e11d48" style={{ marginRight: 3 }} />
+                        <Text style={[styles.viewPassText, { color: '#e11d48', fontSize: 11 }]}>Review</Text>
+                      </TouchableOpacity>
+                    )}
                   <TouchableOpacity
                     style={styles.viewPassBtn}
                     onPress={() => {
@@ -285,6 +325,7 @@ export default function BookingsTab() {
                     <Text style={styles.viewPassText}>View Pass</Text>
                     <ChevronRight size={14} color="#e11d48" />
                   </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}

@@ -89,7 +89,7 @@ export default function PersonalInfoScreen() {
         location: location.trim(),
         role: userSession?.role || 'USER',
         token: userSession?.token || 'token_' + Date.now(),
-        walletBalance: userSession?.walletBalance || 2450,
+        walletBalance: userSession?.walletBalance || 0,
         lastLogin: Date.now(),
       };
 

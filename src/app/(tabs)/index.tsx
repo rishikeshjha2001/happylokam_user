@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -50,7 +50,7 @@ import {
   Building2,
 } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Svg, { Defs, LinearGradient as SvgGradient, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { getHeroSlides, getVenues, getPackages, getUserWallet } from '../../services/api';
 import { DbHeroSlide, DbVenue, DbPackage, DB_HERO_SLIDES } from '../../constants/databaseModels';
@@ -137,9 +137,7 @@ export default function HomeTab() {
   const [detectingGps, setDetectingGps] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [homeFilters, setHomeFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [mlRecommendations, setMlRecommendations] = useState<MLRecommendationResult[]>([]);
-  const [mlTargetGuests, setMlTargetGuests] = useState<number>(150);
-  const [mlCategoryFilter, setMlCategoryFilter] = useState<string>('ALL');
+
 
   const CITIES_LIST = [
     'All India',
@@ -250,79 +248,54 @@ export default function HomeTab() {
       loadData();
     });
 
-    // Hardware back press listener on Home screen with premium confirmation dialog
-    const backAction = () => {
-      setShowExitDialog(true);
-      return true;
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => {
-      backHandler.remove();
       unsubscribeOta();
       OtaSync.stopAutoSync();
     };
   }, []);
 
-  // Re-run ML Recommendation Inference whenever catalog or user context updates
-  useEffect(() => {
-    const allItems: any[] = [];
-    adminSections.forEach((sec) => {
-      if (sec.items) {
-        sec.items.forEach((it) => {
-          allItems.push({
-            id: it.id,
-            title: it.title,
-            category: it.type || sec.title || 'Celebration',
-            price: it.price || 45000,
-            rating: it.rating || 4.9,
-            capacity: it.capacity || 250,
-            image: it.image,
-            location: it.location,
-            cornerTag: it.cornerTag,
-            tags: it.tags,
-            isTicket: it.itemType === 'TICKET',
-          });
-        });
-      }
-    });
+  // Focused hardware back press listener: dismisses modals or navigates back; only exits if at root Home
+  useFocusEffect(
+    useCallback(() => {
+      const backAction = () => {
+        if (isSidebarOpen) {
+          setSidebarOpen(false);
+          return true;
+        }
+        if (isWalletOpen) {
+          setWalletOpen(false);
+          return true;
+        }
+        if (isAdminModalOpen) {
+          setIsAdminModalOpen(false);
+          return true;
+        }
+        if (isLocationModalOpen) {
+          setIsLocationModalOpen(false);
+          return true;
+        }
+        if (isFilterModalOpen) {
+          setIsFilterModalOpen(false);
+          return true;
+        }
+        if (checkoutItem) {
+          setCheckoutItem(null);
+          return true;
+        }
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
+        setShowExitDialog(true);
+        return true;
+      };
 
-    venues.forEach((v) => {
-      allItems.push({
-        id: v.id,
-        title: v.title,
-        category: v.type || 'Venue',
-        price: typeof v.price === 'number' ? v.price : (parseInt(String(v.price).replace(/\D/g, ''), 10) || 50000),
-        rating: v.rating || 4.9,
-        capacity: 350,
-        image: v.image,
-        location: v.location,
-        isTicket: false,
-      });
-    });
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+      return () => backHandler.remove();
+    }, [isSidebarOpen, isWalletOpen, isAdminModalOpen, isLocationModalOpen, isFilterModalOpen, checkoutItem])
+  );
 
-    packages.forEach((p) => {
-      allItems.push({
-        id: p.id,
-        title: p.title,
-        category: p.type || 'Pass',
-        price: typeof p.price === 'number' ? p.price : (parseInt(String(p.price).replace(/\D/g, ''), 10) || 1499),
-        rating: p.rating || 4.9,
-        capacity: 500,
-        image: p.image,
-        location: p.location,
-        isTicket: true,
-      });
-    });
 
-    const results = MLRecommendation.recommend(allItems, {
-      targetGuestCount: mlTargetGuests,
-      preferredCategory: mlCategoryFilter,
-      limit: 6,
-      userCity: selectedCity || 'Patna',
-    });
-    setMlRecommendations(results);
-  }, [adminSections, venues, packages, mlTargetGuests, mlCategoryFilter, selectedCity]);
 
   // Slide rotation timer synchronized with smooth cinematic crossfade
   const currentSlideRef = useRef(0);
@@ -923,119 +896,7 @@ export default function HomeTab() {
           </View>
         )}
 
-        {/* ======================================================== */}
-        {/* RECOMMENDED FOR YOU (Based on User Activity)            */}
-        {/* ======================================================== */}
-        {mlRecommendations.length > 0 && (
-          <View style={styles.mlSectionContainer}>
-            <View style={styles.sectionHeaderRow}>
-              <View>
-                <View style={styles.mlBadgePill}>
-                  <Sparkles size={11} color="#059669" />
-                  <Text style={styles.mlBadgePillText}>Tailored For You</Text>
-                </View>
-                <Text style={styles.sectionTitle}>Recommended For You</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Celebrations & packages based on your views & favorite themes
-                </Text>
-              </View>
-            </View>
 
-            {/* Recommendation Cards */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {mlRecommendations.map((rec) => {
-                const it = rec.item;
-                const isLiked = likedIds.includes(it.id);
-                return (
-                  <View key={it.id} style={styles.horizontalCard}>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={() => {
-                        MLRecommendation.recordInteraction(it, 'click');
-                        router.push({
-                          pathname: '/item-detail',
-                          params: {
-                            id: it.id,
-                            title: it.title,
-                            price: String(it.price),
-                            image: it.image,
-                            type: it.type || it.category,
-                            cornerTag: it.cornerTag,
-                            location: it.location,
-                          },
-                        });
-                      }}
-                      style={styles.cardImageContainer}
-                    >
-                      <Image source={{ uri: it.image }} style={styles.cardImage} />
-                      <View style={styles.cardImageOverlay} />
-
-                      {/* Clean Badge */}
-                      <View style={styles.mlMatchBadge}>
-                        <Sparkles size={11} color="#ffffff" />
-                        <Text style={styles.mlMatchBadgeText}>{(it as any).cornerTag || (it as any).badge || 'Popular'}</Text>
-                      </View>
-
-                      {/* Favorite Button */}
-                      <TouchableOpacity
-                        style={styles.cardFavBtn}
-                        onPress={() => {
-                          MLRecommendation.recordInteraction(it, 'favorite');
-                          handleToggleLike(it.id);
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Heart
-                          size={15}
-                          color={isLiked ? '#e11d48' : '#ffffff'}
-                          fill={isLiked ? '#e11d48' : 'rgba(0,0,0,0.3)'}
-                        />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-
-                    {/* Card Content */}
-                    <View style={styles.cardContent}>
-                      <Text style={styles.cardCategory} numberOfLines={1}>{it.category}</Text>
-                      <Text style={styles.cardTitle} numberOfLines={1}>{it.title}</Text>
-
-                      <View style={styles.cardBottomRow}>
-                        <View>
-                          <Text style={styles.startsAtText}>Starting from</Text>
-                          <Text style={styles.priceValue}>₹{typeof it.price === 'number' ? it.price.toLocaleString('en-IN') : it.price}</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={styles.cardBookNowBtn}
-                          onPress={() => {
-                            MLRecommendation.recordInteraction(it, 'click');
-                            router.push({
-                              pathname: '/item-detail',
-                              params: {
-                                id: it.id,
-                                title: it.title,
-                                price: String(it.price),
-                                image: it.image,
-                                type: it.type || it.category,
-                                cornerTag: it.cornerTag,
-                                location: it.location,
-                              },
-                            });
-                          }}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={styles.cardBookNowText}>View ➔</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
 
         {/* ========================================== */}
         {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}

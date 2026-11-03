@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: 'How do I download and show my digital entry pass?',
-    a: 'Once your reservation or pass booking is confirmed via Razorpay, your ticket with a unique QR code is generated instantly in your "My Bookings" tab. Present this pass at the venue entrance for seamless digital gate verification.',
+    a: 'Once your reservation or pass booking is confirmed via our 100% Verified Secure Gateway, your ticket with a unique QR code is generated instantly in your "My Bookings" tab. Present this pass at the venue entrance for seamless digital gate verification.',
   },
   {
     q: 'Can I customize wedding decoration themes and catering menus?',
@@ -58,7 +58,7 @@ const QUICK_CHIPS = [
   '🎟️ Where is my booking pass?',
   '💰 How does the wallet work?',
   '🍛 Can I customize catering & decor?',
-  '💳 Payment & Razorpay help',
+  '💳 Payment & billing help',
 ];
 
 export default function HelpSupportScreen() {
@@ -167,13 +167,13 @@ export default function HelpSupportScreen() {
       return '💰 happylokam Wallet holds Virtual Celebration Cash. It automatically reduces the total bill when booking passes and celebration services at checkout. To prevent misuse, wallet credits are non-withdrawable to bank accounts and stay safely in your account for all future events.';
     }
     if (q.includes('ticket') || q.includes('pass') || q.includes('qr') || q.includes('where is')) {
-      return '🎟️ Your confirmed passes are stored permanently in the "My Bookings" tab! Each pass includes a verified QR code, date, guest count, and Razorpay transaction receipt for gate entry.';
+      return '🎟️ Your confirmed passes are stored permanently in the "My Bookings" tab! Each pass includes a verified QR code, date, guest count, and official verified transaction receipt for gate entry.';
     }
     if (q.includes('catering') || q.includes('decor') || q.includes('food') || q.includes('customize')) {
       return '🍛 Absolutely! All verified celebration packages and themes can be tailored to your requirements. Choose your preferred package, select your date, and add your preferences in the booking notes. Our event concierge will finalize arrangements with you.';
     }
-    if (q.includes('payment') || q.includes('razorpay') || q.includes('refund')) {
-      return '💳 All payments are protected with 256-bit RBI-compliant Razorpay encryption. Eligible cancellations 48h before the event are credited back to your celebration wallet instantly.';
+    if (q.includes('payment') || q.includes('gateway') || q.includes('refund')) {
+      return '💳 All payments are protected with 100% Verified Secure Payment Gateway encryption. Eligible cancellations 48h before the event are credited back to your celebration wallet instantly.';
     }
     return `Thank you for reaching out! 🙏 Our celebration team has logged your inquiry: "${query}". You can also tap WhatsApp below for an instant conversation with our senior concierge specialist.`;
   };
@@ -196,8 +196,8 @@ export default function HelpSupportScreen() {
         let cat = 'GENERAL';
         if (lowerQ.includes('pass') || lowerQ.includes('ticket') || lowerQ.includes('booking') || lowerQ.includes('qr')) {
           cat = 'BOOKING_PASS';
-        } else if (lowerQ.includes('payment') || lowerQ.includes('razorpay') || lowerQ.includes('refund') || lowerQ.includes('wallet')) {
-          cat = 'PAYMENT_RAZORPAY';
+        } else if (lowerQ.includes('payment') || lowerQ.includes('gateway') || lowerQ.includes('refund') || lowerQ.includes('wallet')) {
+          cat = 'PAYMENT_GATEWAY';
         } else if (lowerQ.includes('catering') || lowerQ.includes('decor') || lowerQ.includes('food') || lowerQ.includes('theme')) {
           cat = 'CATERING_DECOR';
         } else if (lowerQ.includes('venue') || lowerQ.includes('lawn') || lowerQ.includes('hall')) {

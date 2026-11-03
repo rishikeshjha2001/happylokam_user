@@ -92,8 +92,8 @@ android {
         applicationId 'com.happylokam.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 127
-        versionName "14.0.4"
+        versionCode 132
+        versionName "14.0.9"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
 
@@ -210,3 +210,25 @@ dependencies {
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+tasks.matching { it.name == 'stripReleaseDebugSymbols' }.configureEach {
+    doLast {
+        def scriptFile = new File(project.rootDir, "patch_elf_16kb.js")
+        if (scriptFile.exists()) {
+            println "[16KB-ALIGN] Running 16KB alignment patch on native libs after stripReleaseDebugSymbols..."
+            def proc = ["cmd", "/c", "node", scriptFile.absolutePath, "${buildDir}/intermediates"].execute()
+            proc.waitForProcessOutput(System.out, System.err)
+        }
+    }
+}
+
+tasks.matching { it.name == 'buildReleasePreBundle' }.configureEach {
+    doFirst {
+        def scriptFile = new File(project.rootDir, "patch_elf_16kb.js")
+        if (scriptFile.exists()) {
+            println "[16KB-ALIGN] Running 16KB alignment patch on native libs before buildReleasePreBundle..."
+            def proc = ["cmd", "/c", "node", scriptFile.absolutePath, "${buildDir}/intermediates"].execute()
+            proc.waitForProcessOutput(System.out, System.err)
+        }
+    }
+}

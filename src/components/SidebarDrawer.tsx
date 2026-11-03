@@ -36,9 +36,12 @@ import {
   Ticket,
   Calendar,
   User,
+  Gamepad2,
+  Calculator,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import RoomDatabase from '../services/roomDatabase';
+import TicTacToeGame from './TicTacToeGame';
 import {
   getAdminCustomSections,
   getAdminCustomCategories,
@@ -98,13 +101,13 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
     router.replace('/login');
   };
 
+  const [isGameModalOpen, setGameModalOpen] = useState(false);
+
   const navItems = [
-    { icon: Home, label: 'Home Feed', action: () => { onClose(); router.push('/(tabs)'); } },
-    { icon: LayoutGrid, label: 'Explore & Search', action: () => { onClose(); router.push('/(tabs)/explore'); } },
-    { icon: Compass, label: 'LokSafari Experience', action: () => { onClose(); router.push('/(tabs)/loksafari'); } },
-    { icon: Heart, label: 'Saved Favorites', action: () => { onClose(); router.push('/favorites'); } },
-    { icon: Ticket, label: 'My Bookings & Passes', action: () => { onClose(); router.push('/(tabs)/bookings'); } },
-    { icon: Bell, label: 'Notifications & Broadcasts', action: () => { onClose(); router.push('/notifications'); } },
+    { icon: Heart, label: 'Saved Favorites & Wishlist', action: () => { onClose(); router.push('/favorites'); } },
+    { icon: Bell, label: 'Notifications & Alerts', action: () => { onClose(); router.push('/notifications'); } },
+    { icon: Calculator, label: 'AI Event Budget Planner', action: () => { onClose(); router.push('/event-planner'); } },
+    { icon: Gamepad2, label: 'Play Tic-Tac-Toe (Offline Game)', action: () => { setGameModalOpen(true); } },
   ];
 
   // User-requested Celebration Categories
@@ -188,6 +191,7 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
   ];
 
   return (
+    <>
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
@@ -249,8 +253,8 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
             contentContainerStyle={styles.menuScroll}
             showsVerticalScrollIndicator={false}
           >
-            {/* Quick Tabs Navigation */}
-            <Text style={styles.sectionHeading}>MAIN MENU</Text>
+            {/* Quick Non-Duplicated Shortcuts & Offline Fun */}
+            <Text style={styles.sectionHeading}>SHORTCUTS & OFFLINE FUN</Text>
             {navItems.map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -448,6 +452,8 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
         </View>
       </View>
     </Modal>
+    <TicTacToeGame visible={isGameModalOpen} onClose={() => setGameModalOpen(false)} />
+    </>
   );
 }
 

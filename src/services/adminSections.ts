@@ -12,6 +12,10 @@ export interface AdminSectionItem {
   cornerTag?: string;
   tag?: string;
   location?: string;
+  mapUrl?: string;
+  pricePerPlate?: number;
+  pricePerGuest?: number;
+  baseHallPrice?: number;
   type?: string;
   itemType: 'TICKET' | 'BOOKING';
   price: number;

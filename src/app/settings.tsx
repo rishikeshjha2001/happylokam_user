@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Bell,
   MapPin,
-  Lock,
   Moon,
   Trash2,
   ChevronRight,
@@ -34,7 +33,6 @@ export default function SettingsScreen() {
   const [pushNotifs, setPushNotifs] = useState(true);
   const [promoOffers, setPromoOffers] = useState(true);
   const [gpsTracking, setGpsTracking] = useState(true);
-  const [biometricLock, setBiometricLock] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [currentCity, setCurrentCity] = useState('Patna, Bihar');
 
@@ -57,25 +55,6 @@ export default function SettingsScreen() {
       if (loc) setCurrentCity(loc);
     });
   }, []);
-
-  const handleClearCache = async () => {
-    Alert.alert(
-      'Clear Cache',
-      'This will clear offline images and cached celebration feeds. Your login session will remain active.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Cache',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Cache Cleared', 'App offline cache has been refreshed.');
-          },
-        },
-      ]
-    );
-  };
-
-  const [lastUpdateText] = useState('All assets synced');
 
   return (
     <View style={styles.container}>
@@ -155,58 +134,10 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Section: Security */}
-        <Text style={styles.sectionHeader}>Security & App Lock</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Fingerprint / Biometric Lock</Text>
-              <Text style={styles.rowSub}>Require authentication to open booking wallet</Text>
-            </View>
-            <Switch
-              value={biometricLock}
-              onValueChange={setBiometricLock}
-              trackColor={{ false: '#e2e8f0', true: '#e11d48' }}
-            />
-          </View>
-        </View>
-
-        {/* Section: Storage & Maintenance */}
-        <Text style={styles.sectionHeader}>Data & Storage</Text>
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={handleClearCache} activeOpacity={0.8}>
-            <View style={styles.rowInfo}>
-              <Text style={[styles.rowTitle, { color: '#e11d48' }]}>Clear Temporary Cache</Text>
-              <Text style={styles.rowSub}>Frees up storage without affecting your bookings</Text>
-            </View>
-            <Trash2 size={18} color="#e11d48" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Section: Live Cloud Sync */}
-        <Text style={styles.sectionHeader}>Live Cloud Sync</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowInfo}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.rowTitle}>Automatic Silent Sync</Text>
-                <View style={styles.otaBadge}>
-                  <Text style={styles.otaBadgeText}>AUTO</Text>
-                </View>
-              </View>
-              <Text style={styles.rowSub}>
-                Themes, pricing, and celebration catalog sync automatically in real time
-              </Text>
-            </View>
-            <ShieldCheck size={18} color="#10b981" />
-          </View>
-        </View>
-
-        {/* App Version Info */}
+        {/* App Info */}
         <View style={styles.versionBox}>
           <Text style={styles.versionTitle}>happylokam Celebrations</Text>
-          <Text style={styles.versionText}>Version 14.0.3 (Build 126) • Google Play Release</Text>
-          <Text style={styles.versionSub}>Razorpay 256-Bit SSL Secured • Real-Time Cloud Sync Active</Text>
+          <Text style={styles.versionSub}>Official Operating System • 100% Encrypted & Verified</Text>
         </View>
       </ScrollView>
     </View>

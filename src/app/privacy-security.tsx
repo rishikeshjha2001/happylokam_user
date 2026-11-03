@@ -25,6 +25,7 @@ import {
   EyeOff,
   X,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
 import { changeUserPassword } from '../services/api';
@@ -100,6 +101,25 @@ export default function PrivacySecurityScreen() {
     return () => backSub.remove();
   }, []);
 
+  const handleResetLocalData = () => {
+    Alert.alert(
+      'Reset Local Data & Wallet',
+      'This will delete cached offline booking passes and reset local wallet balance to match verified server records. Proceed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Now',
+          style: 'destructive',
+          onPress: async () => {
+            await RoomDatabase.resetWalletAndBookings(0);
+            await RoomDatabase.cleanCache();
+            Alert.alert('Reset Complete', 'Local RoomDB bookings and wallet records have been reset.');
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
@@ -148,7 +168,7 @@ export default function PrivacySecurityScreen() {
           <View style={{ flex: 1, marginLeft: 14 }}>
             <Text style={styles.bannerTitle}>End-to-End Encrypted Platform</Text>
             <Text style={styles.bannerSub}>
-              All payments are processed securely through Razorpay 256-Bit SSL encryption. We never store debit/credit card CVV or pin data.
+              All transactions are processed securely through PCI-DSS 256-Bit SSL bank-grade encryption. We never store debit/credit card CVV or pin data.
             </Text>
           </View>
         </View>
@@ -200,7 +220,7 @@ export default function PrivacySecurityScreen() {
             activeOpacity={0.8}
           >
             <KeyRound size={18} color="#e11d48" />
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.linkText, { color: '#0f172a', fontWeight: '700' }]}>
                 Change Account Password
               </Text>
@@ -209,21 +229,6 @@ export default function PrivacySecurityScreen() {
               </Text>
             </View>
             <ChevronRight size={18} color="#94a3b8" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Danger Zone */}
-        <View style={[styles.card, { borderColor: '#fecdd3' }]}>
-          <Text style={[styles.cardHeader, { color: '#be123c' }]}>Account Management</Text>
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={handleDeleteAccount}
-            activeOpacity={0.8}
-          >
-            <Trash2 size={18} color="#e11d48" />
-            <Text style={[styles.linkText, { color: '#e11d48', fontWeight: '700' }]}>
-              Delete Account & Clear All Data
-            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

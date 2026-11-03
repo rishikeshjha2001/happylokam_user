@@ -6,10 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   BackHandler,
-  TextInput,
   ActivityIndicator,
-  Alert,
-  Modal,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -18,7 +15,6 @@ import {
   ArrowLeft,
   Wallet as WalletIcon,
   CreditCard,
-  Plus,
   ArrowDownLeft,
   ArrowUpRight,
   ShieldCheck,
@@ -29,11 +25,8 @@ import {
   Clock,
   CheckCircle2,
 } from 'lucide-react-native';
-import RazorpayCheckout from 'react-native-razorpay';
 import RoomDatabase, { RoomWalletTransaction } from '../services/roomDatabase';
-import { createRazorpayOrder, verifyRazorpayPayment, getUserWallet } from '../services/api';
-
-const RAZORPAY_KEY = 'rzp_live_SjBHhCXWmZhVK6';
+import { getUserWallet } from '../services/api';
 
 export default function WalletScreen() {
   const router = useRouter();
@@ -44,10 +37,6 @@ export default function WalletScreen() {
   const [filter, setFilter] = useState<'all' | 'credit' | 'debit'>('all');
   const [loading, setLoading] = useState(true);
 
-  // Top-Up Modal State
-  const [topUpModal, setTopUpModal] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState('500');
-  const [processingTopUp, setProcessingTopUp] = useState(false);
 
   useEffect(() => {
     const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -68,6 +57,7 @@ export default function WalletScreen() {
     try {
       const serverWallet = await getUserWallet();
       const bal = typeof serverWallet?.walletBalance === 'number' ? serverWallet.walletBalance : await RoomDatabase.getWalletBalance();
+      await RoomDatabase.setWalletBalance(bal);
       const txs = await RoomDatabase.getWalletTransactions();
 
       setBalance(bal);
@@ -78,135 +68,6 @@ export default function WalletScreen() {
       setBalance(bal);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTopUp = async () => {
-    const amountNum = parseFloat(topUpAmount);
-    if (isNaN(amountNum) || amountNum < 100) {
-      Alert.alert('Invalid Amount', 'Minimum top-up amount is ₹100.');
-      return;
-    }
-
-    try {
-      setProcessingTopUp(true);
-      const userSession = await RoomDatabase.getUserSession();
-      if (!userSession) {
-        Alert.alert('Sign In Required', 'Please sign in to add money to your celebration wallet.', [
-          { text: 'Sign In', onPress: () => router.push('/login') },
-          { text: 'Cancel', style: 'cancel' },
-        ]);
-        setProcessingTopUp(false);
-        return;
-      }
-
-      // 1. Create Razorpay Order on backend
-      const razorpayOrder = await createRazorpayOrder(amountNum, `hl_topup_${Date.now()}`);
-      const orderId = razorpayOrder.id;
-
-      let paymentId = '';
-      let signature = '';
-
-      // 2. Trigger Razorpay Checkout
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        await new Promise((resolve) => {
-          if ((window as any).Razorpay) return resolve(true);
-          const script = document.createElement('script');
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          script.onload = () => resolve(true);
-          script.onerror = () => resolve(false);
-          document.body.appendChild(script);
-        });
-
-        if ((window as any).Razorpay) {
-          await new Promise((resolve) => {
-            const rzp = new (window as any).Razorpay({
-              description: 'Celebration Wallet Top-Up',
-              image: 'https://happylokam.com/favicon.png',
-              currency: 'INR',
-              key: RAZORPAY_KEY,
-              amount: Math.round(amountNum * 100),
-              name: 'happylokam Wallet',
-              order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
-              prefill: {
-                email: userSession.email || 'user@happylokam.com',
-                contact: userSession.phone || '',
-                name: userSession.name || 'Celebration User',
-              },
-              theme: { color: '#e11d48' },
-              handler: (resp: any) => {
-                paymentId = resp?.razorpay_payment_id || '';
-                signature = resp?.razorpay_signature || '';
-                resolve(true);
-              },
-              modal: {
-                ondismiss: () => resolve(false),
-              },
-            });
-            rzp.open();
-          });
-        }
-      } else if (RazorpayCheckout && typeof RazorpayCheckout.open === 'function') {
-        const rzpOptions = {
-          description: 'Celebration Wallet Top-Up',
-          image: 'https://happylokam.com/favicon.png',
-          currency: 'INR',
-          key: RAZORPAY_KEY,
-          amount: Math.round(amountNum * 100),
-          name: 'happylokam Wallet',
-          order_id: orderId,
-          prefill: {
-            email: userSession.email || 'user@happylokam.com',
-            contact: userSession.phone || '',
-            name: userSession.name || 'Celebration User',
-          },
-          theme: { color: '#e11d48' },
-        };
-        const rzpRes: any = await RazorpayCheckout.open(rzpOptions);
-        paymentId = rzpRes?.razorpay_payment_id || '';
-        signature = rzpRes?.razorpay_signature || '';
-      }
-
-      if (!paymentId) {
-        setProcessingTopUp(false);
-        return;
-      }
-
-      // 3. Verify Payment with backend
-      await verifyRazorpayPayment({
-        razorpay_order_id: orderId,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature,
-        amount: amountNum,
-        isWalletTopUp: true,
-        purpose: 'WALLET_TOPUP',
-      });
-
-      // 4. Update local RoomDatabase & refresh balance
-      const newBal = (balance || 0) + amountNum;
-      setBalance(newBal);
-      await RoomDatabase.setWalletBalance(newBal);
-      await RoomDatabase.addWalletTransaction({
-        type: 'credit',
-        amount: amountNum,
-        title: 'Razorpay Wallet Top-Up',
-        date: new Date().toISOString(),
-      });
-
-      setTopUpModal(false);
-      Alert.alert(
-        'Top-Up Successful! 🎉',
-        `₹${amountNum.toLocaleString('en-IN')} has been added to your celebration wallet balance.`
-      );
-      loadWalletData();
-    } catch (err: any) {
-      if (err?.code === 0 || err?.description?.toLowerCase().includes('cancel')) {
-        return;
-      }
-      console.warn('Top-up error:', err);
-      Alert.alert('Top-Up Notice', err?.message || 'Payment processing was cancelled or interrupted.');
-    } finally {
-      setProcessingTopUp(false);
     }
   };
 
@@ -257,14 +118,6 @@ export default function WalletScreen() {
                 <ShieldCheck size={14} color="#a7f3d0" />
                 <Text style={styles.securityText}>100% Usable at Checkout</Text>
               </View>
-              <TouchableOpacity
-                style={styles.topUpPillBtn}
-                onPress={() => setTopUpModal(true)}
-                activeOpacity={0.85}
-              >
-                <Plus size={14} color="#0f172a" />
-                <Text style={styles.topUpPillText}>Add Funds</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -302,14 +155,6 @@ export default function WalletScreen() {
 
         {/* Quick Action Buttons */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.actionBtnPrimary}
-            onPress={() => setTopUpModal(true)}
-            activeOpacity={0.85}
-          >
-            <Plus size={16} color="#ffffff" />
-            <Text style={styles.actionBtnTextPrimary}>Add Wallet Funds</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtnSecondary}
             onPress={() => router.push('/(tabs)/bookings')}
@@ -385,73 +230,6 @@ export default function WalletScreen() {
         </View>
       </ScrollView>
 
-      {/* Top-Up Modal */}
-      <Modal
-        visible={topUpModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTopUpModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalTopRow}>
-              <Text style={styles.modalTitle}>Top-Up Celebration Wallet</Text>
-              <TouchableOpacity onPress={() => setTopUpModal(false)}>
-                <Text style={{ fontSize: 18, color: '#94a3b8', fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSub}>
-              Add non-withdrawable celebration cash. Auto-applies at checkout for instant discounts.
-            </Text>
-
-            <View style={styles.quickChipsRow}>
-              {['200', '500', '1000', '2000'].map((amt) => (
-                <TouchableOpacity
-                  key={amt}
-                  style={[
-                    styles.chipBtn,
-                    topUpAmount === amt && styles.chipBtnActive,
-                  ]}
-                  onPress={() => setTopUpAmount(amt)}
-                >
-                  <Text
-                    style={[
-                      styles.chipBtnText,
-                      topUpAmount === amt && styles.chipBtnTextActive,
-                    ]}
-                  >
-                    ₹{amt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              style={styles.amountInput}
-              keyboardType="number-pad"
-              value={topUpAmount}
-              onChangeText={setTopUpAmount}
-              placeholder="Enter amount (min ₹100)"
-              placeholderTextColor="#94a3b8"
-            />
-
-            <TouchableOpacity
-              style={styles.confirmTopUpBtn}
-              onPress={handleTopUp}
-              disabled={processingTopUp}
-              activeOpacity={0.85}
-            >
-              {processingTopUp ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.confirmTopUpText}>
-                  Pay ₹{topUpAmount || '0'} via Razorpay
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

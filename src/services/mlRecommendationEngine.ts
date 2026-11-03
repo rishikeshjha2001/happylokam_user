@@ -62,110 +62,7 @@ const STORAGE_KEYS = {
 // 13: Instant Digital Pass Friendly
 const VECTOR_DIMENSIONS = 14;
 
-export const DEFAULT_CURATED_CATALOG: MLItemFeature[] = [
-  {
-    id: 'rec_rajwada_wedding',
-    title: 'Grand Rajwada Celebration Lawns',
-    category: 'Weddings',
-    type: 'BOOKING',
-    price: 85000,
-    priceUnit: 'per day',
-    rating: 4.96,
-    reviewsCount: 148,
-    capacity: 450,
-    location: 'Patna, Bihar',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-    cornerTag: 'Verified Royal Host',
-    tags: ['wedding', 'mandap', 'rajwada', 'luxury', 'banquet'],
-    features: ['Royal Mandap', '200+ Car Parking', 'Bridal Suite', 'AC Banquet'],
-    isTicket: false,
-  },
-  {
-    id: 'rec_princess_birthday',
-    title: 'Royal Princess Castle 3D Theme',
-    category: 'Birthdays',
-    type: 'BOOKING',
-    price: 24999,
-    priceUnit: 'setup',
-    rating: 4.94,
-    reviewsCount: 86,
-    capacity: 80,
-    location: 'Patna, Bihar',
-    image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80',
-    cornerTag: 'Trending Theme',
-    tags: ['birthday', 'party', 'cake', 'balloon', 'castle'],
-    features: ['3D Castle Backdrop', 'Organic Balloon Garland', 'Custom Cake Table', 'Magic Show'],
-    isTicket: false,
-  },
-  {
-    id: 'rec_awadhi_catering',
-    title: 'Shahi Awadhi & North Indian Grand Buffet',
-    category: 'Catering',
-    type: 'BOOKING',
-    price: 650,
-    priceUnit: 'per plate',
-    rating: 4.92,
-    reviewsCount: 210,
-    capacity: 500,
-    location: 'Patna, Bihar',
-    image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80',
-    cornerTag: '5-Star Chef',
-    tags: ['catering', 'buffet', 'food', 'awadhi', 'gourmet'],
-    features: ['Live Chaat Counter', 'Awadhi Biryani', 'Kadhai Paneer', 'Dessert Station'],
-    isTicket: false,
-  },
-  {
-    id: 'rec_sufi_concert_pass',
-    title: 'Royal Sufi Night & Candlelight Banquet Pass',
-    category: 'Celebration Passes',
-    type: 'TICKET',
-    price: 1499,
-    priceUnit: 'per pass',
-    rating: 4.95,
-    reviewsCount: 340,
-    capacity: 600,
-    location: 'Patna, Bihar',
-    image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80',
-    cornerTag: 'Limited Passes',
-    tags: ['ticket', 'pass', 'sufi', 'music', 'live'],
-    features: ['Digital QR Gate Pass', 'Welcome Drink Included', 'VIP Seating', 'Live Sufi Troupe'],
-    isTicket: true,
-  },
-  {
-    id: 'rec_crystal_ballroom',
-    title: 'The Crystal Ballroom & Royal Garden',
-    category: 'Venues',
-    type: 'BOOKING',
-    price: 125000,
-    priceUnit: 'per event',
-    rating: 4.98,
-    reviewsCount: 175,
-    capacity: 600,
-    location: 'Jaipur, Rajasthan',
-    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80',
-    cornerTag: 'Palace Grade',
-    tags: ['venue', 'wedding', 'palace', 'luxury', 'ballroom'],
-    features: ['Crystal Chandeliers', 'Lush Lawns', 'Valet Parking', 'Dedicated Manager'],
-    isTicket: false,
-  },
-  {
-    id: 'rec_loksafari_heritage',
-    title: 'LokSafari Royal Heritage & Wildlife Expedition',
-    category: 'LokSafari',
-    type: 'TICKET',
-    price: 4999,
-    priceUnit: 'per traveler',
-    rating: 4.91,
-    reviewsCount: 92,
-    capacity: 40,
-    location: 'Valmiki Tiger Reserve, Bihar',
-    image: 'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=800&q=80',
-    cornerTag: 'Eco Luxury',
-    tags: ['safari', 'wildlife', 'expedition', 'heritage', 'loksafari'],
-    features: ['4x4 Safari Gypsy', 'Certified Naturalist', 'Luxury Cottage Stay', 'Bonfire Dinner'],
-    isTicket: true,
-  },
-];
+export const DEFAULT_CURATED_CATALOG: MLItemFeature[] = [];
 
 class MLRecommendationEngine {
   private userVector: number[] = new Array(VECTOR_DIMENSIONS).fill(0.1);
@@ -335,15 +232,6 @@ class MLRecommendationEngine {
         candidates.push(it);
       }
     });
-
-    if (candidates.length < 6) {
-      DEFAULT_CURATED_CATALOG.forEach((curated) => {
-        if (!seenIds.has(curated.id)) {
-          seenIds.add(curated.id);
-          candidates.push(curated);
-        }
-      });
-    }
 
     if (candidates.length === 0) return [];
 

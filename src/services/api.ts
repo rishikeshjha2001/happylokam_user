@@ -276,25 +276,10 @@ export const getOffers = async (): Promise<any[]> => {
       return res.data;
     }
   } catch (err) {
-    console.warn('getOffers fallback:', err);
+    console.warn('getOffers error:', err);
   }
 
-  return [
-    {
-      id: 'off_festive',
-      title: 'Celebration Kickoff',
-      code: 'CELEBRATE50',
-      discountPercent: 10,
-      description: 'Instant 10% off for first-time celebration pass bookings',
-    },
-    {
-      id: 'off_vip',
-      title: 'VIP Celebration Pass Discount',
-      code: 'LOKAMVIP',
-      discountPercent: 15,
-      description: 'Exclusive 15% discount for Royal Weddings and VIP passes',
-    },
-  ];
+  return [];
 };
 
 // 9. Razorpay Payment Gateway API
