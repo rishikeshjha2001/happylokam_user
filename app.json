@@ -2,7 +2,7 @@
   "expo": {
     "name": "happylokam",
     "slug": "happylokam-user",
-    "version": "14.0.9",
+    "version": "14.0.10",
     "orientation": "portrait",
     "icon": "./assets/favicon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +23,7 @@
         "backgroundColor": "#0056FB"
       },
       "package": "com.happylokam.app",
-      "versionCode": 132,
+      "versionCode": 134,
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -39,7 +39,7 @@
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/880f6aaa-6aa2-4e98-9be6-14edfec7e6d2"
     },
-    "runtimeVersion": "14.0.9",
+    "runtimeVersion": "14.0.10",
     "extra": {
       "router": {},
       "eas": {
