@@ -10,13 +10,22 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
       }
     }
   },
@@ -25,7 +34,8 @@
       "android": {
         "serviceAccountKeyPath": "./google-play-key.json",
         "track": "production"
-      }
+      },
+      "ios": {}
     }
   }
 }

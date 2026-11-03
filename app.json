@@ -15,7 +15,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.happylokam.app",
-      "buildNumber": "127"
+      "buildNumber": "134",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
