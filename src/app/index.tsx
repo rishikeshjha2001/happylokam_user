@@ -108,9 +108,9 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="light-content" backgroundColor="#e11d48" />
 
-      {/* Ambient Rose Glowing Blur Orb */}
+      {/* Ambient Subtle Glow */}
       <Animated.View
         style={[
           styles.ambientOrb,
@@ -133,12 +133,12 @@ export default function SplashScreen() {
           <Text style={styles.brandTitle}>happylokam</Text>
         </Animated.View>
 
-        {/* Gradient Accent Line */}
+        {/* Crisp White Accent Line */}
         <Animated.View style={[styles.gradientLineContainer, { width: lineWidth }]}>
           <View style={styles.gradientLine} />
         </Animated.View>
 
-        <Text style={styles.tagline}>PREMIUM CELEBRATIONS</Text>
+        <Text style={styles.tagline}>EXTRAORDINARY CELEBRATIONS</Text>
       </Animated.View>
     </View>
   );
@@ -147,7 +147,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#e11d48', // Official Rose-600 Background
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -157,8 +157,7 @@ const styles = StyleSheet.create({
     width: 380,
     height: 380,
     borderRadius: 190,
-    backgroundColor: 'rgba(254, 205, 211, 0.55)', // Soft Rose Glow
-    opacity: 0.7,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   contentWrapper: {
     alignItems: 'center',
@@ -167,7 +166,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 52,
     fontWeight: '900',
-    color: '#e11d48', // Rose-600
+    color: '#ffffff', // Pure White text happylokam
     letterSpacing: -1.5,
   },
   gradientLineContainer: {
@@ -180,13 +179,18 @@ const styles = StyleSheet.create({
   gradientLine: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#fb7185', // Rose-400
+    backgroundColor: '#ffffff',
   },
   tagline: {
-    color: '#64748b', // Slate-500
-    marginTop: 12,
-    fontWeight: '800',
-    letterSpacing: 3,
-    fontSize: 10.5,
+    color: '#000000', // Black color as requested
+    marginTop: 14,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+    fontSize: 11,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
 });

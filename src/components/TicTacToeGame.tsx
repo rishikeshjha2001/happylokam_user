@@ -260,38 +260,69 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
             </View>
           </View>
 
-          {/* Turn Indicator */}
-          <View style={styles.turnCard}>
-            <Sparkles size={14} color="#e11d48" />
-            <Text style={styles.turnText}>
-              {winner
-                ? winner === 'DRAW'
-                  ? 'Grand Celebration Tie! 🤝'
-                  : `Winner: ${winner} takes the trophy! 🏆`
-                : `Current Turn: ${isXNext ? '👑 Player 1' : gameMode === 'bot' ? '🎉 Bot Thinking...' : '🎉 Player 2'}`}
-            </Text>
-          </View>
+          {/* Winner Celebration Banner */}
+          {winner && (
+            <Animated.View
+              style={[
+                styles.winnerBanner,
+                {
+                  transform: [{ scale: celebrationScale }],
+                },
+              ]}
+            >
+              <Trophy size={22} color="#b45309" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.winnerTextTitle}>
+                  {winner === 'DRAW' ? 'Celebration Tie! 🤝' : 'HappyLokam Winner! 🏆🎉'}
+                </Text>
+                <Text style={styles.winnerTextSub}>
+                  {winner === 'DRAW'
+                    ? 'A perfectly balanced celebration match!'
+                    : winner === '👑'
+                      ? '👑 Player 1 Takes The Crown!'
+                      : gameMode === 'bot'
+                        ? '🎉 Celebration Bot Takes The Trophy!'
+                        : '🎉 Player 2 Takes The Crown!'}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
 
-          {/* 3x3 Game Board */}
-          <View style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE }]}>
-            {board.map((cell, idx) => {
-              const isWinningCell = winningLine.includes(idx);
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.cell,
-                    { width: CELL_SIZE, height: CELL_SIZE },
-                    isWinningCell && styles.winningCell,
-                  ]}
-                  onPress={() => handleCellPress(idx)}
-                  disabled={Boolean(cell || winner || (!isXNext && gameMode === 'bot'))}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.cellText}>{cell}</Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Turn Indicator (When game is ongoing) */}
+          {!winner && (
+            <View style={styles.turnCard}>
+              <Sparkles size={14} color="#e11d48" />
+              <Text style={styles.turnText}>
+                {`Current Turn: ${isXNext ? '👑 Player 1' : gameMode === 'bot' ? '🎉 Bot Thinking...' : '🎉 Player 2'}`}
+              </Text>
+            </View>
+          )}
+
+          {/* 3x3 Game Board - Responsive Structured Grid */}
+          <View style={styles.boardGrid}>
+            {[0, 1, 2].map((rowIndex) => (
+              <View key={rowIndex} style={styles.boardRow}>
+                {[0, 1, 2].map((colIndex) => {
+                  const idx = rowIndex * 3 + colIndex;
+                  const cell = board[idx];
+                  const isWinningCell = winningLine.includes(idx);
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.cell,
+                        isWinningCell && styles.winningCell,
+                      ]}
+                      onPress={() => handleCellPress(idx)}
+                      disabled={Boolean(cell || winner || (!isXNext && gameMode === 'bot'))}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={styles.cellText}>{cell}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
           </View>
 
           {/* Action Buttons */}
@@ -434,6 +465,30 @@ const styles = StyleSheet.create({
     height: 24,
     backgroundColor: '#cbd5e1',
   },
+  winnerBanner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#fef3c7',
+    borderWidth: 1.5,
+    borderColor: '#eab308',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginBottom: 14,
+  },
+  winnerTextTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#b45309',
+  },
+  winnerTextSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#78350f',
+    marginTop: 1,
+  },
   turnCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -442,25 +497,31 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   turnText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#e11d48',
   },
-  board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  boardGrid: {
+    width: '100%',
+    maxWidth: 320,
+    aspectRatio: 1,
     backgroundColor: '#f1f5f9',
     borderRadius: 18,
     padding: 8,
-    marginBottom: 18,
+    gap: 8,
+    marginBottom: 16,
+    justifyContent: 'space-between',
+  },
+  boardRow: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
   },
   cell: {
+    flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     justifyContent: 'center',
@@ -473,11 +534,11 @@ const styles = StyleSheet.create({
   },
   winningCell: {
     backgroundColor: '#fef08a',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#eab308',
   },
   cellText: {
-    fontSize: 32,
+    fontSize: 34,
   },
   actionsRow: {
     flexDirection: 'row',

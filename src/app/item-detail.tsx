@@ -48,17 +48,6 @@ import MLRecommendation from '../services/mlRecommendationEngine';
 
 const { width } = Dimensions.get('window');
 
-const AMENITIES_LIST = [
-  { icon: '❄️', title: 'Central AC Hall', desc: 'Full climate control' },
-  { icon: '🚗', title: 'Valet Parking', desc: 'Capacity for 200+ cars' },
-  { icon: '🛏️', title: 'Luxury Suites', desc: 'Bridal & family rooms' },
-  { icon: '⚡', title: '100% DG Backup', desc: 'Uninterrupted power' },
-  { icon: '🥗', title: 'Pure Veg Kitchen', desc: 'Dedicated prep area' },
-  { icon: '🎶', title: 'Concert Stage & DJ', desc: 'Intelligent sound system' },
-  { icon: '🛡️', title: 'Quality Assured', desc: 'On-site happylokam team' },
-  { icon: '💐', title: 'Bespoke Decor', desc: 'Custom theme & lighting' },
-];
-
 export default function ItemDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -297,13 +286,10 @@ export default function ItemDetailScreen() {
             ? basePriceNum * guestCount * bookingDays
             : basePriceNum * bookingDays));
 
-  const mainPhoto = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80';
-  const galleryImages = [
-    mainPhoto,
-    'https://images.unsplash.com/photo-1544077960-604201fe74bc?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80',
-  ];
+  const mainPhoto = item.image || item.imageUrl || '';
+  const galleryImages = (Array.isArray(item.images) && item.images.length > 0)
+    ? item.images
+    : (mainPhoto ? [mainPhoto] : []);
 
   const handleScrollImage = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slide = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -415,11 +401,13 @@ export default function ItemDetailScreen() {
               <Text style={styles.typePillText}>{item.type || 'EXPERIENCE'}</Text>
             </View>
 
-            <View style={styles.photoCountPill}>
-              <Text style={styles.photoCountText}>
-                📸 {activeImageIndex + 1} / {galleryImages.length}
-              </Text>
-            </View>
+            {galleryImages.length > 1 && (
+              <View style={styles.photoCountPill}>
+                <Text style={styles.photoCountText}>
+                  📸 {activeImageIndex + 1} / {galleryImages.length}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -442,12 +430,16 @@ export default function ItemDetailScreen() {
           <View style={styles.metaBar}>
             <View style={styles.metaItem}>
               <Star size={16} color="#eab308" fill="#eab308" />
-              <Text style={styles.metaText}>4.9 (120+ verified)</Text>
+              <Text style={styles.metaText}>
+                {item.reviews && item.reviews > 0
+                  ? `${item.rating || 4.9} (${item.reviews} reviews)`
+                  : `${item.rating || 4.9} • Verified Listing`}
+              </Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <MapPin size={16} color="#64748b" />
-              <Text style={styles.metaText}>{item.location || 'Pan-India Available'}</Text>
+              <Text style={styles.metaText}>{item.location || 'Patna, Bihar'}</Text>
             </View>
             {item.capacity && (
               <>
@@ -467,7 +459,7 @@ export default function ItemDetailScreen() {
                 <MapPin size={20} color="#e11d48" />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.locationCardTitle}>{item.location || 'Jaipur & Delhi NCR'}</Text>
+                <Text style={styles.locationCardTitle}>{item.location || 'Patna, Bihar'}</Text>
                 <Text style={styles.locationCardSub}>Prime central celebration hub • Verified GPS coordinates</Text>
               </View>
             </View>
@@ -481,22 +473,6 @@ export default function ItemDetailScreen() {
                 <Text style={styles.mapsBtnText}>See Location on Google Maps</Text>
               </TouchableOpacity>
             )}
-          </View>
-
-          {/* Venue & Package Amenities Grid */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>Key Amenities & Highlights</Text>
-            <View style={styles.amenitiesGrid}>
-              {AMENITIES_LIST.map((am, i) => (
-                <View key={i} style={styles.amenityCard}>
-                  <Text style={styles.amenityIcon}>{am.icon}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.amenityTitle}>{am.title}</Text>
-                    <Text style={styles.amenityDesc}>{am.desc}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
           </View>
 
           {/* Celebration Specialist Concierge Box */}
@@ -661,66 +637,11 @@ export default function ItemDetailScreen() {
                 </View>
               </View>
 
-              {/* Number of Guests they can feed / accommodate */}
-              <View style={styles.sectionBlock}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={styles.sectionTitle}>Number of Guests to Feed / Accommodate</Text>
-                  <Text style={styles.capacityBadge}>
-                    Max: {item.capacity || 1000}
-                  </Text>
-                </View>
-
-                <View style={styles.guestPickerCard}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.guestPickerLabel}>Guest Count</Text>
-                    <Text style={styles.guestPickerSub}>Catering, buffet plates & seating scale automatically</Text>
-                  </View>
-                  <View style={styles.guestCounterRow}>
-                    <TouchableOpacity
-                      style={styles.counterBtn}
-                      onPress={() => setGuestCount(Math.max(25, guestCount - 25))}
-                    >
-                      <Minus size={16} color="#0f172a" />
-                    </TouchableOpacity>
-                    <TextInput
-                      style={styles.guestInput}
-                      keyboardType="numeric"
-                      value={String(guestCount)}
-                      onChangeText={(val) => {
-                        const parsed = parseInt(val.replace(/\D/g, ''), 10);
-                        if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
-                      }}
-                    />
-                    <TouchableOpacity
-                      style={styles.counterBtn}
-                      onPress={() => setGuestCount(guestCount + 25)}
-                    >
-                      <Plus size={16} color="#0f172a" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Quick Guest Count Pills */}
-                <View style={styles.quickChipsRow}>
-                  {[50, 100, 250, 500, 1000].map((count) => (
-                    <TouchableOpacity
-                      key={count}
-                      style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
-                      onPress={() => setGuestCount(count)}
-                    >
-                      <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
-                        {count} Guests
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Optional Per-Plate Catering Selector */}
-              {hasPerPlate && (
+              {/* Guest Attendance or Per-Plate Catering Selector */}
+              {hasPerPlate ? (
                 <View style={styles.sectionBlock}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.sectionTitle}>Catering Plates & Buffet Servings</Text>
+                    <Text style={styles.sectionTitle}>Plates & Guest Servings</Text>
                     <Text style={styles.capacityBadge}>
                       ₹{plateRate}/Plate
                     </Text>
@@ -729,7 +650,9 @@ export default function ItemDetailScreen() {
                   <View style={styles.guestPickerCard}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.guestPickerLabel}>Number of Plates</Text>
-                      <Text style={styles.guestPickerSub}>Add or subtract plates anytime</Text>
+                      <Text style={styles.guestPickerSub}>
+                        {item.capacity ? `Venue Capacity: Up to ${item.capacity} Guests` : 'Select total plates to prepare'}
+                      </Text>
                     </View>
                     <View style={styles.guestCounterRow}>
                       <TouchableOpacity
@@ -765,6 +688,59 @@ export default function ItemDetailScreen() {
                       >
                         <Text style={[styles.quickChipText, platesCount === count && styles.quickChipTextActive]}>
                           {count} Plates
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.sectionBlock}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.sectionTitle}>Guest Attendance</Text>
+                    <Text style={styles.capacityBadge}>
+                      Max: {item.capacity || 500}
+                    </Text>
+                  </View>
+
+                  <View style={styles.guestPickerCard}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.guestPickerLabel}>Guest Count</Text>
+                      <Text style={styles.guestPickerSub}>Expected attendee count</Text>
+                    </View>
+                    <View style={styles.guestCounterRow}>
+                      <TouchableOpacity
+                        style={styles.counterBtn}
+                        onPress={() => setGuestCount(Math.max(10, guestCount - 25))}
+                      >
+                        <Minus size={16} color="#0f172a" />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.guestInput}
+                        keyboardType="numeric"
+                        value={String(guestCount)}
+                        onChangeText={(val) => {
+                          const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                          if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={styles.counterBtn}
+                        onPress={() => setGuestCount(guestCount + 25)}
+                      >
+                        <Plus size={16} color="#0f172a" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.quickChipsRow}>
+                    {[50, 100, 250, 500].map((count) => (
+                      <TouchableOpacity
+                        key={count}
+                        style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
+                        onPress={() => setGuestCount(count)}
+                      >
+                        <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
+                          {count} Guests
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -818,7 +794,7 @@ export default function ItemDetailScreen() {
               <View style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>Duration & Attendance</Text>
                 <Text style={styles.breakdownValHighlight}>
-                  {bookingDays} Day{bookingDays === 1 ? '' : 's'} • {guestCount} Guests
+                  {bookingDays} Day{bookingDays === 1 ? '' : 's'} • {hasPerPlate ? `${platesCount} Plates` : `${guestCount} Guests`}
                 </Text>
               </View>
             )}
