@@ -33,15 +33,16 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promi
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       try {
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        return { success: false, error: parsed.error || parsed.message || 'Request failed', ...parsed };
       } catch {
-        return { success: false, error: text };
+        return { success: false, error: text || `HTTP ${res.status} error` };
       }
     }
     return await res.json();
-  } catch (err) {
+  } catch (err: any) {
     console.warn(`[API] Network error on ${endpoint}:`, err);
-    return { success: false, data: [] };
+    return { success: false, error: err?.message || 'Network error. Please check your connection.', data: [] };
   }
 }
 

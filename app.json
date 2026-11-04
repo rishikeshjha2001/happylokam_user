@@ -2,20 +2,20 @@
   "expo": {
     "name": "happylokam",
     "slug": "happylokam-user",
-    "version": "14.0.10",
+    "version": "14.0.11",
     "orientation": "portrait",
-    "icon": "./assets/favicon.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "happylokam",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0056FB"
+      "backgroundColor": "#e11d48"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.happylokam.app",
-      "buildNumber": "134",
+      "buildNumber": "135",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
@@ -25,10 +25,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0056FB"
+        "backgroundColor": "#e11d48"
       },
       "package": "com.happylokam.app",
-      "versionCode": 134,
+      "versionCode": 135,
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -44,7 +44,7 @@
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/880f6aaa-6aa2-4e98-9be6-14edfec7e6d2"
     },
-    "runtimeVersion": "14.0.10",
+    "runtimeVersion": "14.0.11",
     "extra": {
       "router": {},
       "eas": {

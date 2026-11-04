@@ -76,7 +76,10 @@ export default function PrivacySecurityScreen() {
       const res = await changeUserPassword(currentPassword.trim(), newPassword.trim());
       if (res?.success) {
         setPasswordModalVisible(false);
-        Alert.alert('Password Updated! 🔒', 'Your account password has been changed successfully.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        Alert.alert('Password Updated! 🔒', res.message || 'Your account password has been changed successfully.');
       } else {
         Alert.alert('Change Password Failed', res?.error || 'Current password was incorrect. Please try again.');
       }

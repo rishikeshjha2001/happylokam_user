@@ -20,6 +20,8 @@ import {
   MapPin,
   Check,
   Sparkles,
+  Lock,
+  ChevronRight,
 } from 'lucide-react-native';
 import RoomDatabase, { RoomUser } from '../services/roomDatabase';
 
@@ -209,6 +211,22 @@ export default function PersonalInfoScreen() {
           </View>
         </View>
 
+        {/* Change Password Card */}
+        <TouchableOpacity
+          style={styles.changePwBtn}
+          onPress={() => router.push('/privacy-security')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.changePwIconBox}>
+            <Lock size={18} color="#e11d48" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.changePwTitle}>Change Account Password</Text>
+            <Text style={styles.changePwSub}>Update your login credentials securely</Text>
+          </View>
+          <ChevronRight size={18} color="#94a3b8" />
+        </TouchableOpacity>
+
         {/* Save CTA */}
         <TouchableOpacity
           style={styles.saveBtn}
@@ -322,6 +340,34 @@ const styles = StyleSheet.create({
   genderChipTextActive: {
     color: '#ffffff',
     fontWeight: '700',
+  },
+  changePwBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+  },
+  changePwIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePwTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  changePwSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
   },
   saveBtn: {
     backgroundColor: '#e11d48',

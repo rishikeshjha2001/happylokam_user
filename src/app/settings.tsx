@@ -134,6 +134,22 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Section: Security */}
+        <Text style={styles.sectionHeader}>Account & Security</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push('/privacy-security')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Change Password</Text>
+              <Text style={styles.rowSub}>Update your login password and security settings</Text>
+            </View>
+            <ChevronRight size={18} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
+
         {/* App Info */}
         <View style={styles.versionBox}>
           <Text style={styles.versionTitle}>happylokam Celebrations</Text>
