@@ -349,7 +349,7 @@ export default function ItemDetailScreen() {
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={handleScrollImage}
           >
-            {galleryImages.map((imgUri, idx) => (
+            {galleryImages.map((imgUri: string, idx: number) => (
               <View key={idx} style={{ width, height: 320 }}>
                 <Image
                   source={{ uri: imgUri }}
@@ -800,18 +800,8 @@ export default function ItemDetailScreen() {
             )}
 
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>GST & Regulatory Taxes (18%)</Text>
+              <Text style={styles.breakdownLabel}>GST & Regulatory Taxes</Text>
               <Text style={styles.breakdownValGreen}>Included in estimate</Text>
-            </View>
-
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>happylokam Assurance Fee</Text>
-              <Text style={styles.breakdownValGreen}>FREE (₹0)</Text>
-            </View>
-
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Celebration Wallet Discount</Text>
-              <Text style={styles.breakdownValRed}>Redeemable at Checkout</Text>
             </View>
 
             <View style={styles.breakdownDivider} />

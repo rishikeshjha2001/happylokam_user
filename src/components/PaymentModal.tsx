@@ -120,14 +120,10 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
   const subtotal = item.calculatedSubtotal !== undefined
     ? item.calculatedSubtotal
     : (isTicket ? basePriceNum * quantity : basePriceNum * bookingDays);
-  const taxes = Math.round(subtotal * 0.05); // 5% GST
-  const discount = Math.min(100, Math.round(subtotal * 0.1));
-  const subtotalAfterPromo = Math.max(0, subtotal + taxes - discount);
-
-  // Apply wallet balance discount
-  const maxWalletApplicable = Math.min(walletBalance, subtotalAfterPromo);
+  // All pricing determined by admin configuration - no arbitrary/fake discounts
+  const maxWalletApplicable = Math.min(walletBalance, subtotal);
   const walletDiscount = useWallet ? maxWalletApplicable : 0;
-  const total = Math.max(0, subtotalAfterPromo - walletDiscount);
+  const total = Math.max(0, subtotal - walletDiscount);
 
   const availableDateList = Array.isArray(item.availableDates) && item.availableDates.length > 0
     ? item.availableDates
@@ -178,7 +174,9 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         walletDiscount: useWallet ? walletDiscount : 0,
       });
       const confirmedServerId = bookingResult?.data?.id || bookingResult?.id;
-      if (!confirmedServerId) throw new Error('The booking could not be created on the server.');
+      if (!confirmedServerId) {
+        throw new Error(bookingResult?.error || 'The booking could not be created on the server.');
+      }
 
       // 3. Razorpay Order Creation & Native Checkout
       let paymentId = '';
@@ -569,12 +567,8 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                 <Text style={styles.billValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
               </View>
               <View style={styles.billRow}>
-                <Text style={styles.billLabel}>GST & Service Charges</Text>
-                <Text style={styles.billValue}>₹{taxes}</Text>
-              </View>
-              <View style={styles.billRow}>
-                <Text style={styles.discountLabel}>happylokam Discount</Text>
-                <Text style={styles.discountValue}>-₹{discount}</Text>
+                <Text style={styles.billLabel}>Taxes & Fees</Text>
+                <Text style={[styles.billValue, { color: '#059669' }]}>Included</Text>
               </View>
               {useWallet && walletDiscount > 0 && (
                 <View style={styles.billRow}>
