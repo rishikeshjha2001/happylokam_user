@@ -314,16 +314,17 @@ export default function ExploreTab() {
         const itemType = (item.type || '').toLowerCase();
         const itemTags = (item.tags || []).map((t: string) => String(t).toLowerCase()).join(' ');
         const itemTitle = (item.title || item.name || '').toLowerCase();
+        const itemSection = (item.sectionTitle || '').toLowerCase();
 
         let matchesCat = false;
         if (catKey.includes('wedding') || catKey.includes('mandap')) {
-          matchesCat = itemType.includes('wedding') || itemType.includes('venue') || itemType.includes('palace') || itemType.includes('decor') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala') || itemTitle.includes('palace') || itemTags.includes('hall');
+          matchesCat = itemType.includes('wedding') || itemType.includes('venue') || itemType.includes('palace') || itemType.includes('decor') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala') || itemTitle.includes('palace') || itemTags.includes('hall') || itemSection.includes('wedding');
         } else if (catKey.includes('birthday') || catKey.includes('fiesta')) {
-          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('party') || itemTags.includes('party') || itemTitle.includes('fiesta') || itemTags.includes('balloon') || itemType.includes('dj');
+          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('party') || itemTags.includes('party') || itemTitle.includes('fiesta') || itemTags.includes('balloon') || itemType.includes('dj') || itemSection.includes('birthday');
         } else if (catKey.includes('offer') || catKey.includes('deal')) {
-          matchesCat = Boolean(item.badge || item.cornerTag || item.discount || item.tag || itemType.includes('offer') || itemTitle.includes('deal'));
+          matchesCat = Boolean(item.badge || item.cornerTag || item.discount || item.tag || itemType.includes('offer') || itemTitle.includes('deal') || itemTags.includes('offer') || itemTags.includes('deal') || itemSection.includes('offer'));
         } else if (catKey.includes('loksafari') || catKey.includes('safari')) {
-          matchesCat = itemType.includes('safari') || itemType.includes('resort') || itemTags.includes('pool') || itemTitle.includes('safari') || itemTitle.includes('resort') || itemTitle.includes('farmstay');
+          matchesCat = itemType.includes('safari') || itemType.includes('resort') || itemTags.includes('safari') || itemTags.includes('pool') || itemTitle.includes('safari') || itemTitle.includes('resort') || itemTitle.includes('farmstay') || itemSection.includes('safari');
         } else if (catKey.includes('baby')) {
           matchesCat = itemType.includes('baby') || itemTags.includes('baby') || itemTitle.includes('baby') || itemTitle.includes('shower') || itemTags.includes('cradle');
         } else if (catKey.includes('engagement') || catKey.includes('roka')) {
@@ -331,7 +332,7 @@ export default function ExploreTab() {
         } else if (catKey.includes('corporate') || catKey.includes('office')) {
           matchesCat = itemType.includes('corporate') || itemType.includes('conference') || itemTitle.includes('corporate') || itemTags.includes('meeting') || itemType.includes('venue');
         } else if (catKey.includes('package')) {
-          matchesCat = itemType.includes('package') || itemTags.includes('package') || itemTitle.includes('package');
+          matchesCat = itemType.includes('package') || itemTags.includes('package') || itemTitle.includes('package') || itemSection.includes('package');
         } else if (catKey.includes('decor')) {
           matchesCat = itemType.includes('decor') || itemTags.includes('decor') || itemTitle.includes('decor') || itemTitle.includes('floral');
         } else if (catKey.includes('catering')) {
@@ -341,7 +342,7 @@ export default function ExploreTab() {
         } else if (catKey.includes('venue') || catKey.includes('palace') || catKey.includes('hall')) {
           matchesCat = itemType.includes('venue') || itemType.includes('palace') || itemType.includes('resort') || itemType.includes('haveli');
         } else if (catKey.includes('photo')) {
-          matchesCat = itemType.includes('photo') || itemType.includes('shoot') || itemTags.includes('shoot');
+          matchesCat = itemType.includes('photo') || itemType.includes('shoot') || itemTags.includes('shoot') || itemTags.includes('photography');
         } else if (catKey.includes('dj') || catKey.includes('sound')) {
           matchesCat = itemType.includes('dj') || itemTags.includes('dj') || itemTitle.includes('dj') || itemTags.includes('sound') || itemTitle.includes('music');
         } else if (catKey.includes('makeup') || catKey.includes('bridal')) {
@@ -349,9 +350,9 @@ export default function ExploreTab() {
         } else if (catKey.includes('choreo') || catKey.includes('dance')) {
           matchesCat = itemType.includes('choreo') || itemTags.includes('dance') || itemTitle.includes('dance') || itemTitle.includes('sangeet');
         } else if (catKey.includes('theme')) {
-          matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor') || itemType.includes('venue');
+          matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor') || itemType.includes('venue') || itemSection.includes('theme');
         } else {
-          matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey);
+          matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey) || itemSection.includes(catKey);
         }
 
         if (!matchesCat) return false;
@@ -374,6 +375,7 @@ export default function ExploreTab() {
           item.type,
           item.itemType,
           item.cornerTag,
+          item.sectionTitle,
           item.description,
           ...(item.tags || []),
           ...(item.features || []),
