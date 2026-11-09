@@ -130,7 +130,7 @@ export default function RootLayout() {
         <Animated.View style={[
           StyleSheet.absoluteFill,
           { 
-            backgroundColor: "#ffffff", // Slate 900
+            backgroundColor: "#e11d48", // Official Rose-600 Background
             justifyContent: "center", 
             alignItems: "center",
             transform: [{ translateY: screenTranslateY }],
@@ -138,28 +138,23 @@ export default function RootLayout() {
           }
         ]}>
           
-          {/* Glowing Circle Background */}
+          {/* Subtle Glowing Circle Background */}
           <Animated.View style={{
             position: "absolute",
-            width: 150,
-            height: 150,
-            borderRadius: 75,
-            backgroundColor: "#e11d48", // Rose 600
-            opacity: 0.8,
+            width: 180,
+            height: 180,
+            borderRadius: 90,
+            backgroundColor: "rgba(255, 255, 255, 0.12)",
             transform: [{ scale: circleScale }],
-            shadowColor: "#e11d48",
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 1,
-            shadowRadius: 40,
-            elevation: 20
           }} />
 
-          {/* Masked Text Reveal */}
+          {/* Masked Text Reveal - Pure White happylokam */}
           <View style={{ overflow: "hidden", padding: 10 }}>
             <Animated.Text style={{ 
-              fontSize: 48, 
+              fontSize: 50, 
               fontWeight: "900", 
-              color: "#0f172a", letterSpacing: 2,
+              color: "#ffffff", // Pure White text happylokam
+              letterSpacing: -1,
               transform: [{ translateY: textTranslateY }],
               opacity: textOpacity
             }}>
@@ -167,16 +162,21 @@ export default function RootLayout() {
             </Animated.Text>
           </View>
 
-          {/* Golden Tagline */}
+          {/* Tagline - Black color as requested */}
           <Animated.Text style={{ 
-            fontSize: 16, 
-            color: "#e11d48", // Amber 400
+            fontSize: 12, 
+            color: "#000000", // Black color
             textAlign: "center", 
-            marginTop: 5, 
-            fontStyle: "italic", 
-            fontWeight: "600",
-            letterSpacing: 1,
-            opacity: taglineOpacity
+            marginTop: 8, 
+            fontWeight: "900",
+            letterSpacing: 2.5,
+            textTransform: "uppercase",
+            opacity: taglineOpacity,
+            backgroundColor: "#ffffff",
+            paddingHorizontal: 14,
+            paddingVertical: 5,
+            borderRadius: 8,
+            overflow: "hidden",
           }}>
             Extraordinary Celebrations
           </Animated.Text>
@@ -186,4 +186,3 @@ export default function RootLayout() {
     </View>
   );
 }
-

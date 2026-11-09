@@ -430,3 +430,44 @@ export async function saveAdminSectionItem(
 }
 
 
+
+// ==========================================
+// ADVANCE FILTERS & THEMES MODEL & API
+// ==========================================
+export interface AdvanceFilterModel {
+  id: string;
+  title: string;
+  subtitle?: string;
+  tag?: string;
+  route?: string;
+  category?: string;
+  keywords?: string[];
+  icon?: string;
+  filterType?: string;
+  order?: number;
+  isActive?: boolean;
+}
+
+const FILTERS_STORAGE_KEY = '@happylokam_advance_filters_v1';
+
+export async function getAdvanceFilters(): Promise<AdvanceFilterModel[]> {
+  try {
+    const res = await apiClient.get('/sections/filters');
+    if (res?.success && Array.isArray(res.data)) {
+      await AsyncStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(res.data));
+      return res.data;
+    }
+  } catch (err) {
+    console.warn('[AdvanceFilters] Backend fetch error, loading cache:', err);
+  }
+
+  try {
+    const raw = await AsyncStorage.getItem(FILTERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+
+  return [];
+}

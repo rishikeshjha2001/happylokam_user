@@ -191,6 +191,20 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         );
         orderId = razorpayOrder.id;
 
+        // Determine user contact details accurately (using authentic user input)
+        const userSession = await RoomDatabase.getUserSession();
+        const customerContact = guestPhone.trim().replace(/\D/g, '') || userSession?.phone || '9570729077';
+        const customerEmail = userSession?.email || 'customer@happylokam.com';
+        const customerName = guestName.trim() || userSession?.name || 'HappyLokam Guest';
+
+        // Payment method mapping: 0 -> upi, 1 -> card, 2 -> netbanking
+        const methodMap: Record<number, string> = {
+          0: 'upi',
+          1: 'card',
+          2: 'netbanking',
+        };
+        const preferredMethod = methodMap[selectedMethod] || 'upi';
+
         // Trigger Razorpay Checkout (Native and Web)
         try {
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -204,7 +218,6 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
             });
 
             if ((window as any).Razorpay) {
-              const userSession = await RoomDatabase.getUserSession();
               await new Promise((resolve) => {
                 const rzp = new (window as any).Razorpay({
                   description: item.title || 'Celebration Booking',
@@ -215,9 +228,10 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                   name: 'happylokam Celebrations',
                   order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
                   prefill: {
-                    email: 'rishikeshjha1710@gmail.com',
-                    contact: '9570729077',
-                    name: guestName.trim() || 'HappyLokam Guest',
+                    email: customerEmail,
+                    contact: customerContact,
+                    name: customerName,
+                    method: preferredMethod,
                   },
                   theme: { color: '#e11d48' },
                   handler: (resp: any) => {
@@ -236,8 +250,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               });
             }
           } else if (RazorpayCheckout && typeof RazorpayCheckout.open === 'function') {
-            const userSession = await RoomDatabase.getUserSession();
-            const rzpOptions = {
+            const rzpOptions: any = {
               description: item.title || 'Celebration Booking',
               image: 'https://happylokam.com/favicon.png',
               currency: 'INR',
@@ -246,11 +259,13 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
               name: 'happylokam Celebrations',
               order_id: orderId,
               prefill: {
-                email: 'rishikeshjha1710@gmail.com',
-                contact: '9570729077',
-                name: guestName.trim() || 'HappyLokam Guest',
+                email: customerEmail,
+                contact: customerContact,
+                name: customerName,
+                method: preferredMethod,
               },
               theme: { color: '#e11d48' },
+              retry: { enabled: true, max_count: 3 },
             };
             const rzpRes: any = await RazorpayCheckout.open(rzpOptions);
             if (rzpRes?.razorpay_payment_id) {
@@ -267,19 +282,22 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
           }
           throw rzpErr;
         }
+
+        // Only enforce payment signature if total > 0
+        if (!paymentId || !orderId || !signature) {
+          throw new Error('Payment was not completed.');
+        }
+
+        await verifyRazorpayPayment({
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          sectionBookingId: confirmedServerId,
+          amount: total,
+        });
       }
 
       const confirmedTicketCode = bookingResult?.data?.ticketCode || bookingResult?.ticketCode;
-
-      if (total > 0 && (!paymentId || !orderId || !signature)) throw new Error('Payment was not completed.');
-
-      await verifyRazorpayPayment({
-        razorpay_order_id: orderId,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature,
-        sectionBookingId: confirmedServerId,
-        amount: total,
-      });
 
       // 4. Store single verified pass in local RoomDatabase
       const ticketId = confirmedTicketCode || confirmedServerId;

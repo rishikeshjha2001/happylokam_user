@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
@@ -29,9 +30,11 @@ import {
   Sparkles,
   Compass,
   Edit3,
+  KeyRound,
+  X,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
-import { API_URL } from '../services/api';
+import { API_URL, resetUserPassword } from '../services/api';
 import CelebrationDialog from '../components/CelebrationDialog';
 
 const { width } = Dimensions.get('window');
@@ -51,6 +54,13 @@ export default function AuthScreen() {
   const [detectingGps, setDetectingGps] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Reset Password State
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTarget, setResetTarget] = useState('');
+  const [resetNewPw, setResetNewPw] = useState('');
+  const [resetConfirmPw, setResetConfirmPw] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Dialog State
   const [dialogConfig, setDialogConfig] = useState<{
@@ -549,6 +559,21 @@ export default function AuthScreen() {
             </View>
           </View>
 
+          {authMode === 'login' && (
+            <TouchableOpacity
+              onPress={() => {
+                setResetTarget(email.trim());
+                setShowResetModal(true);
+              }}
+              style={{ alignSelf: 'flex-end', marginTop: 8, marginBottom: 4, paddingVertical: 4 }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 13, color: '#e11d48', fontWeight: '700' }}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Primary Action Button */}
           <TouchableOpacity
             style={styles.submitBtn}
@@ -581,6 +606,150 @@ export default function AuthScreen() {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
+
+      {/* Reset Password Modal */}
+      <Modal
+        visible={showResetModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowResetModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 400, backgroundColor: '#ffffff', borderRadius: 20, padding: 22, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <KeyRound size={22} color="#e11d48" />
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a' }}>Reset Password</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowResetModal(false)} style={{ padding: 4 }}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+              Enter your registered phone number or email, and set your new account password.
+            </Text>
+
+            <View style={{ gap: 12 }}>
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>Phone Number or Email</Text>
+                <TextInput
+                  style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a' }}
+                  placeholder="Enter 10-digit phone or email"
+                  placeholderTextColor="#94a3b8"
+                  value={resetTarget}
+                  onChangeText={setResetTarget}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>New Password</Text>
+                <TextInput
+                  style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a' }}
+                  placeholder="At least 6 characters"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry
+                  value={resetNewPw}
+                  onChangeText={setResetNewPw}
+                />
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>Confirm New Password</Text>
+                <TextInput
+                  style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a' }}
+                  placeholder="Repeat new password"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry
+                  value={resetConfirmPw}
+                  onChangeText={setResetConfirmPw}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: '#e11d48', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+                disabled={resetLoading}
+                onPress={async () => {
+                  if (!resetTarget.trim()) {
+                    setDialogConfig({
+                      visible: true,
+                      type: 'warning',
+                      title: 'Input Required',
+                      message: 'Please enter your registered phone number or email address.',
+                      onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                    });
+                    return;
+                  }
+                  if (!resetNewPw.trim() || resetNewPw.length < 6) {
+                    setDialogConfig({
+                      visible: true,
+                      type: 'warning',
+                      title: 'Password Too Short',
+                      message: 'New password must be at least 6 characters long.',
+                      onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                    });
+                    return;
+                  }
+                  if (resetNewPw !== resetConfirmPw) {
+                    setDialogConfig({
+                      visible: true,
+                      type: 'danger',
+                      title: 'Passwords Mismatch',
+                      message: 'New password and confirmation password do not match.',
+                      onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                    });
+                    return;
+                  }
+
+                  try {
+                    setResetLoading(true);
+                    const res = await resetUserPassword(resetTarget.trim(), resetNewPw.trim());
+                    if (res?.success) {
+                      setShowResetModal(false);
+                      setEmail(resetTarget.trim());
+                      setPassword(resetNewPw.trim());
+                      setResetNewPw('');
+                      setResetConfirmPw('');
+                      setDialogConfig({
+                        visible: true,
+                        type: 'success',
+                        title: 'Password Reset! 🔒',
+                        message: res.message || 'Your password has been reset successfully. You can now log in.',
+                        onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                      });
+                    } else {
+                      setDialogConfig({
+                        visible: true,
+                        type: 'danger',
+                        title: 'Reset Failed',
+                        message: res?.error || 'Account not found. Please check your phone/email.',
+                        onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                      });
+                    }
+                  } catch (e: any) {
+                    setDialogConfig({
+                      visible: true,
+                      type: 'danger',
+                      title: 'Error',
+                      message: e?.message || 'Network error while resetting password.',
+                      onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                    });
+                  } finally {
+                    setResetLoading(false);
+                  }
+                }}
+              >
+                {resetLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700' }}>Save New Password</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Celebration Dialog */}
       <CelebrationDialog

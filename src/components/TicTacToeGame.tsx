@@ -1,19 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Dimensions,
+  useWindowDimensions,
   Animated,
+  Easing,
 } from 'react-native';
-import { Sparkles, RotateCcw, X, Trophy, Users, Bot, Gamepad2 } from 'lucide-react-native';
+import { Sparkles, RotateCcw, X, Trophy, Users, Bot, Gamepad2, Award } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const { width } = Dimensions.get('window');
-const BOARD_SIZE = Math.min(width - 56, 330);
-const CELL_SIZE = (BOARD_SIZE - 24) / 3;
 
 interface TicTacToeModalProps {
   visible: boolean;
@@ -29,6 +26,8 @@ const WINNING_COMBOS = [
 ];
 
 export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps) {
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+
   const [board, setBoard] = useState<Player[]>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState<boolean>(true);
   const [gameMode, setGameMode] = useState<'bot' | 'pvp'>('bot');
@@ -40,7 +39,13 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
     draws: 0,
   });
 
-  const celebrationScale = React.useRef(new Animated.Value(0.8)).current;
+  // Animations
+  const celebrationScale = useRef(new Animated.Value(0.7)).current;
+  const celebrationOpacity = useRef(new Animated.Value(0)).current;
+  const particleAnim = useRef(new Animated.Value(0)).current;
+
+  // Responsive board sizing: guaranteed never to clip or push buttons out
+  const boardSize = Math.max(200, Math.min(winWidth - 80, winHeight * 0.33, 275));
 
   useEffect(() => {
     loadScore();
@@ -48,12 +53,29 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
 
   useEffect(() => {
     if (winner) {
-      Animated.spring(celebrationScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
+      celebrationScale.setValue(0.7);
+      celebrationOpacity.setValue(0);
+      particleAnim.setValue(0);
+
+      Animated.parallel([
+        Animated.spring(celebrationScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(celebrationOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particleAnim, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.out(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [winner]);
 
@@ -84,7 +106,6 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
     return null;
   };
 
-  // Bot move with heuristic intelligence
   const triggerBotMove = (currentBoard: Player[]) => {
     setTimeout(() => {
       // 1. Can bot win in 1 move?
@@ -115,7 +136,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
         return;
       }
 
-      // 4. Random available corner or edge
+      // 4. Random available
       const available = currentBoard
         .map((cell, idx) => (cell === null ? idx : null))
         .filter((idx): idx is number => idx !== null);
@@ -124,7 +145,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
         const randomIdx = available[Math.floor(Math.random() * available.length)];
         applyMove(randomIdx, '🎉', currentBoard);
       }
-    }, 380);
+    }, 320);
   };
 
   const applyMove = (index: number, player: Player, currentBoard: Player[]) => {
@@ -195,12 +216,12 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <View style={[styles.card, { maxHeight: Math.min(winHeight * 0.94, 620) }]}>
           {/* Header */}
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
               <View style={styles.iconCircle}>
-                <Gamepad2 size={20} color="#e11d48" />
+                <Gamepad2 size={18} color="#e11d48" />
               </View>
               <View>
                 <Text style={styles.headerTitle}>Celebration Tic-Tac-Toe</Text>
@@ -208,7 +229,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <X size={20} color="#64748b" />
+              <X size={18} color="#64748b" />
             </TouchableOpacity>
           </View>
 
@@ -222,7 +243,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
               }}
               activeOpacity={0.8}
             >
-              <Bot size={15} color={gameMode === 'bot' ? '#ffffff' : '#64748b'} />
+              <Bot size={14} color={gameMode === 'bot' ? '#ffffff' : '#64748b'} />
               <Text style={[styles.modeTabText, gameMode === 'bot' && styles.modeTabTextActive]}>
                 vs Celebration Bot
               </Text>
@@ -235,7 +256,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
               }}
               activeOpacity={0.8}
             >
-              <Users size={15} color={gameMode === 'pvp' ? '#ffffff' : '#64748b'} />
+              <Users size={14} color={gameMode === 'pvp' ? '#ffffff' : '#64748b'} />
               <Text style={[styles.modeTabText, gameMode === 'pvp' && styles.modeTabTextActive]}>
                 Pass & Play
               </Text>
@@ -260,17 +281,18 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
             </View>
           </View>
 
-          {/* Winner Celebration Banner */}
+          {/* Winner Celebration Banner with Animated Confetti Effect */}
           {winner && (
             <Animated.View
               style={[
                 styles.winnerBanner,
                 {
+                  opacity: celebrationOpacity,
                   transform: [{ scale: celebrationScale }],
                 },
               ]}
             >
-              <Trophy size={22} color="#b45309" />
+              <Trophy size={20} color="#b45309" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.winnerTextTitle}>
                   {winner === 'DRAW' ? 'Celebration Tie! 🤝' : 'HappyLokam Winner! 🏆🎉'}
@@ -279,27 +301,43 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
                   {winner === 'DRAW'
                     ? 'A perfectly balanced celebration match!'
                     : winner === '👑'
-                      ? '👑 Player 1 Takes The Crown!'
+                      ? '👑 Player 1 is the HappyLokam Winner!'
                       : gameMode === 'bot'
-                        ? '🎉 Celebration Bot Takes The Trophy!'
-                        : '🎉 Player 2 Takes The Crown!'}
+                        ? '🎉 Celebration Bot is the HappyLokam Winner!'
+                        : '🎉 Player 2 is the HappyLokam Winner!'}
                 </Text>
               </View>
+              {winner !== 'DRAW' && (
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        translateY: particleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [10, -5],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <Sparkles size={18} color="#eab308" />
+                </Animated.View>
+              )}
             </Animated.View>
           )}
 
-          {/* Turn Indicator (When game is ongoing) */}
+          {/* Turn Indicator */}
           {!winner && (
             <View style={styles.turnCard}>
-              <Sparkles size={14} color="#e11d48" />
+              <Sparkles size={12} color="#e11d48" />
               <Text style={styles.turnText}>
                 {`Current Turn: ${isXNext ? '👑 Player 1' : gameMode === 'bot' ? '🎉 Bot Thinking...' : '🎉 Player 2'}`}
               </Text>
             </View>
           )}
 
-          {/* 3x3 Game Board - Responsive Structured Grid */}
-          <View style={styles.boardGrid}>
+          {/* 3x3 Game Board - Guaranteed Responsive Square Grid */}
+          <View style={[styles.boardGrid, { width: boardSize, height: boardSize }]}>
             {[0, 1, 2].map((rowIndex) => (
               <View key={rowIndex} style={styles.boardRow}>
                 {[0, 1, 2].map((colIndex) => {
@@ -317,7 +355,9 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
                       disabled={Boolean(cell || winner || (!isXNext && gameMode === 'bot'))}
                       activeOpacity={0.75}
                     >
-                      <Text style={styles.cellText}>{cell}</Text>
+                      <Text style={[styles.cellText, { fontSize: Math.max(22, boardSize * 0.1) }]}>
+                        {cell}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -328,7 +368,7 @@ export default function TicTacToeGame({ visible, onClose }: TicTacToeModalProps)
           {/* Action Buttons */}
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.resetBtn} onPress={resetGame} activeOpacity={0.8}>
-              <RotateCcw size={16} color="#0f172a" />
+              <RotateCcw size={15} color="#0f172a" />
               <Text style={styles.resetBtnText}>New Round</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.clearBtn} onPress={clearAllScores} activeOpacity={0.8}>
@@ -347,55 +387,55 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 14,
   },
   card: {
     width: '100%',
-    maxWidth: 390,
+    maxWidth: 370,
     backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 22,
+    padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    elevation: 10,
   },
   headerRow: {
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: '#ffe4e6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#0f172a',
   },
   headerSub: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#64748b',
     marginTop: 1,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#f1f5f9',
     justifyContent: 'center',
     alignItems: 'center',
@@ -403,30 +443,30 @@ const styles = StyleSheet.create({
   modeRow: {
     flexDirection: 'row',
     backgroundColor: '#f1f5f9',
-    borderRadius: 14,
-    padding: 4,
+    borderRadius: 12,
+    padding: 3,
     width: '100%',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   modeTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 9,
   },
   modeTabActive: {
     backgroundColor: '#e11d48',
     shadowColor: '#e11d48',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   modeTabText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748b',
   },
@@ -436,55 +476,55 @@ const styles = StyleSheet.create({
   scoreBoard: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     width: '100%',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   scoreItem: {
     alignItems: 'center',
   },
   scoreVal: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#0f172a',
   },
   scoreLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
     color: '#64748b',
-    marginTop: 2,
+    marginTop: 1,
   },
   scoreDivider: {
     width: 1,
-    height: 24,
+    height: 20,
     backgroundColor: '#cbd5e1',
   },
   winnerBanner: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: '#fef3c7',
     borderWidth: 1.5,
     borderColor: '#eab308',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    marginBottom: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    marginBottom: 10,
   },
   winnerTextTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#b45309',
   },
   winnerTextSub: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#78350f',
     marginTop: 1,
@@ -492,38 +532,36 @@ const styles = StyleSheet.create({
   turnCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#fff1f2',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    marginBottom: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginBottom: 10,
   },
   turnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#e11d48',
   },
   boardGrid: {
-    width: '100%',
-    maxWidth: 320,
-    aspectRatio: 1,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 18,
-    padding: 8,
-    gap: 8,
-    marginBottom: 16,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 6,
+    gap: 6,
+    marginBottom: 12,
     justifyContent: 'space-between',
+    alignSelf: 'center',
   },
   boardRow: {
     flex: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   cell: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -534,42 +572,41 @@ const styles = StyleSheet.create({
   },
   winningCell: {
     backgroundColor: '#fef08a',
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: '#eab308',
   },
   cellText: {
-    fontSize: 34,
+    textAlign: 'center',
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     width: '100%',
     justifyContent: 'center',
   },
   resetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#f1f5f9',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
   },
   resetBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#0f172a',
   },
   clearBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     justifyContent: 'center',
   },
   clearBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#94a3b8',
   },
 });
-

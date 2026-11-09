@@ -29,7 +29,7 @@ import {
 } from 'lucide-react-native';
 import { DbCategory } from '../../constants/databaseModels';
 import { getVenues, getPackages, getCategories } from '../../services/api';
-import { getAdminCustomSections, getAdminCustomCategories } from '../../services/adminSections';
+import { getAdminCustomSections, getAdminCustomCategories, getAdvanceFilters } from '../../services/adminSections';
 import RoomDatabase from '../../services/roomDatabase';
 import AdvancedFilterModal, {
   FilterState,
@@ -316,21 +316,31 @@ export default function ExploreTab() {
         const itemTitle = (item.title || item.name || '').toLowerCase();
 
         let matchesCat = false;
-        if (catKey === 'weddings') {
-          matchesCat = itemType.includes('wedding') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala');
-        } else if (catKey === 'birthdays') {
-          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('fiesta');
-        } else if (catKey === 'packages') {
+        if (catKey.includes('wedding') || catKey.includes('mandap')) {
+          matchesCat = itemType.includes('wedding') || itemType.includes('venue') || itemType.includes('palace') || itemType.includes('decor') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala') || itemTitle.includes('palace') || itemTags.includes('hall');
+        } else if (catKey.includes('birthday') || catKey.includes('fiesta')) {
+          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('party') || itemTags.includes('party') || itemTitle.includes('fiesta') || itemTags.includes('balloon') || itemType.includes('dj');
+        } else if (catKey.includes('offer') || catKey.includes('deal')) {
+          matchesCat = Boolean(item.badge || item.cornerTag || item.discount || item.tag || itemType.includes('offer') || itemTitle.includes('deal'));
+        } else if (catKey.includes('loksafari') || catKey.includes('safari')) {
+          matchesCat = itemType.includes('safari') || itemType.includes('resort') || itemTags.includes('pool') || itemTitle.includes('safari') || itemTitle.includes('resort') || itemTitle.includes('farmstay');
+        } else if (catKey.includes('baby')) {
+          matchesCat = itemType.includes('baby') || itemTags.includes('baby') || itemTitle.includes('baby') || itemTitle.includes('shower') || itemTags.includes('cradle');
+        } else if (catKey.includes('engagement') || catKey.includes('roka')) {
+          matchesCat = itemType.includes('roka') || itemType.includes('engagement') || itemTitle.includes('engagement') || itemTitle.includes('roka') || itemTags.includes('sangeet') || itemTags.includes('ring');
+        } else if (catKey.includes('corporate') || catKey.includes('office')) {
+          matchesCat = itemType.includes('corporate') || itemType.includes('conference') || itemTitle.includes('corporate') || itemTags.includes('meeting') || itemType.includes('venue');
+        } else if (catKey.includes('package')) {
           matchesCat = itemType.includes('package') || itemTags.includes('package') || itemTitle.includes('package');
-        } else if (catKey === 'decor') {
+        } else if (catKey.includes('decor')) {
           matchesCat = itemType.includes('decor') || itemTags.includes('decor') || itemTitle.includes('decor') || itemTitle.includes('floral');
-        } else if (catKey === 'catering') {
-          matchesCat = itemType.includes('catering') || itemTags.includes('catering') || itemTitle.includes('catering') || itemTitle.includes('buffet') || itemTags.includes('ghee');
-        } else if (catKey === 'pandit') {
+        } else if (catKey.includes('catering')) {
+          matchesCat = itemType.includes('catering') || itemTags.includes('catering') || itemTitle.includes('catering') || itemTitle.includes('buffet') || itemTags.includes('ghee') || itemTitle.includes('food');
+        } else if (catKey.includes('pandit')) {
           matchesCat = itemType.includes('pandit') || itemTags.includes('pandit') || itemTitle.includes('pandit') || itemTags.includes('vedic');
-        } else if (catKey === 'venues') {
+        } else if (catKey.includes('venue') || catKey.includes('palace') || catKey.includes('hall')) {
           matchesCat = itemType.includes('venue') || itemType.includes('palace') || itemType.includes('resort') || itemType.includes('haveli');
-        } else if (catKey === 'photography') {
+        } else if (catKey.includes('photo')) {
           matchesCat = itemType.includes('photo') || itemType.includes('shoot') || itemTags.includes('shoot');
         } else if (catKey.includes('dj') || catKey.includes('sound')) {
           matchesCat = itemType.includes('dj') || itemTags.includes('dj') || itemTitle.includes('dj') || itemTags.includes('sound') || itemTitle.includes('music');
@@ -339,7 +349,7 @@ export default function ExploreTab() {
         } else if (catKey.includes('choreo') || catKey.includes('dance')) {
           matchesCat = itemType.includes('choreo') || itemTags.includes('dance') || itemTitle.includes('dance') || itemTitle.includes('sangeet');
         } else if (catKey.includes('theme')) {
-          matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor');
+          matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor') || itemType.includes('venue');
         } else {
           matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey);
         }

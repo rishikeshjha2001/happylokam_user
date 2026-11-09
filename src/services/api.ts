@@ -269,6 +269,16 @@ export const changeUserPassword = async (currentPassword: string, newPassword: s
   }
 };
 
+// 7d. Reset User Password (via phone or email)
+export const resetUserPassword = async (phoneOrEmail: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await apiClient.post('/auth/reset-password', { phoneOrEmail, newPassword });
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to reset password' };
+  }
+};
+
 // 8. Offers & Promo Coupons from Admin Panel
 export const getOffers = async (): Promise<any[]> => {
   try {

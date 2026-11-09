@@ -47,6 +47,8 @@ import {
   getAdminCustomCategories,
   AdminCustomSection,
   AdminCustomCategory,
+  getAdvanceFilters,
+  AdvanceFilterModel,
 } from '../services/adminSections';
 
 interface SidebarDrawerProps {
@@ -62,6 +64,7 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
   const [walletBalance, setWalletBalance] = useState(0);
   const [customSections, setCustomSections] = useState<AdminCustomSection[]>([]);
   const [customCategories, setCustomCategories] = useState<AdminCustomCategory[]>([]);
+  const [dynamicAdvanceFilters, setDynamicAdvanceFilters] = useState<AdvanceFilterModel[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -92,6 +95,12 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       getAdminCustomCategories().then((cats) => {
         setCustomCategories(cats || []);
       }).catch(() => {});
+
+      getAdvanceFilters().then((flts) => {
+        if (Array.isArray(flts) && flts.length > 0) {
+          setDynamicAdvanceFilters(flts);
+        }
+      }).catch(() => {});
     }
   }, [visible, user]);
 
@@ -110,8 +119,24 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
     { icon: Gamepad2, label: 'Play Tic-Tac-Toe (Offline Game)', action: () => { setGameModalOpen(true); } },
   ];
 
-  // User-requested Celebration Categories
-  const celebrationThemes = [
+  // Icon map for dynamic advance filters
+  const iconMap: Record<string, any> = {
+    Crown,
+    Tag,
+    Cake,
+    Utensils,
+    Gift,
+    Sparkles,
+    Package,
+    Palette,
+    Flame,
+    Compass,
+    Heart,
+    Ticket,
+  };
+
+  // User-requested Celebration Categories (Preset + Dynamic Admin Filters)
+  const defaultThemes = [
     {
       icon: Crown,
       label: 'Wedding Themes & Mandaps',
@@ -124,7 +149,7 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       label: 'Wedding Offers & VIP Deals',
       sub: 'Instant cashback, early bird & promo discounts',
       tag: 'OFFERS',
-      action: () => { onClose(); router.push('/notifications'); },
+      action: () => { onClose(); router.push('/(tabs)/explore?category=Wedding%20Offers'); },
     },
     {
       icon: Cake,
@@ -183,6 +208,24 @@ export default function SidebarDrawer({ visible, onClose, onOpenWallet, user }: 
       action: () => { onClose(); router.push('/(tabs)/loksafari'); },
     },
   ];
+
+  const celebrationThemes = dynamicAdvanceFilters.length > 0
+    ? dynamicAdvanceFilters.map((flt) => ({
+        icon: iconMap[flt.icon || 'Sparkles'] || Sparkles,
+        label: flt.title,
+        sub: flt.subtitle || 'Celebration experience',
+        tag: flt.tag || 'FEATURED',
+        action: () => {
+          onClose();
+          const targetRoute = flt.route || `/(tabs)/explore?category=${encodeURIComponent(flt.category || flt.title)}`;
+          if (targetRoute.startsWith('/(tabs)/explore')) {
+            router.push({ pathname: '/(tabs)/explore', params: { category: flt.category || flt.title } });
+          } else {
+            router.push(targetRoute as any);
+          }
+        },
+      }))
+    : defaultThemes;
 
   const secondaryItems = [
     { icon: Settings, label: 'Account & Settings', action: () => { onClose(); router.push('/settings'); } },

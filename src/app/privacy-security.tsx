@@ -58,10 +58,6 @@ export default function PrivacySecurityScreen() {
   };
 
   const handleChangePasswordSubmit = async () => {
-    if (!currentPassword.trim()) {
-      Alert.alert('Validation Error', 'Please enter your current password.');
-      return;
-    }
     if (!newPassword.trim() || newPassword.length < 6) {
       Alert.alert('Validation Error', 'New password must be at least 6 characters.');
       return;
@@ -260,12 +256,12 @@ export default function PrivacySecurityScreen() {
 
             <View style={{ gap: 14, marginTop: 16 }}>
               <View>
-                <Text style={styles.inputLabel}>Current Password</Text>
+                <Text style={styles.inputLabel}>Current Password (Optional if OTP/Google login)</Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     style={styles.textInput}
                     secureTextEntry={!showCurrentPw}
-                    placeholder="Enter current password"
+                    placeholder="Leave blank if signed in via OTP"
                     placeholderTextColor="#94a3b8"
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
