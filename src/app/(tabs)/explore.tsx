@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   X,
   Ticket,
+  Calendar,
   Heart,
   ChevronRight,
   Sparkles,
@@ -64,6 +65,51 @@ const BASE_CATEGORY_FILTERS = [
   'LokSafari',
   'Packages',
 ];
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  All: '🌟',
+  Weddings: '👑',
+  'Wedding Themes': '🏰',
+  'Wedding Offers': '🏷️',
+  Birthdays: '🎂',
+  'Birthday Themes': '🎈',
+  'DJ & Sound': '🎵',
+  'Bridal Makeup': '💄',
+  Catering: '🍛',
+  'Baby Shower': '👶',
+  Engagements: '💍',
+  Choreography: '💃',
+  'Office Events': '💼',
+  Decor: '🌸',
+  Pandit: '🪔',
+  Venues: '🏰',
+  Photography: '📸',
+  LokSafari: '🌿',
+  Packages: '🎁',
+};
+
+const TRENDING_SEARCH_PROMPTS = [
+  { label: '👑 Royal Wedding', query: 'wedding' },
+  { label: '🎂 Birthday Party', query: 'birthday' },
+  { label: '🍛 Catering Plates', query: 'catering' },
+  { label: '🎟️ Gate Passes', query: 'pass' },
+  { label: '🌿 LokSafari', query: 'safari' },
+  { label: '🎵 DJ & Music', query: 'dj' },
+  { label: '⚡ Big Deals', query: 'offer' },
+];
+
+const formatDisplayPrice = (priceVal: any, unit?: string, isTicket?: boolean) => {
+  if (priceVal === undefined || priceVal === null || priceVal === '') return '₹1,499';
+  let formatted = '';
+  if (typeof priceVal === 'number') {
+    formatted = `₹${priceVal.toLocaleString('en-IN')}`;
+  } else {
+    const s = String(priceVal).trim();
+    formatted = s.startsWith('₹') ? s : `₹${s}`;
+  }
+  const resolvedUnit = unit || (isTicket ? 'pass' : 'package');
+  return `${formatted} / ${resolvedUnit}`;
+};
 
 export default function ExploreTab() {
   const insets = useSafeAreaInsets();
@@ -498,7 +544,7 @@ export default function ExploreTab() {
             <Search size={18} color="#94a3b8" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search venues, decorators, cities..."
+              placeholder="Search venues, decorators, cities, packages..."
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -510,6 +556,29 @@ export default function ExploreTab() {
             )}
           </View>
 
+          {/* Quick Trending Searches */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingRow}
+          >
+            {TRENDING_SEARCH_PROMPTS.map((tp) => {
+              const active = searchQuery.toLowerCase() === tp.query.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={tp.label}
+                  style={[styles.trendingPill, active && styles.trendingPillActive]}
+                  onPress={() => setSearchQuery(active ? '' : tp.query)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.trendingPillText, active && styles.trendingPillTextActive]}>
+                    {tp.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           {/* Horizontal Category Chips */}
           <ScrollView
             horizontal
@@ -518,13 +587,18 @@ export default function ExploreTab() {
           >
             {dynamicCategoryFilters.map((filter) => {
               const isActive = activeCategory === filter;
+              const emoji = CATEGORY_EMOJIS[filter] || '✨';
               return (
                 <TouchableOpacity
                   key={filter}
                   style={[styles.filterChip, isActive && styles.filterChipActive]}
-                  onPress={() => setActiveCategory(filter)}
+                  onPress={() => {
+                    setActiveCategory(filter);
+                    if (searchQuery) setSearchQuery('');
+                  }}
                   activeOpacity={0.8}
                 >
+                  <Text style={styles.filterChipEmoji}>{emoji}</Text>
                   <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
                     {filter}
                   </Text>
@@ -639,6 +713,8 @@ export default function ExploreTab() {
             <View style={styles.cardsGrid}>
               {filteredItems.map((item) => {
                 const isLiked = likedIds.includes(item.id);
+                const isTicket = item.itemType === 'TICKET' || (item.type?.toLowerCase().includes('ticket') || item.type?.toLowerCase().includes('pass'));
+                const cornerTag = item.cornerTag || item.tag || item.badge;
                 return (
                   <View key={item.id} style={styles.celebrationCard}>
                     <TouchableOpacity
@@ -649,6 +725,20 @@ export default function ExploreTab() {
                       <Image source={{ uri: item.image }} style={styles.cardImg} />
                       <View style={styles.cardCoverOverlay} />
 
+                      {/* Top Left Item Type Badge */}
+                      <View style={styles.cardTypePill}>
+                        {isTicket ? <Ticket size={11} color="#ffffff" /> : <Calendar size={11} color="#ffffff" />}
+                        <Text style={styles.cardTypePillText}>{isTicket ? 'DIGITAL PASS' : 'RESERVATION'}</Text>
+                      </View>
+
+                      {/* Top Right Corner Tag */}
+                      {Boolean(cornerTag) && (
+                        <View style={styles.cardCornerTagPill}>
+                          <Sparkles size={10} color="#ffffff" />
+                          <Text style={styles.cardCornerTagText}>{cornerTag}</Text>
+                        </View>
+                      )}
+
                       {/* Wishlist Button */}
                       <TouchableOpacity
                         style={styles.cardLikeBtn}
@@ -657,7 +747,7 @@ export default function ExploreTab() {
                       >
                         <Heart
                           size={15}
-                          color={isLiked ? '#e11d48' : '#475569'}
+                          color={isLiked ? '#e11d48' : '#ffffff'}
                           fill={isLiked ? '#e11d48' : 'transparent'}
                         />
                       </TouchableOpacity>
@@ -675,33 +765,50 @@ export default function ExploreTab() {
                         <View style={styles.typeTag}>
                           <Text style={styles.typeTagText}>{item.type || 'Celebration'}</Text>
                         </View>
-                        <Text style={styles.cardPriceText}>{item.price}</Text>
+                        <Text style={styles.cardPriceText}>
+                          {formatDisplayPrice(item.price, item.priceUnit, isTicket)}
+                        </Text>
                       </View>
 
                       <TouchableOpacity onPress={() => handleOpenDetail(item)} activeOpacity={0.8}>
                         <Text style={styles.itemTitle} numberOfLines={1}>
                           {item.title}
                         </Text>
+                        {item.subtitle ? (
+                          <Text style={styles.itemSubtitle} numberOfLines={1}>
+                            {item.subtitle}
+                          </Text>
+                        ) : null}
                       </TouchableOpacity>
 
                       {item.location && (
                         <View style={styles.itemLocRow}>
-                          <MapPin size={12} color="#94a3b8" />
+                          <MapPin size={12} color="#e11d48" />
                           <Text style={styles.itemLocText} numberOfLines={1}>
                             {item.location}
                           </Text>
                         </View>
                       )}
 
-                      {/* Direct Book Now Button */}
-                      <TouchableOpacity
-                        style={styles.bookNowBtn}
-                        onPress={() => handleBookNow(item)}
-                        activeOpacity={0.85}
-                      >
-                        <Ticket size={14} color="#ffffff" />
-                        <Text style={styles.bookNowBtnText}>Book Now</Text>
-                      </TouchableOpacity>
+                      {/* Dual Action Buttons: Details + Book Now */}
+                      <View style={styles.cardActionRow}>
+                        <TouchableOpacity
+                          style={styles.viewDetailBtn}
+                          onPress={() => handleOpenDetail(item)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.viewDetailBtnText}>Details</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.bookNowBtn}
+                          onPress={() => handleBookNow(item)}
+                          activeOpacity={0.85}
+                        >
+                          {isTicket ? <Ticket size={14} color="#ffffff" /> : <Calendar size={14} color="#ffffff" />}
+                          <Text style={styles.bookNowBtnText}>{isTicket ? 'Book Pass' : 'Reserve'}</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 );
@@ -1186,13 +1293,112 @@ const styles = StyleSheet.create({
     color: '#64748b',
     flex: 1,
   },
+  trendingRow: {
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  trendingPill: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  trendingPillActive: {
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+  },
+  trendingPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  trendingPillTextActive: {
+    color: '#e11d48',
+    fontWeight: '900',
+  },
+  filterChipEmoji: {
+    fontSize: 13,
+    marginRight: 4,
+  },
+  cardTypePill: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  cardTypePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  cardCornerTagPill: {
+    position: 'absolute',
+    top: 10,
+    right: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#e11d48',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    shadowColor: '#e11d48',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardCornerTagText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#ffffff',
+    textTransform: 'uppercase',
+  },
+  itemSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 6,
+  },
+  viewDetailBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewDetailBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#334155',
+  },
   bookNowBtn: {
+    flex: 1.4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#e11d48',
-    paddingVertical: 11,
-    borderRadius: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
     gap: 6,
     shadowColor: '#e11d48',
     shadowOffset: { width: 0, height: 4 },
@@ -1202,7 +1408,7 @@ const styles = StyleSheet.create({
   },
   bookNowBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
   },
 });
