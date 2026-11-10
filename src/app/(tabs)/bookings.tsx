@@ -77,6 +77,13 @@ export default function BookingsTab() {
           apiClient.get('/user/bookings').catch(() => null),
         ]);
 
+        const resolveStatus = (st: string) => {
+          const upper = String(st || '').toUpperCase();
+          if (upper === 'CONFIRMED' || upper === 'COMPLETED' || upper === 'PAID') return 'CONFIRMED';
+          if (upper === 'PENDING') return 'PENDING';
+          return 'CANCELLED';
+        };
+
         if (sectionsRes && typeof sectionsRes === 'object') {
           serverFetched = true;
           if (sectionsRes?.success && Array.isArray(sectionsRes.data)) {
@@ -88,7 +95,7 @@ export default function BookingsTab() {
                   category: sb.item?.itemType || 'Custom Booking',
                   date: sb.bookingDate || new Date().toISOString().split('T')[0],
                   amount: sb.totalAmount || 0,
-                  status: (sb.status === 'CONFIRMED' || sb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                  status: resolveStatus(sb.status) as any,
                   ticketsCount: sb.quantity || 1,
                   createdAt: sb.createdAt,
                   qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
@@ -112,7 +119,7 @@ export default function BookingsTab() {
                     category: 'EVENT',
                     date: eb.event?.date ? new Date(eb.event.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     amount: eb.totalAmount || 0,
-                    status: (eb.status === 'CONFIRMED' || eb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                    status: resolveStatus(eb.status) as any,
                     ticketsCount: eb.ticketsCount || 1,
                     createdAt: eb.createdAt,
                     qrCode: eb.id,
@@ -131,7 +138,7 @@ export default function BookingsTab() {
                     category: 'VENDOR',
                     date: vb.date ? new Date(vb.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     amount: vb.totalAmount || 0,
-                    status: (vb.status === 'CONFIRMED' || vb.status === 'COMPLETED' ? 'CONFIRMED' : 'CANCELLED') as any,
+                    status: resolveStatus(vb.status) as any,
                     ticketsCount: 1,
                     createdAt: vb.createdAt,
                     qrCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
@@ -259,9 +266,22 @@ export default function BookingsTab() {
                     <Text style={styles.bookingType}>{booking.category}</Text>
                     <Text style={styles.bookingTitle}>{booking.title}</Text>
                   </View>
-                  <View style={styles.confirmedBadge}>
-                    <ShieldCheck size={12} color="#15803d" />
-                    <Text style={styles.confirmedText}>Confirmed</Text>
+                  <View style={[
+                    styles.confirmedBadge,
+                    booking.status === 'PENDING' && { backgroundColor: '#fef3c7', borderColor: '#fde68a' },
+                    booking.status === 'CANCELLED' && { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
+                  ]}>
+                    <ShieldCheck size={12} color={
+                      booking.status === 'PENDING' ? '#d97706' :
+                      booking.status === 'CANCELLED' ? '#ef4444' : '#15803d'
+                    } />
+                    <Text style={[
+                      styles.confirmedText,
+                      booking.status === 'PENDING' && { color: '#d97706' },
+                      booking.status === 'CANCELLED' && { color: '#ef4444' },
+                    ]}>
+                      {booking.status === 'PENDING' ? 'Pending' : booking.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed'}
+                    </Text>
                   </View>
                 </View>
 

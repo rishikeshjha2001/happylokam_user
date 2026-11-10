@@ -163,6 +163,11 @@ export async function bookSectionItem(
     bookingDate: string;
     bookingTime?: string;
     quantity?: number;
+    guestCount?: number;
+    platesCount?: number;
+    bookingDays?: number;
+    customSubtotal?: number;
+    pricePerPlate?: number;
     userName: string;
     userPhone: string;
     userEmail?: string;

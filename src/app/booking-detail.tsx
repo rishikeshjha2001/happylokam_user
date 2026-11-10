@@ -218,7 +218,18 @@ export default function BookingDetailScreen() {
               </View>
               <View style={styles.infoCol}>
                 <Text style={styles.infoLabel}>STATUS</Text>
-                <Text style={[styles.infoValue, { color: '#16a34a' }]}>CONFIRMED</Text>
+                <Text style={[
+                  styles.infoValue,
+                  {
+                    color: (booking?.status || params.status || 'CONFIRMED').toUpperCase() === 'PENDING'
+                      ? '#d97706'
+                      : (booking?.status || params.status || 'CONFIRMED').toUpperCase() === 'CANCELLED'
+                        ? '#ef4444'
+                        : '#16a34a'
+                  }
+                ]}>
+                  {(booking?.status || params.status || 'CONFIRMED').toUpperCase()}
+                </Text>
               </View>
               <View style={styles.infoCol}>
                 <Text style={styles.infoLabel}>TOTAL PAID</Text>

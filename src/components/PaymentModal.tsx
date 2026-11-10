@@ -165,12 +165,24 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
 
       // A pass exists only after the server creates the booking.
       if (!item.id || item.id.startsWith('mock_')) throw new Error('This item is not available for secure booking.');
+      const numGuests = item.guestCount || guestCount || 1;
+      const numPlates = item.platesCount || 0;
+      const numDays = item.bookingDays || bookingDays || 1;
+      const dynamicNotes = isTicket 
+        ? 'Mobile Ticket Pass' 
+        : `Celebration Booking (${numDays} Day${numDays > 1 ? 's' : ''}${numPlates > 0 ? ` • ${numPlates} Plates` : ` • ${numGuests} Guests`})`;
+
       bookingResult = await bookSectionItem(item.id, {
         bookingDate: selectedDate,
         quantity,
+        guestCount: numGuests,
+        platesCount: numPlates,
+        bookingDays: numDays,
+        customSubtotal: subtotal,
+        pricePerPlate: item.pricePerPlate,
         userName: guestName.trim(),
         userPhone: guestPhone.trim(),
-        notes: isTicket ? 'Mobile Ticket Pass' : 'Mobile Reservation Booking',
+        notes: dynamicNotes,
         walletDiscount: useWallet ? walletDiscount : 0,
       });
       const confirmedServerId = bookingResult?.data?.id || bookingResult?.id;
