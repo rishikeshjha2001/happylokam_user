@@ -232,6 +232,41 @@ export const getUserWallet = async (): Promise<{ balance: number; walletBalance:
   }
 };
 
+// 6b. Get User Profile from Backend Server
+export const getUserProfile = async (): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const isAuth = await RoomDatabase.isAuthenticated();
+    if (!isAuth) return { success: false, error: 'Not authenticated' };
+    const res = await apiClient.get('/user/profile');
+    if (res?.success && res.data) {
+      return { success: true, data: res.data };
+    }
+    return { success: false, error: res?.error || 'Failed to fetch user profile' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Error fetching user profile' };
+  }
+};
+
+// 6c. Update User Profile on Backend Server
+export const updateUserProfile = async (profileData: {
+  name?: string;
+  phone?: string;
+  gender?: string;
+  profileImage?: string;
+}): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const isAuth = await RoomDatabase.isAuthenticated();
+    if (!isAuth) return { success: false, error: 'Not authenticated' };
+    const res = await apiClient.put('/user/profile', profileData);
+    if (res?.success && res.data) {
+      return { success: true, data: res.data };
+    }
+    return { success: false, error: res?.error || 'Failed to update profile' };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Error updating user profile' };
+  }
+};
+
 // 7. Live Notifications from Admin Panel
 export const getUserNotifications = async (): Promise<any[]> => {
   try {

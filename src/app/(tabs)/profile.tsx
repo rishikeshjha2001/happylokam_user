@@ -38,7 +38,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import RoomDatabase, { RoomBooking } from '../../services/roomDatabase';
-import { getUserWallet } from '../../services/api';
+import { getUserWallet, getUserProfile } from '../../services/api';
 import SidebarDrawer from '../../components/SidebarDrawer';
 import WalletModal from '../../components/WalletModal';
 import SwipeTabContainer from '../../components/SwipeTabContainer';
@@ -67,23 +67,36 @@ export default function ProfileTab() {
 
   const loadProfileData = async () => {
     try {
-      const [session, bList, fList, serverWallet] = await Promise.all([
+      const [session, bList, fList, serverWallet, serverProfile] = await Promise.all([
         RoomDatabase.getUserSession(),
         RoomDatabase.getBookings(),
         RoomDatabase.getFavorites(),
         getUserWallet().catch(() => ({ walletBalance: 0 })),
+        getUserProfile().catch(() => null),
       ]);
 
       const bal = typeof serverWallet?.walletBalance === 'number' ? serverWallet.walletBalance : await RoomDatabase.getWalletBalance();
 
       if (session && session.name) {
         setIsLoggedIn(true);
+        const freshName = serverProfile?.data?.name || session.name;
+        const freshEmail = serverProfile?.data?.email || session.email || 'user@happylokam.com';
+        const freshPhone = serverProfile?.data?.phone || session.phone || '';
+        const freshRef = serverProfile?.data?.referralCode || session.referralCode || 'HL-CELEB';
+        if (serverProfile?.data) {
+          session.name = freshName;
+          session.email = freshEmail;
+          session.phone = freshPhone;
+          session.referralCode = freshRef;
+          session.walletBalance = bal;
+          RoomDatabase.saveUserSession(session).catch(() => {});
+        }
         setUserData({
-          name: session.name,
-          email: session.email || 'user@happylokam.com',
+          name: freshName,
+          email: freshEmail,
           balance: bal,
-          phone: session.phone || '',
-          referralCode: session.referralCode || 'HL-CELEB',
+          phone: freshPhone,
+          referralCode: freshRef,
         });
       } else {
         setIsLoggedIn(false);

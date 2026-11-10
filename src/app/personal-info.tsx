@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import RoomDatabase, { RoomUser } from '../services/roomDatabase';
+import { getUserProfile, updateUserProfile } from '../services/api';
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
@@ -67,6 +68,32 @@ export default function PersonalInfoScreen() {
         const loc = await RoomDatabase.getLocation();
         if (loc) setLocation(loc);
       }
+
+      // Sync with server if authenticated
+      const isAuth = await RoomDatabase.isAuthenticated();
+      if (isAuth) {
+        const serverProfile = await getUserProfile().catch(() => null);
+        if (serverProfile?.success && serverProfile.data) {
+          const sp = serverProfile.data;
+          setName((prev) => sp.name || prev);
+          setEmail((prev) => sp.email || prev);
+          if (sp.phone) setPhone(sp.phone);
+          if (sp.gender) setGender(sp.gender);
+
+          if (session) {
+            const merged: RoomUser = {
+              ...session,
+              name: sp.name || session.name,
+              email: sp.email || session.email,
+              phone: sp.phone || session.phone,
+              gender: sp.gender || session.gender,
+              walletBalance: typeof sp.walletBalance === 'number' ? sp.walletBalance : session.walletBalance,
+            };
+            setUserSession(merged);
+            await RoomDatabase.saveUserSession(merged);
+          }
+        }
+      }
     } catch (e) {
       console.warn('loadProfile error:', e);
     } finally {
@@ -82,6 +109,15 @@ export default function PersonalInfoScreen() {
 
     setSaving(true);
     try {
+      const isAuth = await RoomDatabase.isAuthenticated();
+      if (isAuth) {
+        await updateUserProfile({
+          name: name.trim(),
+          phone: phone.trim() || undefined,
+          gender,
+        }).catch((err) => console.warn('Server profile update sync:', err));
+      }
+
       const updated: RoomUser = {
         id: userSession?.id || 'u_' + Date.now(),
         name: name.trim(),
