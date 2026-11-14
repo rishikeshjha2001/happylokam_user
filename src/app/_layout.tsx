@@ -130,7 +130,7 @@ export default function RootLayout() {
         <Animated.View style={[
           StyleSheet.absoluteFill,
           { 
-            backgroundColor: "#e11d48", // Official Rose-600 Background
+            backgroundColor: "#ffffff", // Pure White Background
             justifyContent: "center", 
             alignItems: "center",
             transform: [{ translateY: screenTranslateY }],
@@ -138,23 +138,39 @@ export default function RootLayout() {
           }
         ]}>
           
-          {/* Subtle Glowing Circle Background */}
+          {/* Subtle Outer Celebration Ring */}
           <Animated.View style={{
             position: "absolute",
-            width: 180,
-            height: 180,
-            borderRadius: 90,
-            backgroundColor: "rgba(255, 255, 255, 0.12)",
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: "rgba(225, 29, 72, 0.06)",
             transform: [{ scale: circleScale }],
           }} />
 
-          {/* Masked Text Reveal - Pure White happylokam */}
-          <View style={{ overflow: "hidden", padding: 10 }}>
+          {/* Glowing Animated Circle Background */}
+          <Animated.View style={{
+            position: "absolute",
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: "#e11d48", // Rose 600
+            opacity: 0.15,
+            transform: [{ scale: circleScale }],
+            shadowColor: "#e11d48",
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.4,
+            shadowRadius: 35,
+            elevation: 12,
+          }} />
+
+          {/* Masked Text Reveal - Pure Black happylokam */}
+          <View style={{ overflow: "hidden", padding: 10, alignItems: 'center' }}>
             <Animated.Text style={{ 
-              fontSize: 50, 
+              fontSize: 52, 
               fontWeight: "900", 
-              color: "#ffffff", // Pure White text happylokam
-              letterSpacing: -1,
+              color: "#000000", // Black happylokam
+              letterSpacing: -1.5,
               transform: [{ translateY: textTranslateY }],
               opacity: textOpacity
             }}>
@@ -162,24 +178,33 @@ export default function RootLayout() {
             </Animated.Text>
           </View>
 
-          {/* Tagline - Black color as requested */}
-          <Animated.Text style={{ 
-            fontSize: 12, 
-            color: "#000000", // Black color
-            textAlign: "center", 
-            marginTop: 8, 
-            fontWeight: "900",
-            letterSpacing: 2.5,
-            textTransform: "uppercase",
+          {/* Advanced Luxury Tagline Pill */}
+          <Animated.View style={{
             opacity: taglineOpacity,
-            backgroundColor: "#ffffff",
-            paddingHorizontal: 14,
-            paddingVertical: 5,
-            borderRadius: 8,
-            overflow: "hidden",
+            marginTop: 8,
+            backgroundColor: "#f8fafc",
+            paddingHorizontal: 16,
+            paddingVertical: 6,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: "#e2e8f0",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            elevation: 2,
           }}>
-            Extraordinary Celebrations
-          </Animated.Text>
+            <Text style={{ 
+              fontSize: 11, 
+              color: "#0f172a", // Black text
+              textAlign: "center", 
+              fontWeight: "900",
+              letterSpacing: 2.5,
+              textTransform: "uppercase",
+            }}>
+              Extraordinary Celebrations
+            </Text>
+          </Animated.View>
           
         </Animated.View>
       )}

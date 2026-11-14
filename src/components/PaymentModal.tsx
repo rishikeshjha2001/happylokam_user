@@ -120,10 +120,17 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
   const subtotal = item.calculatedSubtotal !== undefined
     ? item.calculatedSubtotal
     : (isTicket ? basePriceNum * quantity : basePriceNum * bookingDays);
+
+  // Razorpay 2% Commission + 18% GST on that 2% Commission
+  const razorpayCommission = Math.round(subtotal * 0.02 * 100) / 100;
+  const razorpayGst = Math.round(razorpayCommission * 0.18 * 100) / 100;
+  const razorpayTotalFee = Math.round((razorpayCommission + razorpayGst) * 100) / 100;
+  const grossTotal = Math.round((subtotal + razorpayTotalFee) * 100) / 100;
+
   // All pricing determined by admin configuration - no arbitrary/fake discounts
-  const maxWalletApplicable = Math.min(walletBalance, subtotal);
+  const maxWalletApplicable = Math.min(walletBalance, grossTotal);
   const walletDiscount = useWallet ? maxWalletApplicable : 0;
-  const total = Math.max(0, subtotal - walletDiscount);
+  const total = Math.max(0, Math.round((grossTotal - walletDiscount) * 100) / 100);
 
   const availableDateList = Array.isArray(item.availableDates) && item.availableDates.length > 0
     ? item.availableDates
@@ -178,7 +185,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
         guestCount: numGuests,
         platesCount: numPlates,
         bookingDays: numDays,
-        customSubtotal: subtotal,
+        customSubtotal: total,
         pricePerPlate: item.pricePerPlate,
         userName: guestName.trim(),
         userPhone: guestPhone.trim(),
@@ -597,8 +604,12 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                 <Text style={styles.billValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
               </View>
               <View style={styles.billRow}>
-                <Text style={styles.billLabel}>Taxes & Fees</Text>
-                <Text style={[styles.billValue, { color: '#059669' }]}>Included</Text>
+                <Text style={styles.billLabel}>Razorpay Payment Gateway Fee (2%)</Text>
+                <Text style={styles.billValue}>₹{razorpayCommission.toFixed(2)}</Text>
+              </View>
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>GST on Gateway Fee (18% on 2%)</Text>
+                <Text style={styles.billValue}>₹{razorpayGst.toFixed(2)}</Text>
               </View>
               {useWallet && walletDiscount > 0 && (
                 <View style={styles.billRow}>
@@ -606,7 +617,7 @@ export default function PaymentModal({ visible, item, onClose, onSuccess }: Paym
                     Wallet Balance Applied
                   </Text>
                   <Text style={[styles.discountValue, { color: '#059669', fontWeight: '700' }]}>
-                    -₹{walletDiscount}
+                    -₹{walletDiscount.toFixed(2)}
                   </Text>
                 </View>
               )}

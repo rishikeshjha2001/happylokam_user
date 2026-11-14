@@ -15,6 +15,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   BackHandler,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,13 +41,39 @@ import {
   Gift,
   Info,
   Check,
+  User,
+  QrCode,
+  Wallet,
+  LogIn,
+  Utensils,
+  CalendarDays,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
-import { getAdminSectionItemById, AdminSectionItem } from '../services/adminSections';
+import { getAdminSectionItemById, AdminSectionItem, bookSectionItem } from '../services/adminSections';
+import { createRazorpayOrder, verifyRazorpayPayment, getUserWallet } from '../services/api';
 import PaymentModal from '../components/PaymentModal';
+import CelebrationDatePickerModal from '../components/CelebrationDatePickerModal';
+import RazorpayCheckout from 'react-native-razorpay';
 import MLRecommendation from '../services/mlRecommendationEngine';
 
 const { width } = Dimensions.get('window');
+const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
+
+function formatSelectedDateHuman(dateStr: string): string {
+  if (!dateStr) return 'Date not chosen';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function ItemDetailScreen() {
   const router = useRouter();
@@ -73,6 +100,19 @@ export default function ItemDetailScreen() {
   const [guestCount, setGuestCount] = useState(150);
   const [platesCount, setPlatesCount] = useState(100);
   const [bookingDays, setBookingDays] = useState(1);
+  const [customPlatesEnabled, setCustomPlatesEnabled] = useState(false);
+
+  // Celebration Date Picker Modal State
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+
+  // Guest Details & Wallet State on Celebration Details Page
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
 
   // Rating & Review State
   const [ratings, setRatings] = useState<any[]>([]);
@@ -84,6 +124,14 @@ export default function ItemDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
+        if (confirmedBooking) {
+          setConfirmedBooking(null);
+          return true;
+        }
+        if (calendarModalVisible) {
+          setCalendarModalVisible(false);
+          return true;
+        }
         if (showPayment) {
           setShowPayment(false);
           return true;
@@ -102,7 +150,7 @@ export default function ItemDetailScreen() {
 
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [showPayment, ratingModalVisible])
+    }, [confirmedBooking, calendarModalVisible, showPayment, ratingModalVisible])
   );
 
   const itemId = params.id || 'default_item';
@@ -111,17 +159,36 @@ export default function ItemDetailScreen() {
     loadItemData();
     checkFavorite();
     loadRatings();
+
+    // Check user authentication & session for celebration pass
+    RoomDatabase.isAuthenticated().then((authed) => setIsLoggedIn(authed));
+    RoomDatabase.getUserSession().then((session) => {
+      if (session) {
+        if (session.name) setGuestName(session.name);
+        if (session.phone) setGuestPhone(session.phone);
+      }
+    });
+    RoomDatabase.getWalletBalance().then((bal) => {
+      setWalletBalance(bal);
+      if (bal > 0) setUseWallet(true);
+    });
   }, [itemId]);
 
   const loadItemData = async () => {
     setLoading(true);
     try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const defaultTomorrow = tomorrow.toISOString().split('T')[0];
+
       if (params.id && !params.id.startsWith('mock_')) {
         const fetched = await getAdminSectionItemById(params.id);
         if (fetched) {
           setItem(fetched);
           if (fetched.availableDates && fetched.availableDates.length > 0) {
             setSelectedDate(fetched.availableDates[0]);
+          } else if (!selectedDate) {
+            setSelectedDate(defaultTomorrow);
           }
           if (fetched.availableTimes && fetched.availableTimes.length > 0) {
             setSelectedTime(fetched.availableTimes[0]);
@@ -151,12 +218,12 @@ export default function ItemDetailScreen() {
           'Professional Sound, Stage & Lighting Setup',
           'Full Hygiene Verified & Catering Oversight',
         ],
-        availableDates: ['2026-10-25', '2026-10-28', '2026-11-02', '2026-11-10'],
+        availableDates: [defaultTomorrow],
         availableTimes: ['10:00 AM - 02:00 PM', '04:00 PM - 08:00 PM', '07:00 PM - 11:30 PM'],
         capacity: 350,
       };
       setItem(fallbackItem);
-      setSelectedDate(fallbackItem.availableDates[0]);
+      setSelectedDate(defaultTomorrow);
       setSelectedTime(fallbackItem.availableTimes[0]);
     } catch (e) {
       console.warn('ItemDetail load error:', e);
@@ -270,21 +337,42 @@ export default function ItemDetailScreen() {
   const isPerPerson = (item.priceUnit && (item.priceUnit.toLowerCase().includes('plate') || item.priceUnit.toLowerCase().includes('person'))) ||
     (item.category && (item.category.toLowerCase().includes('cater') || item.category.toLowerCase().includes('buffet')));
 
-  const hasPerPlate = Boolean(item.pricePerPlate && Number(item.pricePerPlate) > 0) || isPerPerson;
+  const hasDefaultPerPlate = Boolean(item.pricePerPlate && Number(item.pricePerPlate) > 0) || isPerPerson;
+  const hasPerPlate = hasDefaultPerPlate || customPlatesEnabled;
   const hasPerGuest = Boolean(item.pricePerGuest && Number(item.pricePerGuest) > 0);
   const hasBaseHall = Boolean(item.baseHallPrice && Number(item.baseHallPrice) > 0);
 
-  const plateRate = item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 0);
+  const plateRate = item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 550);
   const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
-  const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
+  const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasDefaultPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
+
+  // Subtotal calculation
+  const hallSubtotal = hallRate * bookingDays;
+  const platesSubtotal = hasPerPlate ? plateRate * platesCount : 0;
+  const guestSubtotal = hasPerGuest ? guestRate * guestCount : 0;
 
   const calculatedBase = isTicket
     ? basePriceNum
     : (hasPerPlate || hasPerGuest || hasBaseHall
-        ? (hallRate * bookingDays) + (hasPerPlate ? plateRate * platesCount : 0) + (hasPerGuest ? guestRate * guestCount : 0)
+        ? hallSubtotal + platesSubtotal + guestSubtotal
         : (isPerPerson
             ? basePriceNum * guestCount * bookingDays
             : basePriceNum * bookingDays));
+
+  // Razorpay 2% Commission + 18% GST on that 2% Commission
+  const razorpayCommission = Math.round(calculatedBase * 0.02 * 100) / 100;
+  const razorpayGst = Math.round(razorpayCommission * 0.18 * 100) / 100;
+  const razorpayTotalFee = Math.round((razorpayCommission + razorpayGst) * 100) / 100;
+
+  // Gross total with gateway fee
+  const totalWithGatewayFee = Math.round((calculatedBase + razorpayTotalFee) * 100) / 100;
+
+  // Wallet perk deduction
+  const maxWalletApplicable = Math.min(walletBalance, totalWithGatewayFee);
+  const walletDiscount = useWallet ? maxWalletApplicable : 0;
+
+  // Final Net Payable
+  const finalPayable = Math.max(0, Math.round((totalWithGatewayFee - walletDiscount) * 100) / 100);
 
   const mainPhoto = item.image || item.imageUrl || '';
   const galleryImages = (Array.isArray(item.images) && item.images.length > 0)
@@ -317,6 +405,7 @@ export default function ItemDetailScreen() {
   };
 
   const handleInitiateBooking = async () => {
+    // 1. Auth Guard Check
     const authed = await RoomDatabase.isAuthenticated();
     if (!authed) {
       Alert.alert(
@@ -332,7 +421,202 @@ export default function ItemDetailScreen() {
       );
       return;
     }
-    setShowPayment(true);
+
+    // 2. Date Check
+    if (!selectedDate) {
+      setCalendarModalVisible(true);
+      Alert.alert('Celebration Date Required 📅', 'Please pick your celebration date to continue.');
+      return;
+    }
+
+    // 3. Name & Phone validation
+    if (!guestName.trim()) {
+      Alert.alert('Name Required', 'Please enter your full name for the celebration pass.');
+      return;
+    }
+    const cleanPhone = guestPhone.trim().replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      Alert.alert('Phone Required', 'Please enter a valid 10-digit mobile number for ticket SMS & entry.');
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const numGuests = guestCount || 1;
+      const numPlates = hasPerPlate ? platesCount : 0;
+      const numDays = bookingDays || 1;
+      const dynamicNotes = isTicket
+        ? 'Mobile Ticket Pass'
+        : `Celebration Booking (${numDays} Day${numDays > 1 ? 's' : ''}${hasPerPlate ? ` • ${numPlates} Plates` : ` • ${numGuests} Guests`})`;
+
+      // Call backend bookSectionItem
+      const bookingResult = await bookSectionItem(item.id, {
+        bookingDate: selectedDate,
+        quantity: 1,
+        guestCount: numGuests,
+        platesCount: numPlates,
+        bookingDays: numDays,
+        customSubtotal: finalPayable,
+        pricePerPlate: plateRate,
+        userName: guestName.trim(),
+        userPhone: guestPhone.trim(),
+        notes: dynamicNotes,
+        walletDiscount,
+      });
+
+      const confirmedServerId = bookingResult?.data?.id || (bookingResult as any)?.id;
+      if (!confirmedServerId) {
+        throw new Error(bookingResult?.error || 'The booking could not be created on the server.');
+      }
+
+      // Razorpay Native Checkout
+      let paymentId = '';
+      let orderId = '';
+      let signature = '';
+
+      if (finalPayable > 0) {
+        const razorpayOrder = await createRazorpayOrder(
+          finalPayable,
+          `hl_sec_${Date.now()}`,
+          { sectionBookingId: confirmedServerId, purpose: 'SECTION' }
+        );
+        orderId = razorpayOrder.id;
+
+        const userSession = await RoomDatabase.getUserSession();
+        const customerContact = cleanPhone || userSession?.phone || '9570729077';
+        const customerEmail = userSession?.email || 'customer@happylokam.com';
+        const customerName = guestName.trim() || userSession?.name || 'HappyLokam Guest';
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          await new Promise((resolve) => {
+            if ((window as any).Razorpay) return resolve(true);
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+          });
+
+          if ((window as any).Razorpay) {
+            await new Promise((resolve) => {
+              const rzp = new (window as any).Razorpay({
+                description: item.title || 'Celebration Booking',
+                image: 'https://happylokam.com/favicon.png',
+                currency: 'INR',
+                key: RAZORPAY_KEY,
+                amount: Math.round(finalPayable * 100),
+                name: 'happylokam Celebrations',
+                order_id: orderId.startsWith('order_') && orderId.length > 15 ? orderId : undefined,
+                prefill: {
+                  email: customerEmail,
+                  contact: customerContact,
+                  name: customerName,
+                  method: 'upi',
+                },
+                theme: { color: '#e11d48' },
+                handler: (resp: any) => {
+                  if (resp?.razorpay_payment_id) {
+                    paymentId = resp.razorpay_payment_id;
+                    orderId = resp.razorpay_order_id || orderId;
+                    signature = resp.razorpay_signature || signature;
+                  }
+                  resolve(true);
+                },
+                modal: {
+                  ondismiss: () => resolve(false),
+                },
+              });
+              rzp.open();
+            });
+          }
+        } else if (RazorpayCheckout && typeof RazorpayCheckout.open === 'function') {
+          const rzpOptions: any = {
+            description: item.title || 'Celebration Booking',
+            image: 'https://happylokam.com/favicon.png',
+            currency: 'INR',
+            key: RAZORPAY_KEY,
+            amount: Math.round(finalPayable * 100),
+            name: 'happylokam Celebrations',
+            order_id: orderId,
+            prefill: {
+              email: customerEmail,
+              contact: customerContact,
+              name: customerName,
+              method: 'upi',
+            },
+            theme: { color: '#e11d48' },
+            retry: { enabled: true, max_count: 3 },
+          };
+          const rzpRes: any = await RazorpayCheckout.open(rzpOptions);
+          if (rzpRes?.razorpay_payment_id) {
+            paymentId = rzpRes.razorpay_payment_id;
+            orderId = rzpRes.razorpay_order_id || orderId;
+            signature = rzpRes.razorpay_signature || signature;
+          }
+        }
+
+        if (!paymentId || !orderId || !signature) {
+          throw new Error('Payment was not completed.');
+        }
+
+        await verifyRazorpayPayment({
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          sectionBookingId: confirmedServerId,
+          amount: finalPayable,
+        });
+      }
+
+      const confirmedTicketCode = bookingResult?.data?.ticketCode || (bookingResult as any)?.ticketCode;
+      const ticketId = confirmedTicketCode || confirmedServerId;
+
+      const localBooking = {
+        id: confirmedServerId || ('hlc_' + Date.now()),
+        title: item.title || 'Celebration Booking',
+        category: isTicket ? 'Ticket Pass' : (item.type || item.itemType || 'Reservation'),
+        date: selectedDate,
+        amount: finalPayable,
+        status: 'CONFIRMED' as const,
+        tierName: isTicket ? 'Ticket Pass' : 'Confirmed Booking',
+        ticketsCount: 1,
+        qrCode: ticketId,
+        serverVerified: true,
+        createdAt: new Date().toISOString(),
+      };
+      await RoomDatabase.saveBooking(localBooking);
+
+      if (useWallet && walletDiscount > 0) {
+        await RoomDatabase.deductWalletBalance(walletDiscount);
+        setWalletBalance((prev) => Math.max(0, prev - walletDiscount));
+      }
+
+      try {
+        const freshWallet = await getUserWallet();
+        if (typeof freshWallet?.walletBalance === 'number') {
+          await RoomDatabase.setWalletBalance(freshWallet.walletBalance);
+          setWalletBalance(freshWallet.walletBalance);
+        }
+      } catch {}
+
+      await RoomDatabase.addNotification({
+        id: 'notif_bkg_' + Date.now(),
+        title: `Booking Confirmed: ${localBooking.title} 🎉`,
+        message: `Your celebration ${isTicket ? 'digital ticket' : 'reservation'} is confirmed for ${selectedDate}. Pass Code: ${ticketId}. Total paid: ₹${finalPayable.toLocaleString('en-IN')}.`,
+        sentAt: new Date().toISOString(),
+        isRead: false,
+      });
+
+      setConfirmedBooking({ ...localBooking, ticketCode: ticketId });
+    } catch (e: any) {
+      if (e?.code === 0 || e?.description?.toLowerCase().includes('cancel')) {
+        setPaying(false);
+        return;
+      }
+      Alert.alert('Booking Notice', e?.message || 'Your booking could not be completed. Please try again.');
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -562,14 +846,43 @@ export default function ItemDetailScreen() {
           {/* ============================================================== */}
           {!isTicket && (
             <>
-              {/* Start Date Picker */}
+              {/* Interactive Celebration Date Picker */}
               <View style={styles.sectionBlock}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={styles.sectionTitle}>Celebration Start Date</Text>
-                  <Text style={styles.sectionSubtitle}>Pick your event date</Text>
+                  <Text style={styles.sectionTitle}>Celebration Event Date</Text>
+                  <TouchableOpacity
+                    onPress={() => setCalendarModalVisible(true)}
+                    style={styles.openCalendarPill}
+                    activeOpacity={0.8}
+                  >
+                    <Calendar size={13} color="#e11d48" />
+                    <Text style={styles.openCalendarPillText}>Open Calendar</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* Interactive Date Scroll (Next 14 Days) */}
+                {/* Primary Chosen Date Display Card */}
+                <TouchableOpacity
+                  style={styles.chosenDateCard}
+                  onPress={() => setCalendarModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.chosenDateLeft}>
+                    <View style={styles.chosenDateIcon}>
+                      <CalendarDays size={22} color="#e11d48" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.chosenDateLabel}>CONFIRMED CELEBRATION DATE</Text>
+                      <Text style={styles.chosenDateVal}>{formatSelectedDateHuman(selectedDate)}</Text>
+                      <Text style={styles.chosenDateSub}>Tap to change or pick any future month</Text>
+                    </View>
+                  </View>
+                  <View style={styles.changeDateBtn}>
+                    <Text style={styles.changeDateBtnText}>Change 📅</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Quick Upcoming Day Chips (Next 14 Days) */}
+                <Text style={styles.quickDateHeader}>OR QUICK PICK UPCOMING DATES:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
                   {Array.from({ length: 14 }).map((_, idx) => {
                     const d = new Date();
@@ -637,117 +950,221 @@ export default function ItemDetailScreen() {
                 </View>
               </View>
 
-              {/* Guest Attendance or Per-Plate Catering Selector */}
-              {hasPerPlate ? (
-                <View style={styles.sectionBlock}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.sectionTitle}>Plates & Guest Servings</Text>
-                    <Text style={styles.capacityBadge}>
-                      ₹{plateRate}/Plate
-                    </Text>
-                  </View>
+              {/* Guest Attendance Section */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>Guest Attendance</Text>
+                  <Text style={styles.capacityBadge}>
+                    Capacity: Up to {item.capacity || 500}
+                  </Text>
+                </View>
 
-                  <View style={styles.guestPickerCard}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.guestPickerLabel}>Number of Plates</Text>
-                      <Text style={styles.guestPickerSub}>
-                        {item.capacity ? `Venue Capacity: Up to ${item.capacity} Guests` : 'Select total plates to prepare'}
+                <View style={styles.guestPickerCard}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.guestPickerLabel}>Expected Guests</Text>
+                    <Text style={styles.guestPickerSub}>Number of attendees</Text>
+                  </View>
+                  <View style={styles.guestCounterRow}>
+                    <TouchableOpacity
+                      style={styles.counterBtn}
+                      onPress={() => setGuestCount(Math.max(10, guestCount - 25))}
+                    >
+                      <Minus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.guestInput}
+                      keyboardType="numeric"
+                      value={String(guestCount)}
+                      onChangeText={(val) => {
+                        const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                        if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
+                      }}
+                    />
+                    <TouchableOpacity
+                      style={styles.counterBtn}
+                      onPress={() => setGuestCount(guestCount + 25)}
+                    >
+                      <Plus size={16} color="#0f172a" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.quickChipsRow}>
+                  {[50, 100, 250, 500, 800].map((count) => (
+                    <TouchableOpacity
+                      key={count}
+                      style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
+                      onPress={() => setGuestCount(count)}
+                    >
+                      <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
+                        {count} Guests
                       </Text>
-                    </View>
-                    <View style={styles.guestCounterRow}>
-                      <TouchableOpacity
-                        style={styles.counterBtn}
-                        onPress={() => setPlatesCount(Math.max(10, platesCount - 25))}
-                      >
-                        <Minus size={16} color="#0f172a" />
-                      </TouchableOpacity>
-                      <TextInput
-                        style={styles.guestInput}
-                        keyboardType="numeric"
-                        value={String(platesCount)}
-                        onChangeText={(val) => {
-                          const parsed = parseInt(val.replace(/\D/g, ''), 10);
-                          if (!isNaN(parsed)) setPlatesCount(Math.max(1, parsed));
-                        }}
-                      />
-                      <TouchableOpacity
-                        style={styles.counterBtn}
-                        onPress={() => setPlatesCount(platesCount + 25)}
-                      >
-                        <Plus size={16} color="#0f172a" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-                  <View style={styles.quickChipsRow}>
-                    {[50, 100, 200, 350, 500].map((count) => (
+              {/* Custom Plates & Catering Section */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Utensils size={18} color="#e11d48" />
+                    <Text style={styles.sectionTitle}>Plates & Food Catering</Text>
+                  </View>
+                  <Text style={styles.capacityBadge}>
+                    ₹{plateRate}/Plate
+                  </Text>
+                </View>
+
+                {/* Option to toggle custom plates if not default per plate */}
+                {!hasDefaultPerPlate && (
+                  <TouchableOpacity
+                    style={[
+                      styles.togglePlatesCard,
+                      customPlatesEnabled && styles.togglePlatesCardActive,
+                    ]}
+                    onPress={() => {
+                      setCustomPlatesEnabled(!customPlatesEnabled);
+                      if (!customPlatesEnabled && platesCount <= 0) {
+                        setPlatesCount(guestCount || 100);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <View style={[styles.toggleCheckbox, customPlatesEnabled && styles.toggleCheckboxActive]}>
+                        {customPlatesEnabled && <Check size={14} color="#ffffff" strokeWidth={3} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.togglePlatesTitle}>
+                          {customPlatesEnabled ? 'Catering Plates Included' : '+ Add Food Catering Plates'}
+                        </Text>
+                        <Text style={styles.togglePlatesSub}>
+                          ₹{plateRate} per plate • Hot buffet with verified hygiene standards
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {/* Custom Plates Counter & Steppers */}
+                {hasPerPlate && (
+                  <>
+                    <View style={styles.guestPickerCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.guestPickerLabel}>Number of Food Plates</Text>
+                        <Text style={styles.guestPickerSub}>
+                          Catering charges: ₹{plateRate} × {platesCount} = ₹{(plateRate * platesCount).toLocaleString('en-IN')}
+                        </Text>
+                      </View>
+                      <View style={styles.guestCounterRow}>
+                        <TouchableOpacity
+                          style={styles.counterBtn}
+                          onPress={() => setPlatesCount(Math.max(10, platesCount - 25))}
+                        >
+                          <Minus size={16} color="#0f172a" />
+                        </TouchableOpacity>
+                        <TextInput
+                          style={styles.guestInput}
+                          keyboardType="numeric"
+                          value={String(platesCount)}
+                          onChangeText={(val) => {
+                            const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                            if (!isNaN(parsed)) setPlatesCount(Math.max(1, parsed));
+                          }}
+                        />
+                        <TouchableOpacity
+                          style={styles.counterBtn}
+                          onPress={() => setPlatesCount(platesCount + 25)}
+                        >
+                          <Plus size={16} color="#0f172a" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Quick Preset Plates Chips */}
+                    <View style={styles.quickChipsRow}>
+                      {[50, 100, 200, 350, 500, 800].map((count) => (
+                        <TouchableOpacity
+                          key={count}
+                          style={[styles.quickChip, platesCount === count && styles.quickChipActive]}
+                          onPress={() => setPlatesCount(count)}
+                        >
+                          <Text style={[styles.quickChipText, platesCount === count && styles.quickChipTextActive]}>
+                            {count} Plates
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                       <TouchableOpacity
-                        key={count}
-                        style={[styles.quickChip, platesCount === count && styles.quickChipActive]}
-                        onPress={() => setPlatesCount(count)}
+                        style={[styles.quickChip, { backgroundColor: '#fff1f2', borderColor: '#fecdd3' }]}
+                        onPress={() => setPlatesCount(guestCount)}
                       >
-                        <Text style={[styles.quickChipText, platesCount === count && styles.quickChipTextActive]}>
-                          {count} Plates
+                        <Text style={[styles.quickChipText, { color: '#e11d48', fontWeight: '800' }]}>
+                          Match Guests ({guestCount})
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.sectionBlock}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.sectionTitle}>Guest Attendance</Text>
-                    <Text style={styles.capacityBadge}>
-                      Max: {item.capacity || 500}
-                    </Text>
-                  </View>
-
-                  <View style={styles.guestPickerCard}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.guestPickerLabel}>Guest Count</Text>
-                      <Text style={styles.guestPickerSub}>Expected attendee count</Text>
                     </View>
-                    <View style={styles.guestCounterRow}>
-                      <TouchableOpacity
-                        style={styles.counterBtn}
-                        onPress={() => setGuestCount(Math.max(10, guestCount - 25))}
-                      >
-                        <Minus size={16} color="#0f172a" />
-                      </TouchableOpacity>
-                      <TextInput
-                        style={styles.guestInput}
-                        keyboardType="numeric"
-                        value={String(guestCount)}
-                        onChangeText={(val) => {
-                          const parsed = parseInt(val.replace(/\D/g, ''), 10);
-                          if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
-                        }}
-                      />
-                      <TouchableOpacity
-                        style={styles.counterBtn}
-                        onPress={() => setGuestCount(guestCount + 25)}
-                      >
-                        <Plus size={16} color="#0f172a" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={styles.quickChipsRow}>
-                    {[50, 100, 250, 500].map((count) => (
-                      <TouchableOpacity
-                        key={count}
-                        style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
-                        onPress={() => setGuestCount(count)}
-                      >
-                        <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
-                          {count} Guests
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+                  </>
+                )}
+              </View>
             </>
+          )}
+
+          {/* Guest Information Section for Pass */}
+          <View style={styles.sectionBlock}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <User size={18} color="#e11d48" />
+              <Text style={styles.sectionTitle}>Guest Information for Pass</Text>
+            </View>
+            <View style={styles.guestInputsCard}>
+              <View style={styles.inputRow}>
+                <User size={16} color="#94a3b8" />
+                <TextInput
+                  style={styles.guestFieldInput}
+                  placeholder="Full Name (for entry pass)"
+                  placeholderTextColor="#94a3b8"
+                  value={guestName}
+                  onChangeText={setGuestName}
+                />
+              </View>
+              <View style={styles.inputDivider} />
+              <View style={styles.inputRow}>
+                <Phone size={16} color="#94a3b8" />
+                <TextInput
+                  style={styles.guestFieldInput}
+                  placeholder="10-digit Phone Number"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={guestPhone}
+                  onChangeText={setGuestPhone}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Wallet Discount Toggle if user has balance */}
+          {walletBalance > 0 && (
+            <TouchableOpacity
+              style={[styles.walletCard, useWallet && styles.walletCardActive]}
+              onPress={() => setUseWallet(!useWallet)}
+              activeOpacity={0.85}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={styles.walletIconCircle}>
+                  <Wallet size={18} color={useWallet ? '#059669' : '#64748b'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.walletTitle}>Use happylokam Celebration Balance</Text>
+                  <Text style={styles.walletSub}>
+                    Available: ₹{walletBalance.toLocaleString('en-IN')} (Save ₹{maxWalletApplicable.toLocaleString('en-IN')})
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.toggleCheckbox, useWallet && { backgroundColor: '#10b981', borderColor: '#10b981' }]}>
+                {useWallet && <Check size={14} color="#ffffff" strokeWidth={3} />}
+              </View>
+            </TouchableOpacity>
           )}
 
           {/* Features Included */}
@@ -765,50 +1182,76 @@ export default function ItemDetailScreen() {
             </View>
           )}
 
-          {/* Transparent Price Breakdown Card */}
+          {/* Transparent Price Breakdown Card with Razorpay 2% + 18% GST */}
           <View style={styles.priceBreakdownCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Gift size={18} color="#e11d48" />
               <Text style={styles.priceBreakdownTitle}>Transparent Price Breakdown</Text>
             </View>
 
-            {/* Base Calculation Formula */}
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>
-                {isTicket
-                  ? 'Digital Pass Price'
-                  : hasBaseHall && hasPerPlate
-                    ? `Hall Base (₹${hallRate.toLocaleString('en-IN')}) + Plates (${platesCount} × ₹${plateRate})`
-                    : hasPerPlate
-                      ? `Catering Plates (₹${plateRate} × ${platesCount} Plates)`
-                      : hasPerGuest
-                        ? `Guest Charges (₹${guestRate} × ${guestCount} Guests)`
-                        : isPerPerson
-                          ? `Per-Plate Rate (₹${basePriceNum} × ${guestCount} Guests × ${bookingDays} Days)`
-                          : `Daily Package Rate (₹${basePriceNum.toLocaleString('en-IN')} × ${bookingDays} Days)`}
-              </Text>
-              <Text style={styles.breakdownVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
-            </View>
+            {/* Base items breakdown */}
+            {hasBaseHall && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Venue / Hall Base ({bookingDays} Day{bookingDays > 1 ? 's' : ''})</Text>
+                <Text style={styles.breakdownVal}>₹{hallSubtotal.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+
+            {hasPerPlate && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Catering Plates ({platesCount} × ₹{plateRate})</Text>
+                <Text style={styles.breakdownVal}>₹{platesSubtotal.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+
+            {hasPerGuest && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Guest Attendance ({guestCount} × ₹{guestRate})</Text>
+                <Text style={styles.breakdownVal}>₹{guestSubtotal.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+
+            {!hasBaseHall && !hasPerPlate && !hasPerGuest && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Package Base Rate</Text>
+                <Text style={styles.breakdownVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
 
             {!isTicket && (
               <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Duration & Attendance</Text>
+                <Text style={styles.breakdownLabel}>Event Schedule</Text>
                 <Text style={styles.breakdownValHighlight}>
-                  {bookingDays} Day{bookingDays === 1 ? '' : 's'} • {hasPerPlate ? `${platesCount} Plates` : `${guestCount} Guests`}
+                  {formatSelectedDateHuman(selectedDate)} • {bookingDays} Day{bookingDays === 1 ? '' : 's'}
                 </Text>
               </View>
             )}
 
+            {/* Razorpay 2% Commission */}
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>GST & Regulatory Taxes</Text>
-              <Text style={styles.breakdownValGreen}>Included in estimate</Text>
+              <Text style={styles.breakdownLabel}>Razorpay Payment Gateway Fee (2%)</Text>
+              <Text style={styles.breakdownVal}>₹{razorpayCommission.toFixed(2)}</Text>
             </View>
+
+            {/* 18% GST on that 2% Commission */}
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>GST on Gateway Fee (18% on 2%)</Text>
+              <Text style={styles.breakdownVal}>₹{razorpayGst.toFixed(2)}</Text>
+            </View>
+
+            {/* Wallet discount */}
+            {useWallet && walletDiscount > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={[styles.breakdownLabel, { color: '#059669', fontWeight: '700' }]}>Wallet Credit Discount</Text>
+                <Text style={[styles.breakdownVal, { color: '#059669', fontWeight: '800' }]}>-₹{walletDiscount.toFixed(2)}</Text>
+              </View>
+            )}
 
             <View style={styles.breakdownDivider} />
 
             <View style={styles.breakdownRowTotal}>
-              <Text style={styles.breakdownTotalLabel}>Net Estimated Total</Text>
-              <Text style={styles.breakdownTotalVal}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
+              <Text style={styles.breakdownTotalLabel}>Net Total Amount Payable</Text>
+              <Text style={styles.breakdownTotalVal}>₹{finalPayable.toLocaleString('en-IN')}</Text>
             </View>
           </View>
 
@@ -879,47 +1322,125 @@ export default function ItemDetailScreen() {
 
       {/* Bottom Sticky Action Footer */}
       <View style={[styles.bottomFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View>
-          <Text style={styles.footerPriceLabel}>
-            {isTicket ? 'Per Digital Pass' : `${bookingDays} Day(s) • ${guestCount} Guests`}
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={styles.footerPriceLabel} numberOfLines={1}>
+            {isTicket
+              ? 'Per Digital Pass'
+              : `${hasPerPlate ? `${platesCount} Plates` : `${guestCount} Guests`} • ${bookingDays} Day(s)`}
           </Text>
-          <Text style={styles.footerPrice}>₹{calculatedBase.toLocaleString('en-IN')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+            <Text style={styles.footerPrice}>₹{finalPayable.toLocaleString('en-IN')}</Text>
+            {walletDiscount > 0 && (
+              <Text style={styles.footerDiscountText}>(-₹{walletDiscount.toFixed(0)} Wallet)</Text>
+            )}
+          </View>
         </View>
         <TouchableOpacity
-          style={styles.bookBtn}
+          style={[styles.bookBtn, paying && { opacity: 0.7 }]}
           onPress={handleInitiateBooking}
+          disabled={paying}
           activeOpacity={0.9}
         >
-          {isTicket ? <Ticket size={18} color="#ffffff" /> : <Calendar size={18} color="#ffffff" />}
-          <Text style={styles.bookBtnText}>
-            {isTicket ? 'Book Digital Pass' : 'Reserve & Book'}
-          </Text>
+          {paying ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : (
+            <>
+              {isTicket ? <Ticket size={18} color="#ffffff" /> : <Calendar size={18} color="#ffffff" />}
+              <Text style={styles.bookBtnText}>
+                {isTicket ? 'Book Digital Pass' : `Reserve & Pay ₹${finalPayable.toLocaleString('en-IN')}`}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* Payment / Booking Modal */}
-      {showPayment && (
-        <PaymentModal
-          visible={showPayment}
-          item={{
-            ...item,
-            calculatedSubtotal: calculatedBase,
-            price: calculatedBase,
-            bookingDays,
-            guestCount,
-            platesCount,
-            pricePerPlate: plateRate,
-            baseHallPrice: hallRate,
-            pricePerGuest: guestRate,
-            selectedDate,
-          }}
-          onClose={() => setShowPayment(false)}
-          onSuccess={() => {
-            setShowPayment(false);
-            router.push('/(tabs)/bookings');
-          }}
-        />
-      )}
+      {/* Interactive Celebration Date Picker Modal */}
+      <CelebrationDatePickerModal
+        visible={calendarModalVisible}
+        selectedDate={selectedDate}
+        onSelectDate={(newDate) => {
+          setSelectedDate(newDate);
+          setCalendarModalVisible(false);
+        }}
+        onClose={() => setCalendarModalVisible(false)}
+      />
+
+      {/* Confirmed Digital Ticket Pass Modal */}
+      <Modal
+        visible={Boolean(confirmedBooking)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setConfirmedBooking(null)}
+      >
+        <View style={styles.confirmedOverlay}>
+          <View style={styles.confirmedCard}>
+            <View style={styles.confirmedIconWrap}>
+              <CheckCircle2 size={42} color="#10b981" />
+            </View>
+            <Text style={styles.confirmedTitle}>Booking Confirmed! 🎉</Text>
+            <Text style={styles.confirmedSub}>
+              Your celebration spot has been secured. Your digital entry pass and receipt details are below:
+            </Text>
+
+            <View style={styles.confirmedTicketBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.confirmedTicketName} numberOfLines={1}>{item.title || 'Celebration Booking'}</Text>
+                  <Text style={styles.confirmedTicketDate}>
+                    {formatSelectedDateHuman(confirmedBooking?.date || selectedDate)}
+                  </Text>
+                </View>
+                <View style={styles.confirmedBadge}>
+                  <Text style={styles.confirmedBadgeText}>CONFIRMED</Text>
+                </View>
+              </View>
+
+              <View style={styles.ticketDetailsRow}>
+                <View>
+                  <Text style={styles.ticketFieldLabel}>Guest / Contact</Text>
+                  <Text style={styles.ticketFieldValue}>{guestName || 'Verified Guest'}</Text>
+                  <Text style={styles.ticketFieldSub}>{guestPhone}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.ticketFieldLabel}>Amount Paid</Text>
+                  <Text style={styles.ticketFieldAmount}>₹{(confirmedBooking?.amount ?? finalPayable).toLocaleString('en-IN')}</Text>
+                  <Text style={styles.ticketFieldSub}>Incl. 2% Gateway + 18% GST</Text>
+                </View>
+              </View>
+
+              <View style={styles.qrSection}>
+                <View style={styles.qrIconWrap}>
+                  <QrCode size={70} color="#0f172a" />
+                </View>
+                <Text style={styles.ticketPassCode}>
+                  Pass Code: {confirmedBooking?.ticketCode || confirmedBooking?.id}
+                </Text>
+                <Text style={styles.ticketScanHint}>Present this digital pass or pass code at the venue / desk.</Text>
+              </View>
+            </View>
+
+            <View style={styles.confirmedActions}>
+              <TouchableOpacity
+                style={styles.confirmedDoneBtn}
+                onPress={() => {
+                  setConfirmedBooking(null);
+                  router.push('/(tabs)/bookings');
+                }}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.confirmedDoneBtnText}>View in My Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmedStayBtn}
+                onPress={() => setConfirmedBooking(null)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmedStayBtnText}>Stay on Package Details</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Rating & Review Modal */}
       <Modal visible={ratingModalVisible} transparent animationType="fade" onRequestClose={() => setRatingModalVisible(false)}>
@@ -1779,6 +2300,347 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#e11d48',
+  },
+  openCalendarPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff1f2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+  },
+  openCalendarPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#e11d48',
+  },
+  chosenDateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    marginBottom: 14,
+  },
+  chosenDateLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  chosenDateIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chosenDateLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  chosenDateVal: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 2,
+  },
+  chosenDateSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#e11d48',
+    marginTop: 2,
+  },
+  changeDateBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  changeDateBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  quickDateHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  togglePlatesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+  },
+  togglePlatesCardActive: {
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+  },
+  toggleCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  toggleCheckboxActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
+  },
+  togglePlatesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  togglePlatesSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  guestInputsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    padding: 14,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  inputDivider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginVertical: 12,
+  },
+  guestFieldInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    paddingVertical: 4,
+  },
+  walletCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+  },
+  walletCardActive: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  walletIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  walletTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  walletSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  footerDiscountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  confirmedOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmedCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  confirmedIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  confirmedTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  confirmedSub: {
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  confirmedTicketBox: {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+    marginBottom: 20,
+  },
+  confirmedTicketName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  confirmedTicketDate: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#e11d48',
+    marginTop: 2,
+  },
+  confirmedBadge: {
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  confirmedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065f46',
+  },
+  ticketDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e2e8f0',
+    marginVertical: 12,
+  },
+  ticketFieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+  },
+  ticketFieldValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 2,
+  },
+  ticketFieldAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#059669',
+    marginTop: 2,
+  },
+  ticketFieldSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  qrSection: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  qrIconWrap: {
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 10,
+  },
+  ticketPassCode: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: 0.5,
+  },
+  ticketScanHint: {
+    fontSize: 11,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  confirmedActions: {
+    width: '100%',
+    gap: 10,
+  },
+  confirmedDoneBtn: {
+    width: '100%',
+    backgroundColor: '#e11d48',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmedDoneBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  confirmedStayBtn: {
+    width: '100%',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmedStayBtnText: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

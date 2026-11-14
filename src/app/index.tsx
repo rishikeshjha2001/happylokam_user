@@ -108,9 +108,17 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#e11d48" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* Ambient Subtle Glow */}
+      {/* Advanced Ambient Pulsing Circles */}
+      <Animated.View
+        style={[
+          styles.ambientOuterRing,
+          {
+            transform: [{ scale: orbScaleAnim }],
+          },
+        ]}
+      />
       <Animated.View
         style={[
           styles.ambientOrb,
@@ -133,12 +141,14 @@ export default function SplashScreen() {
           <Text style={styles.brandTitle}>happylokam</Text>
         </Animated.View>
 
-        {/* Crisp White Accent Line */}
+        {/* Dynamic Celebration Accent Line */}
         <Animated.View style={[styles.gradientLineContainer, { width: lineWidth }]}>
           <View style={styles.gradientLine} />
         </Animated.View>
 
-        <Text style={styles.tagline}>EXTRAORDINARY CELEBRATIONS</Text>
+        <View style={styles.taglineBadge}>
+          <Text style={styles.tagline}>EXTRAORDINARY CELEBRATIONS</Text>
+        </View>
       </Animated.View>
     </View>
   );
@@ -147,30 +157,41 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e11d48', // Official Rose-600 Background
+    backgroundColor: '#ffffff', // Clean Pure White Background
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  ambientOuterRing: {
+    position: 'absolute',
+    width: 440,
+    height: 440,
+    borderRadius: 220,
+    backgroundColor: 'rgba(225, 29, 72, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(225, 29, 72, 0.08)',
+  },
   ambientOrb: {
     position: 'absolute',
-    width: 380,
-    height: 380,
-    borderRadius: 190,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(225, 29, 72, 0.08)', // Soft celebration rose aura
+    borderWidth: 1.5,
+    borderColor: 'rgba(225, 29, 72, 0.16)',
   },
   contentWrapper: {
     alignItems: 'center',
     zIndex: 10,
   },
   brandTitle: {
-    fontSize: 52,
+    fontSize: 54,
     fontWeight: '900',
-    color: '#ffffff', // Pure White text happylokam
+    color: '#000000', // Bold Pure Black Typography
     letterSpacing: -1.5,
   },
   gradientLineContainer: {
-    height: 3,
+    height: 3.5,
     marginTop: 14,
     borderRadius: 2,
     overflow: 'hidden',
@@ -179,18 +200,27 @@ const styles = StyleSheet.create({
   gradientLine: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#e11d48', // Celebration Rose Accent
+  },
+  taglineBadge: {
+    marginTop: 14,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   tagline: {
-    color: '#000000', // Black color as requested
-    marginTop: 14,
+    color: '#0f172a', // Luxury Black Typography
     fontWeight: '900',
     letterSpacing: 2.5,
     fontSize: 11,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
+    textTransform: 'uppercase',
   },
 });
