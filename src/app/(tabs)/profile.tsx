@@ -60,6 +60,7 @@ export default function ProfileTab() {
 
   const [bookingsCount, setBookingsCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const [savedPlansCount, setSavedPlansCount] = useState(0);
   const [latestBooking, setLatestBooking] = useState<RoomBooking | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isWalletOpen, setWalletOpen] = useState(false);
@@ -111,6 +112,8 @@ export default function ProfileTab() {
 
       setBookingsCount(bList.length);
       setFavoritesCount(fList.length);
+      const sPlans = await RoomDatabase.getSavedEventPlans().catch(() => []);
+      setSavedPlansCount(sPlans.length);
       if (bList.length > 0) {
         setLatestBooking(bList[0]);
       } else {
@@ -195,7 +198,7 @@ export default function ProfileTab() {
     {
       icon: Calculator,
       label: 'AI Event Budget Planner',
-      sub: 'Calculate food, venue & decor estimates',
+      sub: savedPlansCount > 0 ? `${savedPlansCount} saved celebration blueprints` : 'Calculate food, venue & decor estimates',
       color: '#7c3aed',
       bg: '#ede9fe',
       action: () => router.push('/event-planner'),

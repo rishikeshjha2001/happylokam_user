@@ -113,6 +113,29 @@ export interface RoomAddress {
   isDefault?: boolean;
 }
 
+export interface SavedEventPlan {
+  id: string;
+  themeId: string;
+  themeName: string;
+  city: string;
+  guestCount: number;
+  totalBudget: number;
+  foodOptionId: string;
+  foodOptionLabel: string;
+  decorLevelId: string;
+  decorLevelLabel: string;
+  mediaTierId: string;
+  mediaTierLabel: string;
+  breakdown: {
+    catering: number;
+    venue: number;
+    decor: number;
+    media: number;
+    buffer: number;
+  };
+  createdAt: string;
+}
+
 const STORAGE_KEYS = {
   EVENTS: '@happylokam_room_events',
   VENUES: '@happylokam_room_venues',
@@ -127,6 +150,7 @@ const STORAGE_KEYS = {
   SUPPORT_MESSAGES: '@happylokam_room_support_messages',
   ADDRESSES: '@happylokam_room_saved_addresses',
   BIOMETRIC_ENABLED: '@happylokam_room_biometric_enabled',
+  SAVED_PLANS: '@happylokam_saved_event_plans',
   DATA_VERSION: '@happylokam_room_data_version',
 };
 
@@ -670,6 +694,39 @@ export const RoomDatabase = {
       await AsyncStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
     } catch (e) {
       console.warn('RoomDatabase.setBiometricEnabled error:', e);
+    }
+  },
+
+  async saveEventPlan(plan: SavedEventPlan): Promise<void> {
+    try {
+      const current = await this.getSavedEventPlans();
+      const updated = [plan, ...current.filter((p) => p.id !== plan.id)];
+      await AsyncStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('RoomDatabase.saveEventPlan error:', e);
+    }
+  },
+
+  async getSavedEventPlans(): Promise<SavedEventPlan[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_PLANS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('RoomDatabase.getSavedEventPlans error:', e);
+    }
+    return [];
+  },
+
+  async deleteSavedEventPlan(id: string): Promise<void> {
+    try {
+      const current = await this.getSavedEventPlans();
+      const updated = current.filter((p) => p.id !== id);
+      await AsyncStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('RoomDatabase.deleteSavedEventPlan error:', e);
     }
   },
 
