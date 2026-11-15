@@ -19,7 +19,11 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "HappyLokam needs your location to display local celebration services and nearby events.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "HappyLokam uses Face ID for fast and secure biometric login and ticket pass protection.",
+        "NSCameraUsageDescription": "HappyLokam requires camera access to scan celebration QR passes and verify bookings.",
+        "NSPhotoLibraryUsageDescription": "HappyLokam needs access to save and download your digital passes and receipts.",
+        "NSPhotoLibraryAddUsageDescription": "HappyLokam needs access to save your booking celebration passes to your photo library."
       }
     },
     "android": {
