@@ -59,6 +59,10 @@ export interface RoomBooking {
   tierName?: string;
   ticketsCount?: number;
   qrCode?: string;
+  ticketCode?: string;
+  checkInOtp?: string;
+  guestCount?: number;
+  platesCount?: number;
   createdAt: string;
   /** Set only for a booking returned or accepted by the server. */
   serverVerified?: boolean;

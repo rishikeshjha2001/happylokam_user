@@ -43,6 +43,8 @@ export default function BookingDetailScreen() {
     amount?: string;
     category?: string;
     qrCode?: string;
+    ticketCode?: string;
+    checkInOtp?: string;
     status?: string;
     ticketsCount?: string;
     location?: string;
@@ -199,6 +201,13 @@ export default function BookingDetailScreen() {
                 </View>
               </View>
               <Text style={styles.qrCodeString}>{ticketCode}</Text>
+              {(booking?.checkInOtp || params.checkInOtp) ? (
+                <View style={styles.ticketOtpBadge}>
+                  <Text style={styles.ticketOtpLabel}>VENUE CHECK-IN OTP</Text>
+                  <Text style={styles.ticketOtpValue}>{booking?.checkInOtp || params.checkInOtp}</Text>
+                  <Text style={styles.ticketOtpHint}>Share this 4-digit OTP with the venue manager on arrival</Text>
+                </View>
+              ) : null}
               <Text style={styles.scanInstruction}>
                 Scan at gate security checkpoint for instant access
               </Text>
@@ -507,6 +516,35 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     marginTop: 4,
+  },
+  ticketOtpBadge: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1.5,
+    borderColor: '#10b981',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },
+  ticketOtpLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 1,
+  },
+  ticketOtpValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#047857',
+    letterSpacing: 6,
+    marginVertical: 2,
+  },
+  ticketOtpHint: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#059669',
   },
   infoGrid: {
     flexDirection: 'row',

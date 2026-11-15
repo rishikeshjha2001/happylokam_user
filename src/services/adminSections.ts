@@ -16,6 +16,11 @@ export interface AdminSectionItem {
   pricePerPlate?: number;
   pricePerGuest?: number;
   baseHallPrice?: number;
+  minGuests?: number;
+  maxGuests?: number;
+  blackoutDates?: string[];
+  advanceNoticeHours?: number;
+  autoAccept?: boolean;
   type?: string;
   itemType: 'TICKET' | 'BOOKING';
   price: number;

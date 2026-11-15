@@ -26,6 +26,7 @@ interface CelebrationDatePickerModalProps {
   onClose: () => void;
   minDate?: string;
   availableDates?: string[];
+  blackoutDates?: string[];
   title?: string;
 }
 
@@ -43,6 +44,7 @@ export default function CelebrationDatePickerModal({
   onClose,
   minDate,
   availableDates,
+  blackoutDates,
   title = 'Pick Celebration Date',
 }: CelebrationDatePickerModalProps) {
   const today = new Date();
@@ -122,13 +124,14 @@ export default function CelebrationDatePickerModal({
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isPast = dateStr < effectiveMinDate;
     const isRestricted = Array.isArray(availableDates) && availableDates.length > 0 && !availableDates.includes(dateStr);
+    const isBlackedOut = Array.isArray(blackoutDates) && blackoutDates.includes(dateStr);
     calendarCells.push({
       day: d,
       month: viewMonth,
       year: viewYear,
       isCurrentMonth: true,
       dateStr,
-      disabled: isPast || isRestricted,
+      disabled: isPast || isRestricted || isBlackedOut,
       isToday: dateStr === todayStr,
       isSelected: dateStr === tempSelectedDate,
     });

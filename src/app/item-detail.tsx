@@ -193,7 +193,9 @@ export default function ItemDetailScreen() {
           if (fetched.availableTimes && fetched.availableTimes.length > 0) {
             setSelectedTime(fetched.availableTimes[0]);
           }
-          if (fetched.capacity) {
+          if (fetched.minGuests) {
+            setGuestCount(Math.max(Number(fetched.minGuests), 10));
+          } else if (fetched.capacity) {
             setGuestCount(Math.min(fetched.capacity, 200));
           }
           setLoading(false);
@@ -346,6 +348,9 @@ export default function ItemDetailScreen() {
   const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
   const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasDefaultPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
 
+  const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 10;
+  const maxGuestsAllowed = item.maxGuests ? Number(item.maxGuests) : (item.capacity ? Number(item.capacity) : 1000);
+
   // Subtotal calculation
   const hallSubtotal = hallRate * bookingDays;
   const platesSubtotal = hasPerPlate ? plateRate * platesCount : 0;
@@ -429,7 +434,27 @@ export default function ItemDetailScreen() {
       return;
     }
 
-    // 3. Name & Phone validation
+    if (item.blackoutDates && Array.isArray(item.blackoutDates) && item.blackoutDates.includes(selectedDate)) {
+      Alert.alert(
+        'Date Unavailable ❌',
+        `The selected date (${selectedDate}) has been marked as blocked or unavailable for this venue. Please pick another celebration date.`
+      );
+      return;
+    }
+
+    // 3. Guest Capacity Check (for non-tickets)
+    if (!isTicket) {
+      if (guestCount < minGuestsAllowed) {
+        Alert.alert('Minimum Guests', `This venue requires a minimum of ${minGuestsAllowed} guests.`);
+        return;
+      }
+      if (guestCount > maxGuestsAllowed) {
+        Alert.alert('Capacity Exceeded', `This venue can accommodate up to ${maxGuestsAllowed} guests maximum.`);
+        return;
+      }
+    }
+
+    // 4. Name & Phone validation
     if (!guestName.trim()) {
       Alert.alert('Name Required', 'Please enter your full name for the celebration pass.');
       return;
@@ -570,6 +595,7 @@ export default function ItemDetailScreen() {
 
       const confirmedTicketCode = bookingResult?.data?.ticketCode || (bookingResult as any)?.ticketCode;
       const ticketId = confirmedTicketCode || confirmedServerId;
+      const checkInOtp = bookingResult?.data?.checkInOtp || (bookingResult as any)?.checkInOtp;
 
       const localBooking = {
         id: confirmedServerId || ('hlc_' + Date.now()),
@@ -581,6 +607,10 @@ export default function ItemDetailScreen() {
         tierName: isTicket ? 'Ticket Pass' : 'Confirmed Booking',
         ticketsCount: 1,
         qrCode: ticketId,
+        ticketCode: ticketId,
+        checkInOtp: checkInOtp,
+        guestCount: numGuests,
+        platesCount: numPlates,
         serverVerified: true,
         createdAt: new Date().toISOString(),
       };
@@ -602,12 +632,12 @@ export default function ItemDetailScreen() {
       await RoomDatabase.addNotification({
         id: 'notif_bkg_' + Date.now(),
         title: `Booking Confirmed: ${localBooking.title} 🎉`,
-        message: `Your celebration ${isTicket ? 'digital ticket' : 'reservation'} is confirmed for ${selectedDate}. Pass Code: ${ticketId}. Total paid: ₹${finalPayable.toLocaleString('en-IN')}.`,
+        message: `Your celebration ${isTicket ? 'digital ticket' : 'reservation'} is confirmed for ${selectedDate}. Pass Code: ${ticketId}${checkInOtp ? ` • Check-In OTP: ${checkInOtp}` : ''}. Total paid: ₹${finalPayable.toLocaleString('en-IN')}.`,
         sentAt: new Date().toISOString(),
         isRead: false,
       });
 
-      setConfirmedBooking({ ...localBooking, ticketCode: ticketId });
+      setConfirmedBooking({ ...localBooking, ticketCode: ticketId, checkInOtp });
     } catch (e: any) {
       if (e?.code === 0 || e?.description?.toLowerCase().includes('cancel')) {
         setPaying(false);
@@ -955,19 +985,19 @@ export default function ItemDetailScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <Text style={styles.sectionTitle}>Guest Attendance</Text>
                   <Text style={styles.capacityBadge}>
-                    Capacity: Up to {item.capacity || 500}
+                    Capacity: {minGuestsAllowed} - {maxGuestsAllowed} Guests
                   </Text>
                 </View>
 
                 <View style={styles.guestPickerCard}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.guestPickerLabel}>Expected Guests</Text>
-                    <Text style={styles.guestPickerSub}>Number of attendees</Text>
+                    <Text style={styles.guestPickerSub}>Allowed: {minGuestsAllowed} to {maxGuestsAllowed}</Text>
                   </View>
                   <View style={styles.guestCounterRow}>
                     <TouchableOpacity
                       style={styles.counterBtn}
-                      onPress={() => setGuestCount(Math.max(10, guestCount - 25))}
+                      onPress={() => setGuestCount(Math.max(minGuestsAllowed, guestCount - 25))}
                     >
                       <Minus size={16} color="#0f172a" />
                     </TouchableOpacity>
@@ -977,12 +1007,12 @@ export default function ItemDetailScreen() {
                       value={String(guestCount)}
                       onChangeText={(val) => {
                         const parsed = parseInt(val.replace(/\D/g, ''), 10);
-                        if (!isNaN(parsed)) setGuestCount(Math.max(1, parsed));
+                        if (!isNaN(parsed)) setGuestCount(Math.min(maxGuestsAllowed, Math.max(1, parsed)));
                       }}
                     />
                     <TouchableOpacity
                       style={styles.counterBtn}
-                      onPress={() => setGuestCount(guestCount + 25)}
+                      onPress={() => setGuestCount(Math.min(maxGuestsAllowed, guestCount + 25))}
                     >
                       <Plus size={16} color="#0f172a" />
                     </TouchableOpacity>
@@ -990,17 +1020,21 @@ export default function ItemDetailScreen() {
                 </View>
 
                 <View style={styles.quickChipsRow}>
-                  {[50, 100, 250, 500, 800].map((count) => (
-                    <TouchableOpacity
-                      key={count}
-                      style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
-                      onPress={() => setGuestCount(count)}
-                    >
-                      <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
-                        {count} Guests
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {(() => {
+                    const preset = [50, 100, 250, 500, 800].filter((count) => count >= minGuestsAllowed && count <= maxGuestsAllowed);
+                    const list = preset.length > 0 ? preset : Array.from(new Set([minGuestsAllowed, Math.round((minGuestsAllowed + maxGuestsAllowed) / 2), maxGuestsAllowed]));
+                    return list.map((count) => (
+                      <TouchableOpacity
+                        key={count}
+                        style={[styles.quickChip, guestCount === count && styles.quickChipActive]}
+                        onPress={() => setGuestCount(count)}
+                      >
+                        <Text style={[styles.quickChipText, guestCount === count && styles.quickChipTextActive]}>
+                          {count} Guests
+                        </Text>
+                      </TouchableOpacity>
+                    ));
+                  })()}
                 </View>
               </View>
 
@@ -1358,6 +1392,7 @@ export default function ItemDetailScreen() {
       <CelebrationDatePickerModal
         visible={calendarModalVisible}
         selectedDate={selectedDate}
+        blackoutDates={item?.blackoutDates || []}
         onSelectDate={(newDate) => {
           setSelectedDate(newDate);
           setCalendarModalVisible(false);
@@ -1415,6 +1450,13 @@ export default function ItemDetailScreen() {
                 <Text style={styles.ticketPassCode}>
                   Pass Code: {confirmedBooking?.ticketCode || confirmedBooking?.id}
                 </Text>
+                {confirmedBooking?.checkInOtp ? (
+                  <View style={styles.ticketOtpBadge}>
+                    <Text style={styles.ticketOtpLabel}>VENUE CHECK-IN OTP</Text>
+                    <Text style={styles.ticketOtpValue}>{confirmedBooking.checkInOtp}</Text>
+                    <Text style={styles.ticketOtpHint}>Share this 4-digit OTP with the venue manager on arrival</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.ticketScanHint}>Present this digital pass or pass code at the venue / desk.</Text>
               </View>
             </View>
@@ -2613,6 +2655,35 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     marginTop: 4,
+  },
+  ticketOtpBadge: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1.5,
+    borderColor: '#10b981',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },
+  ticketOtpLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 1,
+  },
+  ticketOtpValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#047857',
+    letterSpacing: 6,
+    marginVertical: 2,
+  },
+  ticketOtpHint: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#059669',
   },
   confirmedActions: {
     width: '100%',

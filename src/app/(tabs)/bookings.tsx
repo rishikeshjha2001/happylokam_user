@@ -99,6 +99,10 @@ export default function BookingsTab() {
                   ticketsCount: sb.quantity || 1,
                   createdAt: sb.createdAt,
                   qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
+                  ticketCode: sb.ticketCode,
+                  checkInOtp: sb.checkInOtp,
+                  guestCount: sb.guestCount,
+                  platesCount: sb.platesCount,
                   serverVerified: true,
                 });
               }
@@ -335,6 +339,8 @@ export default function BookingsTab() {
                           amount: String(booking.amount),
                           category: booking.category,
                           qrCode: booking.qrCode,
+                          ticketCode: booking.ticketCode || booking.qrCode,
+                          checkInOtp: booking.checkInOtp,
                           ticketsCount: String(booking.ticketsCount || 1),
                           status: booking.status,
                         },
