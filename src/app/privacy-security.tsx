@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import {
   Trash2,
   CheckCircle2,
   KeyRound,
+  Fingerprint,
   Eye,
   EyeOff,
   X,
@@ -41,6 +43,27 @@ export default function PrivacySecurityScreen() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    RoomDatabase.isBiometricEnabled().then(setBiometricEnabled);
+  }, []);
+
+  const handleToggleBiometric = async (value: boolean) => {
+    setBiometricEnabled(value);
+    await RoomDatabase.setBiometricEnabled(value);
+    if (value) {
+      Alert.alert(
+        'Biometric Unlock Enabled 🛡️',
+        'You can now use your device Fingerprint or Face ID for fast biometric verification and secure checkout.'
+      );
+    } else {
+      Alert.alert(
+        'Biometric Unlock Disabled',
+        'Standard account credentials will be required for account verification.'
+      );
+    }
+  };
 
   const handleOpenPasswordModal = async () => {
     const isAuth = await RoomDatabase.isAuthenticated();
@@ -210,16 +233,38 @@ export default function PrivacySecurityScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Change Password Card */}
+        {/* Account Security & Authentication Card */}
         <View style={styles.card}>
           <Text style={styles.cardHeader}>Account Security & Authentication</Text>
+
+          {/* Biometric Quick Unlock */}
+          <View style={styles.linkRow}>
+            <Fingerprint size={20} color="#059669" />
+            <View style={{ flex: 1, marginLeft: 2, marginRight: 8 }}>
+              <Text style={[styles.linkText, { color: '#0f172a', fontWeight: '700' }]}>
+                Biometric App Unlock
+              </Text>
+              <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                Fingerprint & Face ID fast login and ticket pass protection
+              </Text>
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometric}
+              trackColor={{ false: '#e2e8f0', true: '#10b981' }}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Change Account Password */}
           <TouchableOpacity
             style={styles.linkRow}
             onPress={handleOpenPasswordModal}
             activeOpacity={0.8}
           >
             <KeyRound size={18} color="#e11d48" />
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flex: 1, marginLeft: 2 }}>
               <Text style={[styles.linkText, { color: '#0f172a', fontWeight: '700' }]}>
                 Change Account Password
               </Text>

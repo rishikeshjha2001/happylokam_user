@@ -35,6 +35,27 @@ export default function SettingsScreen() {
   const [gpsTracking, setGpsTracking] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [currentCity, setCurrentCity] = useState('Patna, Bihar');
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    RoomDatabase.isBiometricEnabled().then(setBiometricEnabled);
+  }, []);
+
+  const handleToggleBiometric = async (value: boolean) => {
+    setBiometricEnabled(value);
+    await RoomDatabase.setBiometricEnabled(value);
+    if (value) {
+      Alert.alert(
+        'Biometric Unlock Enabled 🛡️',
+        'You can now use your device Fingerprint or Face ID for fast biometric verification and secure checkout.'
+      );
+    } else {
+      Alert.alert(
+        'Biometric Unlock Disabled',
+        'Standard account credentials will be required for account verification.'
+      );
+    }
+  };
 
   const handleGoBack = () => {
     if (router.canGoBack()) {
@@ -137,6 +158,18 @@ export default function SettingsScreen() {
         {/* Section: Security */}
         <Text style={styles.sectionHeader}>Account & Security</Text>
         <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Biometric App Unlock</Text>
+              <Text style={styles.rowSub}>Fingerprint & Face ID fast login and pass access</Text>
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometric}
+              trackColor={{ false: '#e2e8f0', true: '#10b981' }}
+            />
+          </View>
+          <View style={styles.divider} />
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/privacy-security')}

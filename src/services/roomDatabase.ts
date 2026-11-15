@@ -126,6 +126,7 @@ const STORAGE_KEYS = {
   WALLET_TRANSACTIONS: '@happylokam_room_wallet_transactions',
   SUPPORT_MESSAGES: '@happylokam_room_support_messages',
   ADDRESSES: '@happylokam_room_saved_addresses',
+  BIOMETRIC_ENABLED: '@happylokam_room_biometric_enabled',
   DATA_VERSION: '@happylokam_room_data_version',
 };
 
@@ -652,6 +653,23 @@ export const RoomDatabase = {
       await AsyncStorage.setItem(STORAGE_KEYS.ADDRESSES, JSON.stringify(updated));
     } catch (e) {
       console.warn('RoomDatabase.setDefaultAddress error:', e);
+    }
+  },
+
+  async isBiometricEnabled(): Promise<boolean> {
+    try {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.BIOMETRIC_ENABLED);
+      return val === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  async setBiometricEnabled(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
+    } catch (e) {
+      console.warn('RoomDatabase.setBiometricEnabled error:', e);
     }
   },
 
