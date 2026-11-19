@@ -48,6 +48,8 @@ export default function AuthScreen() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [gender, setGender] = useState('Male');
   const [location, setLocation] = useState('');
   const [locationMode, setLocationMode] = useState<'gps' | 'manual'>('gps');
@@ -149,6 +151,30 @@ export default function AuthScreen() {
         type: 'warning',
         title: 'Phone Number Required',
         message: 'Please enter your phone number to receive digital booking pass notifications.',
+        confirmText: 'OK',
+        onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
+      });
+      return;
+    }
+
+    if (authMode === 'signup' && password.length < 6) {
+      setDialogConfig({
+        visible: true,
+        type: 'warning',
+        title: 'Weak Password',
+        message: 'Password must be at least 6 characters long.',
+        confirmText: 'OK',
+        onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
+      });
+      return;
+    }
+
+    if (authMode === 'signup' && password !== confirmPassword) {
+      setDialogConfig({
+        visible: true,
+        type: 'warning',
+        title: 'Password Mismatch',
+        message: 'Password and confirmation password do not match. Please re-enter carefully.',
         confirmText: 'OK',
         onConfirm: () => setDialogConfig((prev) => ({ ...prev, visible: false })),
       });
@@ -557,6 +583,31 @@ export default function AuthScreen() {
                 )}
               </TouchableOpacity>
             </View>
+
+            {authMode === 'signup' && (
+              <View style={styles.inputBox}>
+                <Lock size={20} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeBtn}
+                  activeOpacity={0.7}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} color="#94a3b8" />
+                  ) : (
+                    <Eye size={20} color="#94a3b8" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {authMode === 'login' && (

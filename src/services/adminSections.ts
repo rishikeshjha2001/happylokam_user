@@ -170,6 +170,10 @@ export async function bookSectionItem(
     quantity?: number;
     guestCount?: number;
     platesCount?: number;
+    vegPlatesCount?: number;
+    nonVegPlatesCount?: number;
+    pricePerPlateVeg?: number;
+    pricePerPlateNonVeg?: number;
     bookingDays?: number;
     customSubtotal?: number;
     pricePerPlate?: number;
@@ -194,6 +198,11 @@ export async function bookSectionItem(
             amount: res.data?.totalAmount || 0,
             status: 'CONFIRMED',
             ticketsCount: payload.quantity || 1,
+            guestCount: payload.guestCount,
+            platesCount: payload.platesCount,
+            vegPlatesCount: payload.vegPlatesCount,
+            nonVegPlatesCount: payload.nonVegPlatesCount,
+            bookingDays: payload.bookingDays,
             createdAt: new Date().toISOString(),
             qrCode: res.data?.ticketCode || 'HL-TCK-PASS',
             serverVerified: true,

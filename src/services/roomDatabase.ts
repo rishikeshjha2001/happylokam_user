@@ -63,6 +63,9 @@ export interface RoomBooking {
   checkInOtp?: string;
   guestCount?: number;
   platesCount?: number;
+  vegPlatesCount?: number;
+  nonVegPlatesCount?: number;
+  bookingDays?: number;
   createdAt: string;
   /** Set only for a booking returned or accepted by the server. */
   serverVerified?: boolean;

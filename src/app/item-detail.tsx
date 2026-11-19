@@ -99,6 +99,8 @@ export default function ItemDetailScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [guestCount, setGuestCount] = useState(150);
   const [platesCount, setPlatesCount] = useState(100);
+  const [vegPlatesCount, setVegPlatesCount] = useState(60);
+  const [nonVegPlatesCount, setNonVegPlatesCount] = useState(40);
   const [bookingDays, setBookingDays] = useState(1);
   const [customPlatesEnabled, setCustomPlatesEnabled] = useState(false);
 
@@ -339,21 +341,26 @@ export default function ItemDetailScreen() {
   const isPerPerson = (item.priceUnit && (item.priceUnit.toLowerCase().includes('plate') || item.priceUnit.toLowerCase().includes('person'))) ||
     (item.category && (item.category.toLowerCase().includes('cater') || item.category.toLowerCase().includes('buffet')));
 
-  const hasDefaultPerPlate = Boolean(item.pricePerPlate && Number(item.pricePerPlate) > 0) || isPerPerson;
+  const hasDefaultPerPlate = Boolean((item.pricePerPlate && Number(item.pricePerPlate) > 0) || (item.pricePerPlateVeg && Number(item.pricePerPlateVeg) > 0)) || isPerPerson;
   const hasPerPlate = hasDefaultPerPlate || customPlatesEnabled;
   const hasPerGuest = Boolean(item.pricePerGuest && Number(item.pricePerGuest) > 0);
   const hasBaseHall = Boolean(item.baseHallPrice && Number(item.baseHallPrice) > 0);
 
-  const plateRate = item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 550);
+  const vegPlateRate = item.pricePerPlateVeg ? Number(item.pricePerPlateVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 450));
+  const nonVegPlateRate = item.pricePerPlateNonVeg ? Number(item.pricePerPlateNonVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) + 150 : (isPerPerson ? basePriceNum + 150 : 650));
+  const plateRate = vegPlateRate;
   const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
   const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasDefaultPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
 
-  const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 10;
+  const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 50;
   const maxGuestsAllowed = item.maxGuests ? Number(item.maxGuests) : (item.capacity ? Number(item.capacity) : 1000);
 
   // Subtotal calculation
+  const totalPlatesCount = vegPlatesCount + nonVegPlatesCount;
   const hallSubtotal = hallRate * bookingDays;
-  const platesSubtotal = hasPerPlate ? plateRate * platesCount : 0;
+  const vegPlatesSubtotal = hasPerPlate ? vegPlateRate * vegPlatesCount : 0;
+  const nonVegPlatesSubtotal = hasPerPlate ? nonVegPlateRate * nonVegPlatesCount : 0;
+  const platesSubtotal = vegPlatesSubtotal + nonVegPlatesSubtotal;
   const guestSubtotal = hasPerGuest ? guestRate * guestCount : 0;
 
   const calculatedBase = isTicket
@@ -468,11 +475,11 @@ export default function ItemDetailScreen() {
     setPaying(true);
     try {
       const numGuests = guestCount || 1;
-      const numPlates = hasPerPlate ? platesCount : 0;
+      const numPlates = hasPerPlate ? totalPlatesCount : 0;
       const numDays = bookingDays || 1;
       const dynamicNotes = isTicket
         ? 'Mobile Ticket Pass'
-        : `Celebration Booking (${numDays} Day${numDays > 1 ? 's' : ''}${hasPerPlate ? ` • ${numPlates} Plates` : ` • ${numGuests} Guests`})`;
+        : `Celebration Booking (${numDays} Day${numDays > 1 ? 's' : ''}${hasPerPlate ? ` • ${vegPlatesCount} Veg + ${nonVegPlatesCount} Non-Veg Plates` : ` • ${numGuests} Guests`})`;
 
       // Call backend bookSectionItem
       const bookingResult = await bookSectionItem(item.id, {
@@ -480,9 +487,13 @@ export default function ItemDetailScreen() {
         quantity: 1,
         guestCount: numGuests,
         platesCount: numPlates,
+        vegPlatesCount: hasPerPlate ? vegPlatesCount : 0,
+        nonVegPlatesCount: hasPerPlate ? nonVegPlatesCount : 0,
+        pricePerPlateVeg: vegPlateRate,
+        pricePerPlateNonVeg: nonVegPlateRate,
         bookingDays: numDays,
         customSubtotal: finalPayable,
-        pricePerPlate: plateRate,
+        pricePerPlate: vegPlateRate,
         userName: guestName.trim(),
         userPhone: guestPhone.trim(),
         notes: dynamicNotes,
@@ -1046,7 +1057,7 @@ export default function ItemDetailScreen() {
                     <Text style={styles.sectionTitle}>Plates & Food Catering</Text>
                   </View>
                   <Text style={styles.capacityBadge}>
-                    ₹{plateRate}/Plate
+                    Veg ₹{vegPlateRate} • Non-Veg ₹{nonVegPlateRate}
                   </Text>
                 </View>
 
@@ -1059,8 +1070,10 @@ export default function ItemDetailScreen() {
                     ]}
                     onPress={() => {
                       setCustomPlatesEnabled(!customPlatesEnabled);
-                      if (!customPlatesEnabled && platesCount <= 0) {
-                        setPlatesCount(guestCount || 100);
+                      if (!customPlatesEnabled && totalPlatesCount <= 0) {
+                        const half = Math.round(guestCount / 2);
+                        setVegPlatesCount(half);
+                        setNonVegPlatesCount(guestCount - half);
                       }
                     }}
                     activeOpacity={0.8}
@@ -1074,7 +1087,7 @@ export default function ItemDetailScreen() {
                           {customPlatesEnabled ? 'Catering Plates Included' : '+ Add Food Catering Plates'}
                         </Text>
                         <Text style={styles.togglePlatesSub}>
-                          ₹{plateRate} per plate • Hot buffet with verified hygiene standards
+                          Pure Veg ₹{vegPlateRate}/plate • Non-Veg ₹{nonVegPlateRate}/plate • Verified Hygiene
                         </Text>
                       </View>
                     </View>
@@ -1084,57 +1097,121 @@ export default function ItemDetailScreen() {
                 {/* Custom Plates Counter & Steppers */}
                 {hasPerPlate && (
                   <>
-                    <View style={styles.guestPickerCard}>
+                    {/* Pure Veg Plates Stepper */}
+                    <View style={[styles.guestPickerCard, { borderLeftWidth: 4, borderLeftColor: '#10b981' }]}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.guestPickerLabel}>Number of Food Plates</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[styles.guestPickerLabel, { color: '#047857' }]}>🟢 Pure Veg Plates</Text>
+                        </View>
                         <Text style={styles.guestPickerSub}>
-                          Catering charges: ₹{plateRate} × {platesCount} = ₹{(plateRate * platesCount).toLocaleString('en-IN')}
+                          Rate: ₹{vegPlateRate} × {vegPlatesCount} = ₹{(vegPlateRate * vegPlatesCount).toLocaleString('en-IN')}
                         </Text>
                       </View>
                       <View style={styles.guestCounterRow}>
                         <TouchableOpacity
                           style={styles.counterBtn}
-                          onPress={() => setPlatesCount(Math.max(10, platesCount - 25))}
+                          onPress={() => setVegPlatesCount(Math.max(0, vegPlatesCount - 25))}
                         >
                           <Minus size={16} color="#0f172a" />
                         </TouchableOpacity>
                         <TextInput
                           style={styles.guestInput}
                           keyboardType="numeric"
-                          value={String(platesCount)}
+                          value={String(vegPlatesCount)}
                           onChangeText={(val) => {
                             const parsed = parseInt(val.replace(/\D/g, ''), 10);
-                            if (!isNaN(parsed)) setPlatesCount(Math.max(1, parsed));
+                            setVegPlatesCount(isNaN(parsed) ? 0 : parsed);
                           }}
                         />
                         <TouchableOpacity
                           style={styles.counterBtn}
-                          onPress={() => setPlatesCount(platesCount + 25)}
+                          onPress={() => setVegPlatesCount(vegPlatesCount + 25)}
                         >
                           <Plus size={16} color="#0f172a" />
                         </TouchableOpacity>
                       </View>
                     </View>
 
+                    {/* Non-Veg Plates Stepper */}
+                    <View style={[styles.guestPickerCard, { borderLeftWidth: 4, borderLeftColor: '#ef4444', marginTop: 10 }]}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[styles.guestPickerLabel, { color: '#b91c1c' }]}>🔴 Non-Veg Plates</Text>
+                        </View>
+                        <Text style={styles.guestPickerSub}>
+                          Rate: ₹{nonVegPlateRate} × {nonVegPlatesCount} = ₹{(nonVegPlateRate * nonVegPlatesCount).toLocaleString('en-IN')}
+                        </Text>
+                      </View>
+                      <View style={styles.guestCounterRow}>
+                        <TouchableOpacity
+                          style={styles.counterBtn}
+                          onPress={() => setNonVegPlatesCount(Math.max(0, nonVegPlatesCount - 25))}
+                        >
+                          <Minus size={16} color="#0f172a" />
+                        </TouchableOpacity>
+                        <TextInput
+                          style={styles.guestInput}
+                          keyboardType="numeric"
+                          value={String(nonVegPlatesCount)}
+                          onChangeText={(val) => {
+                            const parsed = parseInt(val.replace(/\D/g, ''), 10);
+                            setNonVegPlatesCount(isNaN(parsed) ? 0 : parsed);
+                          }}
+                        />
+                        <TouchableOpacity
+                          style={styles.counterBtn}
+                          onPress={() => setNonVegPlatesCount(nonVegPlatesCount + 25)}
+                        >
+                          <Plus size={16} color="#0f172a" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Combined Plates Summary Banner */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, marginTop: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155' }}>
+                        Total Plates: <Text style={{ color: '#0f172a', fontWeight: '900' }}>{totalPlatesCount}</Text> ({vegPlatesCount} Veg + {nonVegPlatesCount} Non-Veg)
+                      </Text>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: '#e11d48' }}>
+                        ₹{platesSubtotal.toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+
                     {/* Quick Preset Plates Chips */}
                     <View style={styles.quickChipsRow}>
-                      {[50, 100, 200, 350, 500, 800].map((count) => (
-                        <TouchableOpacity
-                          key={count}
-                          style={[styles.quickChip, platesCount === count && styles.quickChipActive]}
-                          onPress={() => setPlatesCount(count)}
-                        >
-                          <Text style={[styles.quickChipText, platesCount === count && styles.quickChipTextActive]}>
-                            {count} Plates
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                      <TouchableOpacity
+                        style={[styles.quickChip, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
+                        onPress={() => {
+                          setVegPlatesCount(guestCount);
+                          setNonVegPlatesCount(0);
+                        }}
+                      >
+                        <Text style={[styles.quickChipText, { color: '#16a34a', fontWeight: '700' }]}>
+                          100% Veg ({guestCount})
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.quickChip, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}
+                        onPress={() => {
+                          const half = Math.round(guestCount / 2);
+                          setVegPlatesCount(half);
+                          setNonVegPlatesCount(guestCount - half);
+                        }}
+                      >
+                        <Text style={[styles.quickChipText, { color: '#dc2626', fontWeight: '700' }]}>
+                          50/50 Split
+                        </Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.quickChip, { backgroundColor: '#fff1f2', borderColor: '#fecdd3' }]}
-                        onPress={() => setPlatesCount(guestCount)}
+                        onPress={() => {
+                          const vegPortion = Math.round(guestCount * 0.7);
+                          setVegPlatesCount(vegPortion);
+                          setNonVegPlatesCount(guestCount - vegPortion);
+                        }}
                       >
                         <Text style={[styles.quickChipText, { color: '#e11d48', fontWeight: '800' }]}>
-                          Match Guests ({guestCount})
+                          70% Veg / 30% Non-Veg
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -1232,10 +1309,20 @@ export default function ItemDetailScreen() {
             )}
 
             {hasPerPlate && (
-              <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Catering Plates ({platesCount} × ₹{plateRate})</Text>
-                <Text style={styles.breakdownVal}>₹{platesSubtotal.toLocaleString('en-IN')}</Text>
-              </View>
+              <>
+                {vegPlatesCount > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownLabel, { color: '#15803d' }]}>🟢 Pure Veg Catering ({vegPlatesCount} × ₹{vegPlateRate})</Text>
+                    <Text style={styles.breakdownVal}>₹{vegPlatesSubtotal.toLocaleString('en-IN')}</Text>
+                  </View>
+                )}
+                {nonVegPlatesCount > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownLabel, { color: '#b91c1c' }]}>🔴 Non-Veg Catering ({nonVegPlatesCount} × ₹{nonVegPlateRate})</Text>
+                    <Text style={styles.breakdownVal}>₹{nonVegPlatesSubtotal.toLocaleString('en-IN')}</Text>
+                  </View>
+                )}
+              </>
             )}
 
             {hasPerGuest && (
