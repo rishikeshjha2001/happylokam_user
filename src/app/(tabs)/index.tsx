@@ -474,975 +474,975 @@ export default function HomeTab() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e11d48" />}
-      >
-        {/* ========================================== */}
-        {/* HERO SLIDER WITH INTEGRATED HEADER         */}
-        {/* ========================================== */}
-        <View
-          style={[styles.heroBanner, { height: heroBannerHeight }]}
-          onStartShouldSetResponder={() => true}
-          onResponderGrant={(e) => {
-            touchStartX.current = e.nativeEvent.pageX;
-          }}
-          onResponderRelease={(e) => {
-            const dx = e.nativeEvent.pageX - touchStartX.current;
-            if (dx < -35) {
-              handleNextSlide();
-            } else if (dx > 35) {
-              handlePrevSlide();
-            }
-          }}
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e11d48" />}
         >
-          {/* Synchronized Hero Image with Smooth Cinematic Crossfade */}
-          <Animated.Image
-            key={activeHero.id || currentSlide}
-            source={getHeroImageSource(activeHero.image)}
-            style={[styles.heroImage, { opacity: slideOpacity }]}
-            resizeMode="cover"
-          />
+          {/* ========================================== */}
+          {/* HERO SLIDER WITH INTEGRATED HEADER         */}
+          {/* ========================================== */}
+          <View
+            style={[styles.heroBanner, { height: heroBannerHeight }]}
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={(e) => {
+              touchStartX.current = e.nativeEvent.pageX;
+            }}
+            onResponderRelease={(e) => {
+              const dx = e.nativeEvent.pageX - touchStartX.current;
+              if (dx < -35) {
+                handleNextSlide();
+              } else if (dx > 35) {
+                handlePrevSlide();
+              }
+            }}
+          >
+            {/* Synchronized Hero Image with Smooth Cinematic Crossfade */}
+            <Animated.Image
+              key={activeHero.id || currentSlide}
+              source={getHeroImageSource(activeHero.image)}
+              style={[styles.heroImage, { opacity: slideOpacity }]}
+              resizeMode="cover"
+            />
 
-          {/* Advanced Multi-Layer Optical Cinema Lens Vignette */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Svg height="100%" width="100%">
-              <Defs>
-                {/* 1. Master Elliptical Optical Lens Radial Falloff */}
-                <RadialGradient id="masterOpticalLens" cx="50%" cy="38%" rx="72%" ry="65%" fx="50%" fy="38%">
-                  <Stop offset="0%" stopColor="#000000" stopOpacity="0" />
-                  <Stop offset="32%" stopColor="#000000" stopOpacity="0" />
-                  <Stop offset="55%" stopColor="#020617" stopOpacity="0.10" />
-                  <Stop offset="72%" stopColor="#020617" stopOpacity="0.32" />
-                  <Stop offset="85%" stopColor="#020617" stopOpacity="0.60" />
-                  <Stop offset="95%" stopColor="#020617" stopOpacity="0.84" />
-                  <Stop offset="100%" stopColor="#020617" stopOpacity="0.94" />
-                </RadialGradient>
+            {/* Advanced Multi-Layer Optical Cinema Lens Vignette */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              <Svg height="100%" width="100%">
+                <Defs>
+                  {/* 1. Master Elliptical Optical Lens Radial Falloff */}
+                  <RadialGradient id="masterOpticalLens" cx="50%" cy="38%" rx="72%" ry="65%" fx="50%" fy="38%">
+                    <Stop offset="0%" stopColor="#000000" stopOpacity="0" />
+                    <Stop offset="32%" stopColor="#000000" stopOpacity="0" />
+                    <Stop offset="55%" stopColor="#020617" stopOpacity="0.10" />
+                    <Stop offset="72%" stopColor="#020617" stopOpacity="0.32" />
+                    <Stop offset="85%" stopColor="#020617" stopOpacity="0.60" />
+                    <Stop offset="95%" stopColor="#020617" stopOpacity="0.84" />
+                    <Stop offset="100%" stopColor="#020617" stopOpacity="0.94" />
+                  </RadialGradient>
 
-                {/* 2. Four Optical Corner Vignette Gradients */}
-                <RadialGradient id="cornerTL" cx="0%" cy="0%" r="60%">
-                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
-                  <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
-                  <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                </RadialGradient>
-                <RadialGradient id="cornerTR" cx="100%" cy="0%" r="60%">
-                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
-                  <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
-                  <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                </RadialGradient>
-                <RadialGradient id="cornerBL" cx="0%" cy="100%" r="65%">
-                  <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
-                  <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
-                  <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
-                  <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
-                </RadialGradient>
-                <RadialGradient id="cornerBR" cx="100%" cy="100%" r="65%">
-                  <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
-                  <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
-                  <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
-                  <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
-                </RadialGradient>
+                  {/* 2. Four Optical Corner Vignette Gradients */}
+                  <RadialGradient id="cornerTL" cx="0%" cy="0%" r="60%">
+                    <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
+                    <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
+                    <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
+                    <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                  </RadialGradient>
+                  <RadialGradient id="cornerTR" cx="100%" cy="0%" r="60%">
+                    <Stop offset="0%" stopColor="#000000" stopOpacity="0.75" />
+                    <Stop offset="45%" stopColor="#000000" stopOpacity="0.32" />
+                    <Stop offset="80%" stopColor="#000000" stopOpacity="0.06" />
+                    <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                  </RadialGradient>
+                  <RadialGradient id="cornerBL" cx="0%" cy="100%" r="65%">
+                    <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
+                    <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
+                    <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
+                    <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                  </RadialGradient>
+                  <RadialGradient id="cornerBR" cx="100%" cy="100%" r="65%">
+                    <Stop offset="0%" stopColor="#020617" stopOpacity="0.88" />
+                    <Stop offset="45%" stopColor="#020617" stopOpacity="0.45" />
+                    <Stop offset="80%" stopColor="#020617" stopOpacity="0.10" />
+                    <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                  </RadialGradient>
 
-                {/* 3. Top Scrim for Status Bar & Header Navigation Clarity */}
-                <SvgGradient id="topNavScrim" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="#000000" stopOpacity="0.72" />
-                  <Stop offset="35%" stopColor="#000000" stopOpacity="0.35" />
-                  <Stop offset="70%" stopColor="#000000" stopOpacity="0.08" />
-                  <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                </SvgGradient>
+                  {/* 3. Top Scrim for Status Bar & Header Navigation Clarity */}
+                  <SvgGradient id="topNavScrim" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor="#000000" stopOpacity="0.72" />
+                    <Stop offset="35%" stopColor="#000000" stopOpacity="0.35" />
+                    <Stop offset="70%" stopColor="#000000" stopOpacity="0.08" />
+                    <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                  </SvgGradient>
 
-                {/* 4. Organic Cinema Bottom Scrim for Title & Badge Readability */}
-                <SvgGradient id="bottomCinemaScrim" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="#0f172a" stopOpacity="0" />
-                  <Stop offset="25%" stopColor="#0f172a" stopOpacity="0.15" />
-                  <Stop offset="50%" stopColor="#0f172a" stopOpacity="0.45" />
-                  <Stop offset="75%" stopColor="#0f172a" stopOpacity="0.78" />
-                  <Stop offset="90%" stopColor="#0f172a" stopOpacity="0.92" />
-                  <Stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
-                </SvgGradient>
-              </Defs>
+                  {/* 4. Organic Cinema Bottom Scrim for Title & Badge Readability */}
+                  <SvgGradient id="bottomCinemaScrim" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor="#0f172a" stopOpacity="0" />
+                    <Stop offset="25%" stopColor="#0f172a" stopOpacity="0.15" />
+                    <Stop offset="50%" stopColor="#0f172a" stopOpacity="0.45" />
+                    <Stop offset="75%" stopColor="#0f172a" stopOpacity="0.78" />
+                    <Stop offset="90%" stopColor="#0f172a" stopOpacity="0.92" />
+                    <Stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
+                  </SvgGradient>
+                </Defs>
 
-              {/* Layer 1: Master Elliptical Optical Lens Radial Vignette */}
-              <Rect x="0" y="0" width="100%" height="100%" fill="url(#masterOpticalLens)" />
+                {/* Layer 1: Master Elliptical Optical Lens Radial Vignette */}
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#masterOpticalLens)" />
 
-              {/* Layer 2: Four-Corner Lens Falloff Shadows */}
-              <Rect x="0" y="0" width="55%" height="45%" fill="url(#cornerTL)" />
-              <Rect x="45%" y="0" width="55%" height="45%" fill="url(#cornerTR)" />
-              <Rect x="0" y="55%" width="55%" height="45%" fill="url(#cornerBL)" />
-              <Rect x="45%" y="55%" width="55%" height="45%" fill="url(#cornerBR)" />
+                {/* Layer 2: Four-Corner Lens Falloff Shadows */}
+                <Rect x="0" y="0" width="55%" height="45%" fill="url(#cornerTL)" />
+                <Rect x="45%" y="0" width="55%" height="45%" fill="url(#cornerTR)" />
+                <Rect x="0" y="55%" width="55%" height="45%" fill="url(#cornerBL)" />
+                <Rect x="45%" y="55%" width="55%" height="45%" fill="url(#cornerBR)" />
 
-              {/* Layer 3: Top Navigation & Status Bar Scrim */}
-              <Rect x="0" y="0" width="100%" height="135" fill="url(#topNavScrim)" />
+                {/* Layer 3: Top Navigation & Status Bar Scrim */}
+                <Rect x="0" y="0" width="100%" height="135" fill="url(#topNavScrim)" />
 
-              {/* Layer 4: Bottom Text & Badge Scrim */}
-              <Rect x="0" y="40%" width="100%" height="60%" fill="url(#bottomCinemaScrim)" />
-            </Svg>
-          </View>
+                {/* Layer 4: Bottom Text & Badge Scrim */}
+                <Rect x="0" y="40%" width="100%" height="60%" fill="url(#bottomCinemaScrim)" />
+              </Svg>
+            </View>
 
-          {/* Integrated Header at the top of Hero (Clear of Status Bar) */}
-          <View style={[styles.integratedHeader, { top: headerTopPadding }]}>
-            {/* Left: Menu button */}
-            <TouchableOpacity
-              style={styles.menuBtn}
-              onPress={() => setSidebarOpen(true)}
-              activeOpacity={0.8}
-            >
-              <Menu size={22} color="#ffffff" strokeWidth={2.4} />
-            </TouchableOpacity>
-
-            {/* Center: Location Pill */}
-            <TouchableOpacity
-              style={styles.locationHeaderBtn}
-              onPress={() => setIsLocationModalOpen(true)}
-              activeOpacity={0.85}
-            >
-              <MapPin size={12} color="#f43f5e" />
-              <Text style={styles.locationHeaderBtnText} numberOfLines={1}>
-                {selectedCity}
-              </Text>
-              <ChevronDown size={12} color="#ffffff" />
-            </TouchableOpacity>
-
-            {/* Right: User Name if logged in, or Sign In button if guest */}
-            <View style={styles.headerRightActions}>
-              {userProfile && userProfile.name ? (
-                <TouchableOpacity
-                  style={styles.userHeaderBtn}
-                  onPress={() => router.push('/(tabs)/profile')}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.userHeaderAvatar}>
-                    <UserIcon size={13} color="#ffffff" />
-                  </View>
-                  <Text style={styles.userHeaderBtnText} numberOfLines={1}>
-                    {userProfile.name.split(' ')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.signInHeaderBtn}
-                  onPress={() => router.push('/login')}
-                  activeOpacity={0.85}
-                >
-                  <LogIn size={13} color="#ffffff" />
-                  <Text style={styles.signInHeaderBtnText}>Sign In</Text>
-                </TouchableOpacity>
-              )}
-
+            {/* Integrated Header at the top of Hero (Clear of Status Bar) */}
+            <View style={[styles.integratedHeader, { top: headerTopPadding }]}>
+              {/* Left: Menu button */}
               <TouchableOpacity
-                style={styles.bellBtn}
-                onPress={() => router.push('/notifications')}
+                style={styles.menuBtn}
+                onPress={() => setSidebarOpen(true)}
                 activeOpacity={0.8}
               >
-                <Bell size={18} color="#ffffff" />
-                <View style={styles.bellAlertDot} />
+                <Menu size={22} color="#ffffff" strokeWidth={2.4} />
               </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Hero Bottom Vignette Content with Punchy Tagline & Pagination Indicators */}
-          <View style={styles.heroContentBox}>
-            {/* Interactive Pagination Capsule Pills */}
-            <View style={styles.heroPaginationRow}>
-              {slides.map((_, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => goToSlide(idx)}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.heroDot,
-                    idx === currentSlide && styles.heroDotActive,
-                  ]}
-                />
-              ))}
-              <View style={styles.heroCounterBadge}>
-                <Text style={styles.heroCounterText}>
-                  {currentSlide + 1} / {slides.length}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.featuredBadge}>
-              <Flame size={12} color="#ffffff" />
-              <Text style={styles.featuredBadgeText}>{activeHero.badge || 'FEATURED OFFER'}</Text>
-            </View>
-
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {activeHero.title}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.heroSubRow}
-              onPress={() => router.push('/(tabs)/explore')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.heroSubtitle}>{getCleanTagline(activeHero)}</Text>
-              <View style={styles.heroArrowCircle}>
-                <ArrowRight size={13} color="#ffffff" strokeWidth={2.5} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ========================================== */}
-        {/* OVERLAPPING SEARCH BAR                    */}
-        {/* ========================================== */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBox}>
-            <View style={styles.searchIconBox}>
-              <Search size={20} color="#e11d48" />
-            </View>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search wedding, birthday, pandit, catering..."
-              placeholderTextColor="#94a3b8"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={() =>
-                router.push({
-                  pathname: '/(tabs)/explore',
-                  params: searchQuery.trim() ? { search: searchQuery.trim() } : {},
-                })
-              }
-            />
-            {searchQuery.length > 0 && (
+              {/* Center: Location Pill */}
               <TouchableOpacity
-                onPress={() => setSearchQuery('')}
-                style={{ padding: 6, marginRight: 4 }}
+                style={styles.locationHeaderBtn}
+                onPress={() => setIsLocationModalOpen(true)}
+                activeOpacity={0.85}
               >
-                <X size={16} color="#94a3b8" />
+                <MapPin size={12} color="#f43f5e" />
+                <Text style={styles.locationHeaderBtnText} numberOfLines={1}>
+                  {selectedCity}
+                </Text>
+                <ChevronDown size={12} color="#ffffff" />
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.filterBtn, homeActiveFilterCount > 0 && styles.filterBtnActive]}
-              onPress={() => setIsFilterModalOpen(true)}
-              activeOpacity={0.75}
-            >
-              <SlidersHorizontal size={18} color={homeActiveFilterCount > 0 ? '#ffffff' : '#475569'} />
-              {homeActiveFilterCount > 0 && (
-                <View style={styles.filterBadge}>
-                  <Text style={styles.filterBadgeText}>{homeActiveFilterCount}</Text>
+
+              {/* Right: User Name if logged in, or Sign In button if guest */}
+              <View style={styles.headerRightActions}>
+                {userProfile && userProfile.name ? (
+                  <TouchableOpacity
+                    style={styles.userHeaderBtn}
+                    onPress={() => router.push('/(tabs)/profile')}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.userHeaderAvatar}>
+                      <UserIcon size={13} color="#ffffff" />
+                    </View>
+                    <Text style={styles.userHeaderBtnText} numberOfLines={1}>
+                      {userProfile.name.split(' ')[0]}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.signInHeaderBtn}
+                    onPress={() => router.push('/login')}
+                    activeOpacity={0.85}
+                  >
+                    <LogIn size={13} color="#ffffff" />
+                    <Text style={styles.signInHeaderBtnText}>Sign In</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.bellBtn}
+                  onPress={() => router.push('/notifications')}
+                  activeOpacity={0.8}
+                >
+                  <Bell size={18} color="#ffffff" />
+                  <View style={styles.bellAlertDot} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Hero Bottom Vignette Content with Punchy Tagline & Pagination Indicators */}
+            <View style={styles.heroContentBox}>
+              {/* Interactive Pagination Capsule Pills */}
+              <View style={styles.heroPaginationRow}>
+                {slides.map((_, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => goToSlide(idx)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.heroDot,
+                      idx === currentSlide && styles.heroDotActive,
+                    ]}
+                  />
+                ))}
+                <View style={styles.heroCounterBadge}>
+                  <Text style={styles.heroCounterText}>
+                    {currentSlide + 1} / {slides.length}
+                  </Text>
                 </View>
-              )}
-            </TouchableOpacity>
+              </View>
+
+              <View style={styles.featuredBadge}>
+                <Flame size={12} color="#ffffff" />
+                <Text style={styles.featuredBadgeText}>{activeHero.badge || 'FEATURED OFFER'}</Text>
+              </View>
+
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {activeHero.title}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.heroSubRow}
+                onPress={() => router.push('/(tabs)/explore')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.heroSubtitle}>{getCleanTagline(activeHero)}</Text>
+                <View style={styles.heroArrowCircle}>
+                  <ArrowRight size={13} color="#ffffff" strokeWidth={2.5} />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Live Floating Instant Search Autocomplete Suggestions */}
-          {searchQuery.trim().length > 0 && (
-            <View style={styles.suggestionsContainer}>
-              <View style={styles.suggestionsHeader}>
-                <Text style={styles.suggestionsHeaderText}>
-                  Matches for "{searchQuery}" ({searchSuggestions.length})
-                </Text>
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Text style={styles.suggestionsCloseText}>Close ✕</Text>
+          {/* ========================================== */}
+          {/* OVERLAPPING SEARCH BAR                    */}
+          {/* ========================================== */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBox}>
+              <View style={styles.searchIconBox}>
+                <Search size={20} color="#e11d48" />
+              </View>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search wedding, birthday, pandit, catering..."
+                placeholderTextColor="#94a3b8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={() =>
+                  router.push({
+                    pathname: '/(tabs)/explore',
+                    params: searchQuery.trim() ? { search: searchQuery.trim() } : {},
+                  })
+                }
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  style={{ padding: 6, marginRight: 4 }}
+                >
+                  <X size={16} color="#94a3b8" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.filterBtn, homeActiveFilterCount > 0 && styles.filterBtnActive]}
+                onPress={() => setIsFilterModalOpen(true)}
+                activeOpacity={0.75}
+              >
+                <SlidersHorizontal size={18} color={homeActiveFilterCount > 0 ? '#ffffff' : '#475569'} />
+                {homeActiveFilterCount > 0 && (
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>{homeActiveFilterCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Live Floating Instant Search Autocomplete Suggestions */}
+            {searchQuery.trim().length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                <View style={styles.suggestionsHeader}>
+                  <Text style={styles.suggestionsHeaderText}>
+                    Matches for "{searchQuery}" ({searchSuggestions.length})
+                  </Text>
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Text style={styles.suggestionsCloseText}>Close ✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {searchSuggestions.length === 0 ? (
+                  <View style={styles.noSuggestionRow}>
+                    <Text style={styles.noSuggestionText}>No exact matches found. Press below to explore all items.</Text>
+                  </View>
+                ) : (
+                  searchSuggestions.map((item: any, idx: number) => (
+                    <TouchableOpacity
+                      key={item.id || idx}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setSearchQuery('');
+                        handleOpenDetail(item);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Image
+                        source={{
+                          uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+                        }}
+                        style={styles.suggestionThumb}
+                      />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.suggestionTitle} numberOfLines={1}>
+                          {item.title || item.name}
+                        </Text>
+                        <Text style={styles.suggestionSub} numberOfLines={1}>
+                          📍 {item.location || item.city || 'Pan-India'} • {item.type || 'Celebration'}
+                        </Text>
+                      </View>
+                      <View style={styles.suggestionPriceBox}>
+                        <Text style={styles.suggestionPriceText}>
+                          {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
+                        </Text>
+                        <ChevronRight size={14} color="#94a3b8" />
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+
+                <TouchableOpacity
+                  style={styles.seeAllExploreBtn}
+                  onPress={() => {
+                    const q = searchQuery.trim();
+                    setSearchQuery('');
+                    router.push({
+                      pathname: '/(tabs)/explore',
+                      params: { search: q },
+                    });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.seeAllExploreBtnText}>View all matches in Explore tab →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Smart Advanced Search Keyword / Category Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityPillScroll}>
+              {[
+                { label: '✨ All Categories', query: '', category: 'All' },
+                { label: '👑 Wedding Mandaps', query: 'wedding', category: 'Weddings' },
+                { label: '🎂 Birthday Themes', query: 'birthday', category: 'Birthdays' },
+                { label: '🔥 Vedic Pandit', query: 'pandit', category: 'Pandit' },
+                { label: '🍽️ Catering Feasts', query: 'catering', category: 'Catering' },
+                { label: '🎨 Haldi & Decor', query: 'decor', category: 'Decor' },
+                { label: '🏰 Luxury Venues', query: 'venue', category: 'Venues' },
+                { label: '📸 Photo Shoots', query: 'shoot', category: 'Photography' },
+              ].map((chip) => {
+                const active = searchQuery.toLowerCase() === chip.query.toLowerCase() || (chip.query === '' && !searchQuery);
+                return (
+                  <TouchableOpacity
+                    key={chip.label}
+                    style={[styles.cityChip, active && styles.cityChipActive]}
+                    onPress={() => {
+                      setSearchQuery(chip.query);
+                      router.push({
+                        pathname: '/(tabs)/explore',
+                        params: chip.category !== 'All' ? { category: chip.category, search: chip.query } : {},
+                      });
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Sparkles size={11} color={active ? '#ffffff' : '#e11d48'} />
+                    <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>{chip.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* ========================================== */}
+          {/* QUICK CATEGORIES ROW                      */}
+          {/* ========================================== */}
+          <View style={styles.quickCatRow}>
+            {QUICK_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.quickCatItem}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/explore',
+                    params: { category: cat.name },
+                  })
+                }
+                activeOpacity={0.8}
+              >
+                <View style={[styles.quickCatIconBox, { backgroundColor: cat.bg, borderColor: cat.border }]}>
+                  <cat.icon size={24} color={cat.color} />
+                </View>
+                <Text style={styles.quickCatName}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+
+
+
+          {/* ========================================== */}
+          {/* DYNAMIC ADMIN CUSTOM CATEGORIES            */}
+          {/* ========================================== */}
+          {adminCategories.length > 0 && (
+            <View style={{ marginTop: 22 }}>
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  <View style={styles.secCustomTagPill}>
+                    <Text style={styles.secCustomTagText}>CURATED THEMES</Text>
+                  </View>
+                  <Text style={styles.sectionTitle}>Celebration Categories</Text>
+                  <Text style={styles.sectionSubtitle}>Handpicked themes, catering & venues</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewAllRow}
+                  onPress={() => router.push('/(tabs)/explore')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <ChevronRight size={14} color="#e11d48" />
                 </TouchableOpacity>
               </View>
 
-              {searchSuggestions.length === 0 ? (
-                <View style={styles.noSuggestionRow}>
-                  <Text style={styles.noSuggestionText}>No exact matches found. Press below to explore all items.</Text>
-                </View>
-              ) : (
-                searchSuggestions.map((item: any, idx: number) => (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {adminCategories.map((cat) => (
                   <TouchableOpacity
-                    key={item.id || idx}
-                    style={styles.suggestionItem}
-                    onPress={() => {
-                      setSearchQuery('');
-                      handleOpenDetail(item);
-                    }}
-                    activeOpacity={0.85}
+                    key={cat.id}
+                    style={styles.catBannerCard}
+                    activeOpacity={0.88}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(tabs)/explore',
+                        params: { category: cat.name },
+                      })
+                    }
                   >
-                    <Image
-                      source={{
-                        uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-                      }}
-                      style={styles.suggestionThumb}
-                    />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.suggestionTitle} numberOfLines={1}>
-                        {item.title || item.name}
+                    <Image source={{ uri: cat.image }} style={styles.catBannerImg} />
+                    <View style={styles.catBannerOverlay} />
+                    {cat.tag && (
+                      <View style={styles.catTagBadge}>
+                        <Text style={styles.catTagBadgeText}>{cat.tag}</Text>
+                      </View>
+                    )}
+                    <View style={styles.catBannerContent}>
+                      <Text style={styles.catBannerTitle} numberOfLines={1}>{cat.name}</Text>
+                      <Text style={styles.catBannerSub}>
+                        {cat.items?.length ? `${cat.items.length} Celebration Items` : 'Explore Collection'}
                       </Text>
-                      <Text style={styles.suggestionSub} numberOfLines={1}>
-                        📍 {item.location || item.city || 'Pan-India'} • {item.type || 'Celebration'}
-                      </Text>
-                    </View>
-                    <View style={styles.suggestionPriceBox}>
-                      <Text style={styles.suggestionPriceText}>
-                        {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
-                      </Text>
-                      <ChevronRight size={14} color="#94a3b8" />
                     </View>
                   </TouchableOpacity>
-                ))
-              )}
-
-              <TouchableOpacity
-                style={styles.seeAllExploreBtn}
-                onPress={() => {
-                  const q = searchQuery.trim();
-                  setSearchQuery('');
-                  router.push({
-                    pathname: '/(tabs)/explore',
-                    params: { search: q },
-                  });
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.seeAllExploreBtnText}>View all matches in Explore tab →</Text>
-              </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           )}
 
-          {/* Smart Advanced Search Keyword / Category Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityPillScroll}>
-            {[
-              { label: '✨ All Categories', query: '', category: 'All' },
-              { label: '👑 Wedding Mandaps', query: 'wedding', category: 'Weddings' },
-              { label: '🎂 Birthday Themes', query: 'birthday', category: 'Birthdays' },
-              { label: '🔥 Vedic Pandit', query: 'pandit', category: 'Pandit' },
-              { label: '🍽️ Catering Feasts', query: 'catering', category: 'Catering' },
-              { label: '🎨 Haldi & Decor', query: 'decor', category: 'Decor' },
-              { label: '🏰 Luxury Venues', query: 'venue', category: 'Venues' },
-              { label: '📸 Photo Shoots', query: 'shoot', category: 'Photography' },
-            ].map((chip) => {
-              const active = searchQuery.toLowerCase() === chip.query.toLowerCase() || (chip.query === '' && !searchQuery);
-              return (
-                <TouchableOpacity
-                  key={chip.label}
-                  style={[styles.cityChip, active && styles.cityChipActive]}
-                  onPress={() => {
-                    setSearchQuery(chip.query);
-                    router.push({
-                      pathname: '/(tabs)/explore',
-                      params: chip.category !== 'All' ? { category: chip.category, search: chip.query } : {},
-                    });
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Sparkles size={11} color={active ? '#ffffff' : '#e11d48'} />
-                  <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>{chip.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ========================================== */}
-        {/* QUICK CATEGORIES ROW                      */}
-        {/* ========================================== */}
-        <View style={styles.quickCatRow}>
-          {QUICK_CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={styles.quickCatItem}
-              onPress={() =>
-                router.push({
-                  pathname: '/(tabs)/explore',
-                  params: { category: cat.name },
-                })
-              }
-              activeOpacity={0.8}
-            >
-              <View style={[styles.quickCatIconBox, { backgroundColor: cat.bg, borderColor: cat.border }]}>
-                <cat.icon size={24} color={cat.color} />
-              </View>
-              <Text style={styles.quickCatName}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
 
-
-
-        {/* ========================================== */}
-        {/* DYNAMIC ADMIN CUSTOM CATEGORIES            */}
-        {/* ========================================== */}
-        {adminCategories.length > 0 && (
-          <View style={{ marginTop: 22 }}>
-            <View style={styles.sectionHeaderRow}>
-              <View>
-                <View style={styles.secCustomTagPill}>
-                  <Text style={styles.secCustomTagText}>CURATED THEMES</Text>
-                </View>
-                <Text style={styles.sectionTitle}>Celebration Categories</Text>
-                <Text style={styles.sectionSubtitle}>Handpicked themes, catering & venues</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewAllRow}
-                onPress={() => router.push('/(tabs)/explore')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight size={14} color="#e11d48" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {adminCategories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={styles.catBannerCard}
-                  activeOpacity={0.88}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(tabs)/explore',
-                      params: { category: cat.name },
-                    })
-                  }
-                >
-                  <Image source={{ uri: cat.image }} style={styles.catBannerImg} />
-                  <View style={styles.catBannerOverlay} />
-                  {cat.tag && (
-                    <View style={styles.catTagBadge}>
-                      <Text style={styles.catTagBadgeText}>{cat.tag}</Text>
+          {/* ========================================== */}
+          {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
+          {/* ========================================== */}
+          {adminSections.map((sec) => (
+            <View key={sec.id} style={{ marginTop: 22 }}>
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  {sec.tag && (
+                    <View style={styles.secCustomTagPill}>
+                      <Text style={styles.secCustomTagText}>{sec.tag}</Text>
                     </View>
                   )}
-                  <View style={styles.catBannerContent}>
-                    <Text style={styles.catBannerTitle} numberOfLines={1}>{cat.name}</Text>
-                    <Text style={styles.catBannerSub}>
-                      {cat.items?.length ? `${cat.items.length} Celebration Items` : 'Explore Collection'}
-                    </Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>{sec.title}</Text>
+                  <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewAllRow}
+                  onPress={() => router.push('/(tabs)/explore')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <ChevronRight size={14} color="#e11d48" />
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-
-
-        {/* ========================================== */}
-        {/* DYNAMIC ADMIN CUSTOM SECTIONS              */}
-        {/* ========================================== */}
-        {adminSections.map((sec) => (
-          <View key={sec.id} style={{ marginTop: 22 }}>
-            <View style={styles.sectionHeaderRow}>
-              <View>
-                {sec.tag && (
-                  <View style={styles.secCustomTagPill}>
-                    <Text style={styles.secCustomTagText}>{sec.tag}</Text>
-                  </View>
-                )}
-                <Text style={styles.sectionTitle}>{sec.title}</Text>
-                <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
               </View>
-              <TouchableOpacity
-                style={styles.viewAllRow}
-                onPress={() => router.push('/(tabs)/explore')}
-                activeOpacity={0.7}
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
               >
-                <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight size={14} color="#e11d48" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {sec.items.map((it) => {
-                const isLiked = likedIds.includes(it.id);
-                return (
-                  <View key={it.id} style={styles.horizontalCard}>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={() => handleOpenDetail(it)}
-                      style={styles.cardImageContainer}
-                    >
-                      <Image source={{ uri: it.image }} style={styles.cardImage} />
-                      <View style={styles.cardImageOverlay} />
-
-                      {it.cornerTag ? (
-                        <View style={styles.cardCornerTagBadge}>
-                          <Text style={styles.cardCornerTagText}>{it.cornerTag.toUpperCase()}</Text>
-                        </View>
-                      ) : null}
-
-                      <TouchableOpacity
-                        style={styles.likeBtn}
-                        onPress={() => toggleLike(it)}
-                        activeOpacity={0.8}
-                      >
-                        <Heart
-                          size={15}
-                          color={isLiked ? '#e11d48' : '#475569'}
-                          fill={isLiked ? '#e11d48' : 'transparent'}
-                        />
-                      </TouchableOpacity>
-
-                      <View style={styles.ratingBadge}>
-                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
-                        <Text style={styles.ratingText}>{it.rating}</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.cardContent}>
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => handleOpenDetail(it)}
-                      >
-                        <Text style={styles.cardTitle} numberOfLines={1}>
-                          {it.title}
-                        </Text>
-                        {it.location && (
-                          <View style={styles.locationRow}>
-                            <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
-                            <Text style={styles.locationText} numberOfLines={1}>
-                              {it.location}
-                            </Text>
-                            {userCoords && it.latitude && it.longitude ? (
-                              <Text style={styles.distanceInlineText}>
-                                • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, it.latitude, it.longitude))}
-                              </Text>
-                            ) : null}
-                          </View>
-                        )}
-                      </TouchableOpacity>
-
-                      {/* Capacity Badge in Items Bar */}
-                      {(it.capacity || it.maxGuests) ? (
-                        <View style={styles.cardCapacityRow}>
-                          <View style={styles.cardCapacityBadge}>
-                            <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
-                            <Text style={styles.cardCapacityText}>
-                              {it.minGuests
-                                ? `${it.minGuests} – ${it.capacity || it.maxGuests} Guests`
-                                : `Up to ${it.capacity || it.maxGuests} Guests`}
-                            </Text>
-                          </View>
-                        </View>
-                      ) : null}
-
-                      {/* Celebration Types Pills */}
-                      {it.supportedCelebrations && it.supportedCelebrations.length > 0 ? (
-                        <View style={styles.cardCelebRow}>
-                          {it.supportedCelebrations.slice(0, 3).map((celeb: string) => {
-                            const label =
-                              celeb === 'WEDDING' ? '💍 Wedding' :
-                              celeb === 'BIRTHDAY' ? '🎂 Birthday' :
-                              celeb === 'OFFICE_EVENTS' ? '🏢 Corporate' :
-                              celeb === 'ANNIVERSARY' ? '🥂 Anniversary' :
-                              celeb === 'COCKTAIL_PARTY' ? '🎶 Party' :
-                              celeb === 'FESTIVE' ? '🌸 Festive' :
-                              celeb === 'REUNION' ? '🎓 Reunion' : '🎉 Event';
-                            return (
-                              <View key={celeb} style={styles.cardCelebBadge}>
-                                <Text style={styles.cardCelebText}>{label}</Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      ) : null}
-
-                      <View style={styles.cardFooter}>
-                        <View style={[styles.typePill, { backgroundColor: it.itemType === 'TICKET' ? '#fef3c7' : '#e0e7ff' }]}>
-                          <Text style={[styles.typePillText, { color: it.itemType === 'TICKET' ? '#b45309' : '#3730a3' }]}>
-                            {it.itemType === 'TICKET' ? '🎫 TICKET' : '📅 BOOKING'}
-                          </Text>
-                        </View>
-                        <View style={styles.priceContainer}>
-                          <Text style={styles.startsAtText}>{it.itemType === 'TICKET' ? 'Per Ticket' : 'From'}</Text>
-                          <Text style={styles.priceValue}>
-                            {typeof it.price === 'number' ? `₹${it.price.toLocaleString('en-IN')}` : it.price}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Direct "Book / Get Ticket" Button */}
-                      <TouchableOpacity
-                        style={styles.cardBookNowBtn}
-                        onPress={() => handleBookNow(it)}
-                        activeOpacity={0.85}
-                      >
-                        {it.itemType === 'TICKET' ? <Ticket size={13} color="#ffffff" /> : <Calendar size={13} color="#ffffff" />}
-                        <Text style={styles.cardBookNowText}>
-                          {it.itemType === 'TICKET' ? 'Get Ticket Pass' : 'Reserve Booking'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        ))}
-
-        {/* ========================================== */}
-        {/* HORIZONTAL SECTION: PREMIUM VENUES        */}
-        {/* ========================================== */}
-        {venues.length > 0 && (
-          <View style={{ marginTop: 22 }}>
-            <View style={styles.sectionHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>Premium Venues</Text>
-                <Text style={styles.sectionSubtitle}>Handpicked luxury locations</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewAllRow}
-                onPress={() => router.push('/(tabs)/explore')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight size={14} color="#e11d48" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {venues.map((venue) => {
-                const isLiked = likedIds.includes(venue.id);
-                return (
-                  <View key={venue.id} style={styles.horizontalCard}>
-                    {/* Image & Wishlist Button */}
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={() => handleOpenDetail(venue)}
-                      style={styles.cardImageContainer}
-                    >
-                      <Image source={{ uri: venue.image }} style={styles.cardImage} />
-                      <View style={styles.cardImageOverlay} />
-
-                      <TouchableOpacity
-                        style={styles.likeBtn}
-                        onPress={() => toggleLike(venue)}
-                        activeOpacity={0.8}
-                      >
-                        <Heart
-                          size={15}
-                          color={isLiked ? '#e11d48' : '#475569'}
-                          fill={isLiked ? '#e11d48' : 'transparent'}
-                        />
-                      </TouchableOpacity>
-
-                      <View style={styles.ratingBadge}>
-                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
-                        <Text style={styles.ratingText}>{venue.rating}</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Card Info */}
-                    <View style={styles.cardContent}>
-                      <TouchableOpacity onPress={() => handleOpenDetail(venue)} activeOpacity={0.85}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>
-                          {venue.title}
-                        </Text>
-                      </TouchableOpacity>
-                      <View style={styles.locationRow}>
-                        <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
-                        <Text style={styles.locationText} numberOfLines={1}>
-                          {venue.location}
-                        </Text>
-                        {userCoords && venue.latitude && venue.longitude ? (
-                          <Text style={styles.distanceInlineText}>
-                            • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, venue.latitude, venue.longitude))}
-                          </Text>
-                        ) : null}
-                      </View>
-
-                      {/* Capacity Badge */}
-                      {(venue.capacity || (venue as any).maxGuests) ? (
-                        <View style={styles.cardCapacityRow}>
-                          <View style={styles.cardCapacityBadge}>
-                            <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
-                            <Text style={styles.cardCapacityText}>
-                              {(venue as any).minGuests
-                                ? `${(venue as any).minGuests} – ${venue.capacity || (venue as any).maxGuests} Guests`
-                                : `Up to ${venue.capacity || (venue as any).maxGuests} Guests`}
-                            </Text>
-                          </View>
-                        </View>
-                      ) : null}
-
-                      <View style={styles.cardFooter}>
-                        <View style={styles.typePill}>
-                          <Text style={styles.typePillText}>{venue.type}</Text>
-                        </View>
-                        <View style={styles.priceContainer}>
-                          <Text style={styles.startsAtText}>Starts at</Text>
-                          <Text style={styles.priceValue}>{venue.price}</Text>
-                        </View>
-                      </View>
-
-                      {/* Direct "Book Now" Button */}
-                      <TouchableOpacity
-                        style={styles.cardBookNowBtn}
-                        onPress={() => handleBookNow(venue)}
-                        activeOpacity={0.85}
-                      >
-                        <Ticket size={13} color="#ffffff" />
-                        <Text style={styles.cardBookNowText}>Book Now</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ========================================== */}
-        {/* HORIZONTAL SECTION: CURATED PACKAGES      */}
-        {/* ========================================== */}
-        {packages.length > 0 && (
-          <View style={{ marginTop: 22 }}>
-            <View style={styles.sectionHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>Curated Packages</Text>
-                <Text style={styles.sectionSubtitle}>All-inclusive celebrations</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewAllRow}
-                onPress={() => router.push('/(tabs)/explore')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight size={14} color="#e11d48" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {packages.map((pkg) => {
-                const isLiked = likedIds.includes(pkg.id);
-                return (
-                  <View key={pkg.id} style={styles.horizontalCard}>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={() => handleOpenDetail(pkg)}
-                      style={styles.cardImageContainer}
-                    >
-                      <Image source={{ uri: pkg.image }} style={styles.cardImage} />
-                      <View style={styles.cardImageOverlay} />
-
-                      <TouchableOpacity
-                        style={styles.likeBtn}
-                        onPress={() => toggleLike(pkg)}
-                        activeOpacity={0.8}
-                      >
-                        <Heart
-                          size={15}
-                          color={isLiked ? '#e11d48' : '#475569'}
-                          fill={isLiked ? '#e11d48' : 'transparent'}
-                        />
-                      </TouchableOpacity>
-
-                      <View style={styles.ratingBadge}>
-                        <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
-                        <Text style={styles.ratingText}>{pkg.rating}</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.cardContent}>
-                      <TouchableOpacity onPress={() => handleOpenDetail(pkg)} activeOpacity={0.85}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>
-                          {pkg.title}
-                        </Text>
-                      </TouchableOpacity>
-                      <Text style={styles.tagsText} numberOfLines={1}>
-                        {pkg.tags.join(' • ')}
-                      </Text>
-
-                      <View style={styles.cardFooter}>
-                        <View style={styles.typePill}>
-                          <Text style={styles.typePillText}>{pkg.type}</Text>
-                        </View>
-                        <View style={styles.priceContainer}>
-                          <Text style={styles.startsAtText}>Starts at</Text>
-                          <Text style={styles.priceValue}>{pkg.price}</Text>
-                        </View>
-                      </View>
-
-                      {/* Direct "Book Now" Button */}
-                      <TouchableOpacity
-                        style={styles.cardBookNowBtn}
-                        onPress={() => handleBookNow(pkg)}
-                        activeOpacity={0.85}
-                      >
-                        <Ticket size={13} color="#ffffff" />
-                        <Text style={styles.cardBookNowText}>Book Now</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Empty state when no sections exist yet */}
-        {adminSections.length === 0 && venues.length === 0 && packages.length === 0 && (
-          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
-            <Sparkles size={40} color="#e11d48" />
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 14 }}>
-              Welcome to happylokam
-            </Text>
-            <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-              New celebrations, curated themes, and venue passes verified by happylokam Support will appear here live.
-            </Text>
-            <TouchableOpacity
-              style={{ marginTop: 18, backgroundColor: '#e11d48', paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20 }}
-              onPress={onRefresh}
-              activeOpacity={0.85}
-            >
-              <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 13 }}>Refresh Feed 🔄</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Review Booking / Payment Modal */}
-      <PaymentModal
-        visible={!!checkoutItem}
-        item={checkoutItem}
-        onClose={() => setCheckoutItem(null)}
-        onSuccess={() => {
-          setCheckoutItem(null);
-          router.push('/(tabs)/bookings');
-        }}
-      />
-
-      {/* Sidebar Drawer */}
-      <SidebarDrawer
-        visible={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onOpenWallet={() => setWalletOpen(true)}
-        user={{
-          name: (userProfile?.name || 'Guest User').replace(' ✨', ''),
-          email: userProfile?.email || '',
-        }}
-      />
-
-      {/* Wallet Modal */}
-      <WalletModal
-        visible={isWalletOpen}
-        onClose={() => setWalletOpen(false)}
-        balance={userProfile?.balance || 0}
-      />
-
-      {/* Admin Section Manager Modal */}
-      <AdminSectionModal
-        visible={isAdminModalOpen}
-        sections={adminSections}
-        onClose={() => setIsAdminModalOpen(false)}
-        onSectionsUpdated={(updated) => setAdminSections(updated)}
-        onCategoriesUpdated={(updated) => setAdminCategories(updated)}
-        onHeroSlidesUpdated={(updated) => setSlides(updated)}
-      />
-
-      {/* Advanced Filter Modal from Home Search */}
-      <AdvancedFilterModal
-        visible={isFilterModalOpen}
-        filters={homeFilters}
-        totalMatches={adminSections.flatMap((s) => s.items || []).length + venues.length + packages.length}
-        onClose={() => setIsFilterModalOpen(false)}
-        onApply={(applied) => {
-          setHomeFilters(applied);
-          setIsFilterModalOpen(false);
-          router.push({
-            pathname: '/(tabs)/explore',
-            params: {
-              category: applied.category !== 'All' ? applied.category : undefined,
-              priceRange: applied.priceRange !== 'all' ? applied.priceRange : undefined,
-              sortBy: applied.sortBy !== 'featured' ? applied.sortBy : undefined,
-              minRating: applied.minRating > 0 ? String(applied.minRating) : undefined,
-              city: applied.city !== 'All' ? applied.city : undefined,
-              capacity: applied.capacity !== 'all' ? applied.capacity : undefined,
-              amenities: applied.amenities.length > 0 ? applied.amenities.join(',') : undefined,
-              search: searchQuery.trim() || undefined,
-            },
-          });
-        }}
-        onReset={() => setHomeFilters(DEFAULT_FILTERS)}
-      />
-
-      {/* Location Selector Modal */}
-      <Modal
-        visible={isLocationModalOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsLocationModalOpen(false)}
-      >
-        <View style={styles.locModalOverlay}>
-          <View style={styles.locModalContent}>
-            <View style={styles.locModalHeader}>
-              <View>
-                <Text style={styles.locModalTitle}>Select Your Location</Text>
-                <Text style={styles.locModalSubtitle}>Choose GPS detection or select your city</Text>
-              </View>
-              <TouchableOpacity onPress={() => setIsLocationModalOpen(false)} style={styles.locModalClose}>
-                <X size={18} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            {/* GPS Auto-Detect Button */}
-            <TouchableOpacity
-              style={styles.gpsDetectBtn}
-              onPress={handleDetectGps}
-              disabled={detectingGps}
-              activeOpacity={0.85}
-            >
-              <Navigation size={18} color="#ffffff" />
-              {detectingGps ? (
-                <ActivityIndicator size="small" color="#ffffff" style={{ marginLeft: 8 }} />
-              ) : (
-                <Text style={styles.gpsDetectBtnText}>Detect Location via GPS</Text>
-              )}
-            </TouchableOpacity>
-
-            <Text style={styles.locDividerText}>OR SELECT MANUALLY</Text>
-
-            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.cityGrid}>
-                {CITIES_LIST.map((city) => {
-                  const isSelected = selectedCity === city;
+                {sec.items.map((it) => {
+                  const isLiked = likedIds.includes(it.id);
                   return (
-                    <TouchableOpacity
-                      key={city}
-                      style={[styles.cityItem, isSelected && styles.cityItemActive]}
-                      onPress={() => handleSelectCity(city)}
-                      activeOpacity={0.75}
-                    >
-                      <MapPin size={14} color={isSelected ? '#ffffff' : '#e11d48'} />
-                      <Text style={[styles.cityItemText, isSelected && styles.cityItemTextActive]}>
-                        {city}
-                      </Text>
-                    </TouchableOpacity>
+                    <View key={it.id} style={styles.horizontalCard}>
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => handleOpenDetail(it)}
+                        style={styles.cardImageContainer}
+                      >
+                        <Image source={{ uri: it.image }} style={styles.cardImage} />
+                        <View style={styles.cardImageOverlay} />
+
+                        {it.cornerTag ? (
+                          <View style={styles.cardCornerTagBadge}>
+                            <Text style={styles.cardCornerTagText}>{it.cornerTag.toUpperCase()}</Text>
+                          </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                          style={styles.likeBtn}
+                          onPress={() => toggleLike(it)}
+                          activeOpacity={0.8}
+                        >
+                          <Heart
+                            size={15}
+                            color={isLiked ? '#e11d48' : '#475569'}
+                            fill={isLiked ? '#e11d48' : 'transparent'}
+                          />
+                        </TouchableOpacity>
+
+                        <View style={styles.ratingBadge}>
+                          <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                          <Text style={styles.ratingText}>{it.rating}</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={styles.cardContent}>
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onPress={() => handleOpenDetail(it)}
+                        >
+                          <Text style={styles.cardTitle} numberOfLines={1}>
+                            {it.title}
+                          </Text>
+                          {it.location && (
+                            <View style={styles.locationRow}>
+                              <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
+                              <Text style={styles.locationText} numberOfLines={1}>
+                                {it.location}
+                              </Text>
+                              {userCoords && it.latitude && it.longitude ? (
+                                <Text style={styles.distanceInlineText}>
+                                  • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, it.latitude, it.longitude))}
+                                </Text>
+                              ) : null}
+                            </View>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Capacity Badge in Items Bar */}
+                        {(it.capacity || it.maxGuests) ? (
+                          <View style={styles.cardCapacityRow}>
+                            <View style={styles.cardCapacityBadge}>
+                              <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
+                              <Text style={styles.cardCapacityText}>
+                                {it.minGuests
+                                  ? `${it.minGuests} – ${it.capacity || it.maxGuests} Guests`
+                                  : `Up to ${it.capacity || it.maxGuests} Guests`}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : null}
+
+                        {/* Celebration Types Pills */}
+                        {it.supportedCelebrations && it.supportedCelebrations.length > 0 ? (
+                          <View style={styles.cardCelebRow}>
+                            {it.supportedCelebrations.slice(0, 3).map((celeb: string) => {
+                              const label =
+                                celeb === 'WEDDING' ? '💍 Wedding' :
+                                  celeb === 'BIRTHDAY' ? '🎂 Birthday' :
+                                    celeb === 'OFFICE_EVENTS' ? '🏢 Corporate' :
+                                      celeb === 'ANNIVERSARY' ? '🥂 Anniversary' :
+                                        celeb === 'COCKTAIL_PARTY' ? '🎶 Party' :
+                                          celeb === 'FESTIVE' ? '🌸 Festive' :
+                                            celeb === 'REUNION' ? '🎓 Reunion' : '🎉 Event';
+                              return (
+                                <View key={celeb} style={styles.cardCelebBadge}>
+                                  <Text style={styles.cardCelebText}>{label}</Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        ) : null}
+
+                        <View style={styles.cardFooter}>
+                          <View style={[styles.typePill, { backgroundColor: it.itemType === 'TICKET' ? '#fef3c7' : '#e0e7ff' }]}>
+                            <Text style={[styles.typePillText, { color: it.itemType === 'TICKET' ? '#b45309' : '#3730a3' }]}>
+                              {it.itemType === 'TICKET' ? '🎫 TICKET' : '📅 BOOKING'}
+                            </Text>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.startsAtText}>{it.itemType === 'TICKET' ? 'Per Ticket' : 'From'}</Text>
+                            <Text style={styles.priceValue}>
+                              {typeof it.price === 'number' ? `₹${it.price.toLocaleString('en-IN')}` : it.price}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Direct "Book / Get Ticket" Button */}
+                        <TouchableOpacity
+                          style={styles.cardBookNowBtn}
+                          onPress={() => handleBookNow(it)}
+                          activeOpacity={0.85}
+                        >
+                          {it.itemType === 'TICKET' ? <Ticket size={13} color="#ffffff" /> : <Calendar size={13} color="#ffffff" />}
+                          <Text style={styles.cardBookNowText}>
+                            {it.itemType === 'TICKET' ? 'Get Ticket Pass' : 'Reserve Booking'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   );
                 })}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+              </ScrollView>
+            </View>
+          ))}
 
-      {/* Premium Exit Confirmation Modal */}
-      <CelebrationDialog
-        visible={showExitDialog}
-        type="exit"
-        badgeText="EXIT APPLICATION"
-        title="Leaving happylokam? 🏰"
-        message="Are you sure you want to exit the application, or would you like to stay and continue exploring grand venues and celebration passes?"
-        confirmText="Exit App"
-        cancelText="Stay & Explore ✨"
-        onConfirm={() => BackHandler.exitApp()}
-        onCancel={() => setShowExitDialog(false)}
-      />
+          {/* ========================================== */}
+          {/* HORIZONTAL SECTION: PREMIUM VENUES        */}
+          {/* ========================================== */}
+          {venues.length > 0 && (
+            <View style={{ marginTop: 22 }}>
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>Premium Venues</Text>
+                  <Text style={styles.sectionSubtitle}>Handpicked luxury locations</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewAllRow}
+                  onPress={() => router.push('/(tabs)/explore')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <ChevronRight size={14} color="#e11d48" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {venues.map((venue) => {
+                  const isLiked = likedIds.includes(venue.id);
+                  return (
+                    <View key={venue.id} style={styles.horizontalCard}>
+                      {/* Image & Wishlist Button */}
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => handleOpenDetail(venue)}
+                        style={styles.cardImageContainer}
+                      >
+                        <Image source={{ uri: venue.image }} style={styles.cardImage} />
+                        <View style={styles.cardImageOverlay} />
+
+                        <TouchableOpacity
+                          style={styles.likeBtn}
+                          onPress={() => toggleLike(venue)}
+                          activeOpacity={0.8}
+                        >
+                          <Heart
+                            size={15}
+                            color={isLiked ? '#e11d48' : '#475569'}
+                            fill={isLiked ? '#e11d48' : 'transparent'}
+                          />
+                        </TouchableOpacity>
+
+                        <View style={styles.ratingBadge}>
+                          <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                          <Text style={styles.ratingText}>{venue.rating}</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* Card Info */}
+                      <View style={styles.cardContent}>
+                        <TouchableOpacity onPress={() => handleOpenDetail(venue)} activeOpacity={0.85}>
+                          <Text style={styles.cardTitle} numberOfLines={1}>
+                            {venue.title}
+                          </Text>
+                        </TouchableOpacity>
+                        <View style={styles.locationRow}>
+                          <MapPin size={12} color="#94a3b8" style={{ marginRight: 3 }} />
+                          <Text style={styles.locationText} numberOfLines={1}>
+                            {venue.location}
+                          </Text>
+                          {userCoords && venue.latitude && venue.longitude ? (
+                            <Text style={styles.distanceInlineText}>
+                              • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, venue.latitude, venue.longitude))}
+                            </Text>
+                          ) : null}
+                        </View>
+
+                        {/* Capacity Badge */}
+                        {(venue.capacity || (venue as any).maxGuests) ? (
+                          <View style={styles.cardCapacityRow}>
+                            <View style={styles.cardCapacityBadge}>
+                              <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
+                              <Text style={styles.cardCapacityText}>
+                                {(venue as any).minGuests
+                                  ? `${(venue as any).minGuests} – ${venue.capacity || (venue as any).maxGuests} Guests`
+                                  : `Up to ${venue.capacity || (venue as any).maxGuests} Guests`}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : null}
+
+                        <View style={styles.cardFooter}>
+                          <View style={styles.typePill}>
+                            <Text style={styles.typePillText}>{venue.type}</Text>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.startsAtText}>Starts at</Text>
+                            <Text style={styles.priceValue}>{venue.price}</Text>
+                          </View>
+                        </View>
+
+                        {/* Direct "Book Now" Button */}
+                        <TouchableOpacity
+                          style={styles.cardBookNowBtn}
+                          onPress={() => handleBookNow(venue)}
+                          activeOpacity={0.85}
+                        >
+                          <Ticket size={13} color="#ffffff" />
+                          <Text style={styles.cardBookNowText}>Book Now</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* ========================================== */}
+          {/* HORIZONTAL SECTION: CURATED PACKAGES      */}
+          {/* ========================================== */}
+          {packages.length > 0 && (
+            <View style={{ marginTop: 22 }}>
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>Curated Packages</Text>
+                  <Text style={styles.sectionSubtitle}>All-inclusive celebrations</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewAllRow}
+                  onPress={() => router.push('/(tabs)/explore')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <ChevronRight size={14} color="#e11d48" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {packages.map((pkg) => {
+                  const isLiked = likedIds.includes(pkg.id);
+                  return (
+                    <View key={pkg.id} style={styles.horizontalCard}>
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => handleOpenDetail(pkg)}
+                        style={styles.cardImageContainer}
+                      >
+                        <Image source={{ uri: pkg.image }} style={styles.cardImage} />
+                        <View style={styles.cardImageOverlay} />
+
+                        <TouchableOpacity
+                          style={styles.likeBtn}
+                          onPress={() => toggleLike(pkg)}
+                          activeOpacity={0.8}
+                        >
+                          <Heart
+                            size={15}
+                            color={isLiked ? '#e11d48' : '#475569'}
+                            fill={isLiked ? '#e11d48' : 'transparent'}
+                          />
+                        </TouchableOpacity>
+
+                        <View style={styles.ratingBadge}>
+                          <Star size={11} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                          <Text style={styles.ratingText}>{pkg.rating}</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={styles.cardContent}>
+                        <TouchableOpacity onPress={() => handleOpenDetail(pkg)} activeOpacity={0.85}>
+                          <Text style={styles.cardTitle} numberOfLines={1}>
+                            {pkg.title}
+                          </Text>
+                        </TouchableOpacity>
+                        <Text style={styles.tagsText} numberOfLines={1}>
+                          {pkg.tags.join(' • ')}
+                        </Text>
+
+                        <View style={styles.cardFooter}>
+                          <View style={styles.typePill}>
+                            <Text style={styles.typePillText}>{pkg.type}</Text>
+                          </View>
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.startsAtText}>Starts at</Text>
+                            <Text style={styles.priceValue}>{pkg.price}</Text>
+                          </View>
+                        </View>
+
+                        {/* Direct "Book Now" Button */}
+                        <TouchableOpacity
+                          style={styles.cardBookNowBtn}
+                          onPress={() => handleBookNow(pkg)}
+                          activeOpacity={0.85}
+                        >
+                          <Ticket size={13} color="#ffffff" />
+                          <Text style={styles.cardBookNowText}>Book Now</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Empty state when no sections exist yet */}
+          {adminSections.length === 0 && venues.length === 0 && packages.length === 0 && (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
+              <Sparkles size={40} color="#e11d48" />
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginTop: 14 }}>
+                Welcome to happylokam
+              </Text>
+              <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                New celebrations, curated themes, and venue passes verified by happylokam Support will appear here live.
+              </Text>
+              <TouchableOpacity
+                style={{ marginTop: 18, backgroundColor: '#e11d48', paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20 }}
+                onPress={onRefresh}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 13 }}>Refresh Feed 🔄</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Review Booking / Payment Modal */}
+        <PaymentModal
+          visible={!!checkoutItem}
+          item={checkoutItem}
+          onClose={() => setCheckoutItem(null)}
+          onSuccess={() => {
+            setCheckoutItem(null);
+            router.push('/(tabs)/bookings');
+          }}
+        />
+
+        {/* Sidebar Drawer */}
+        <SidebarDrawer
+          visible={isSidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onOpenWallet={() => setWalletOpen(true)}
+          user={{
+            name: (userProfile?.name || 'Guest User').replace(' ✨', ''),
+            email: userProfile?.email || '',
+          }}
+        />
+
+        {/* Wallet Modal */}
+        <WalletModal
+          visible={isWalletOpen}
+          onClose={() => setWalletOpen(false)}
+          balance={userProfile?.balance || 0}
+        />
+
+        {/* Admin Section Manager Modal */}
+        <AdminSectionModal
+          visible={isAdminModalOpen}
+          sections={adminSections}
+          onClose={() => setIsAdminModalOpen(false)}
+          onSectionsUpdated={(updated) => setAdminSections(updated)}
+          onCategoriesUpdated={(updated) => setAdminCategories(updated)}
+          onHeroSlidesUpdated={(updated) => setSlides(updated)}
+        />
+
+        {/* Advanced Filter Modal from Home Search */}
+        <AdvancedFilterModal
+          visible={isFilterModalOpen}
+          filters={homeFilters}
+          totalMatches={adminSections.flatMap((s) => s.items || []).length + venues.length + packages.length}
+          onClose={() => setIsFilterModalOpen(false)}
+          onApply={(applied) => {
+            setHomeFilters(applied);
+            setIsFilterModalOpen(false);
+            router.push({
+              pathname: '/(tabs)/explore',
+              params: {
+                category: applied.category !== 'All' ? applied.category : undefined,
+                priceRange: applied.priceRange !== 'all' ? applied.priceRange : undefined,
+                sortBy: applied.sortBy !== 'featured' ? applied.sortBy : undefined,
+                minRating: applied.minRating > 0 ? String(applied.minRating) : undefined,
+                city: applied.city !== 'All' ? applied.city : undefined,
+                capacity: applied.capacity !== 'all' ? applied.capacity : undefined,
+                amenities: applied.amenities.length > 0 ? applied.amenities.join(',') : undefined,
+                search: searchQuery.trim() || undefined,
+              },
+            });
+          }}
+          onReset={() => setHomeFilters(DEFAULT_FILTERS)}
+        />
+
+        {/* Location Selector Modal */}
+        <Modal
+          visible={isLocationModalOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsLocationModalOpen(false)}
+        >
+          <View style={styles.locModalOverlay}>
+            <View style={styles.locModalContent}>
+              <View style={styles.locModalHeader}>
+                <View>
+                  <Text style={styles.locModalTitle}>Select Your Location</Text>
+                  <Text style={styles.locModalSubtitle}>Choose GPS detection or select your city</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsLocationModalOpen(false)} style={styles.locModalClose}>
+                  <X size={18} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              {/* GPS Auto-Detect Button */}
+              <TouchableOpacity
+                style={styles.gpsDetectBtn}
+                onPress={handleDetectGps}
+                disabled={detectingGps}
+                activeOpacity={0.85}
+              >
+                <Navigation size={18} color="#ffffff" />
+                {detectingGps ? (
+                  <ActivityIndicator size="small" color="#ffffff" style={{ marginLeft: 8 }} />
+                ) : (
+                  <Text style={styles.gpsDetectBtnText}>Detect Location via GPS</Text>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.locDividerText}>OR SELECT MANUALLY</Text>
+
+              <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.cityGrid}>
+                  {CITIES_LIST.map((city) => {
+                    const isSelected = selectedCity === city;
+                    return (
+                      <TouchableOpacity
+                        key={city}
+                        style={[styles.cityItem, isSelected && styles.cityItemActive]}
+                        onPress={() => handleSelectCity(city)}
+                        activeOpacity={0.75}
+                      >
+                        <MapPin size={14} color={isSelected ? '#ffffff' : '#e11d48'} />
+                        <Text style={[styles.cityItemText, isSelected && styles.cityItemTextActive]}>
+                          {city}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Premium Exit Confirmation Modal */}
+        <CelebrationDialog
+          visible={showExitDialog}
+          type="exit"
+          badgeText="EXIT APPLICATION"
+          title="Leaving happylokam? 🏰"
+          message="Are you sure you want to exit the application, or would you like to stay and continue exploring grand venues and celebration passes?"
+          confirmText="Exit App"
+          cancelText="Stay & Explore ✨"
+          onConfirm={() => BackHandler.exitApp()}
+          onCancel={() => setShowExitDialog(false)}
+        />
       </View>
     </SwipeTabContainer>
   );
