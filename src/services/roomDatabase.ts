@@ -61,6 +61,9 @@ export interface RoomBooking {
   qrCode?: string;
   ticketCode?: string;
   checkInOtp?: string;
+  completionOtp?: string;
+  celebrationType?: string;
+  bookingTime?: string;
   guestCount?: number;
   platesCount?: number;
   vegPlatesCount?: number;

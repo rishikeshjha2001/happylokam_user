@@ -138,7 +138,7 @@ export default function BookingsTab() {
                 if (!verifiedList.some((c) => c.id === vb.id)) {
                   verifiedList.push({
                     id: vb.id,
-                    title: vb.partner?.businessName || 'Celebration Service',
+                    title: vb.venue?.name || vb.partner?.businessName || 'Celebration Service',
                     category: 'VENDOR',
                     date: vb.date ? new Date(vb.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     amount: vb.totalAmount || 0,
@@ -146,6 +146,45 @@ export default function BookingsTab() {
                     ticketsCount: 1,
                     createdAt: vb.createdAt,
                     qrCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
+                    ticketCode: vb.ticketId || `HL-${vb.id.slice(-6).toUpperCase()}`,
+                    checkInOtp: vb.checkInOtp,
+                    completionOtp: vb.completionOtp,
+                    guestCount: vb.guestCount,
+                    platesCount: vb.platesCount,
+                    vegPlatesCount: vb.vegPlatesCount,
+                    nonVegPlatesCount: vb.nonVegPlatesCount,
+                    celebrationType: vb.celebrationType,
+                    bookingDays: vb.bookingDays,
+                    bookingTime: vb.bookingTime,
+                    serverVerified: true,
+                  });
+                }
+              });
+            }
+
+            if (Array.isArray((userRes.data as any).sectionBookings)) {
+              (userRes.data as any).sectionBookings.forEach((sb: any) => {
+                if (!verifiedList.some((c) => c.id === sb.id)) {
+                  verifiedList.push({
+                    id: sb.id,
+                    title: sb.item?.title || 'Celebration Pass',
+                    category: sb.item?.itemType || 'Custom Booking',
+                    date: sb.bookingDate || new Date().toISOString().split('T')[0],
+                    amount: sb.totalAmount || 0,
+                    status: resolveStatus(sb.status) as any,
+                    ticketsCount: sb.quantity || 1,
+                    createdAt: sb.createdAt,
+                    qrCode: sb.ticketCode || `HL-${sb.id.slice(-6).toUpperCase()}`,
+                    ticketCode: sb.ticketCode,
+                    checkInOtp: sb.checkInOtp,
+                    completionOtp: sb.completionOtp,
+                    guestCount: sb.guestCount,
+                    platesCount: sb.platesCount,
+                    vegPlatesCount: sb.vegPlatesCount,
+                    nonVegPlatesCount: sb.nonVegPlatesCount,
+                    celebrationType: sb.celebrationType,
+                    bookingDays: sb.bookingDays,
+                    bookingTime: sb.bookingTime,
                     serverVerified: true,
                   });
                 }

@@ -45,6 +45,7 @@ export default function BookingDetailScreen() {
     qrCode?: string;
     ticketCode?: string;
     checkInOtp?: string;
+    completionOtp?: string;
     status?: string;
     ticketsCount?: string;
     location?: string;
@@ -203,11 +204,27 @@ export default function BookingDetailScreen() {
               <Text style={styles.qrCodeString}>{ticketCode}</Text>
               {(booking?.checkInOtp || params.checkInOtp) ? (
                 <View style={styles.ticketOtpBadge}>
-                  <Text style={styles.ticketOtpLabel}>VENUE CHECK-IN OTP</Text>
+                  <Text style={styles.ticketOtpLabel}>STAGE 1: VENUE CHECK-IN OTP</Text>
                   <Text style={styles.ticketOtpValue}>{booking?.checkInOtp || params.checkInOtp}</Text>
-                  <Text style={styles.ticketOtpHint}>Share this 4-digit OTP with the venue manager on arrival</Text>
+                  <Text style={styles.ticketOtpHint}>Share this 4-digit code with the venue manager on arrival</Text>
                 </View>
               ) : null}
+
+              {(booking?.completionOtp || params.completionOtp) ? (
+                <View style={[styles.ticketOtpBadge, { backgroundColor: '#f5f3ff', borderColor: '#a78bfa' }]}>
+                  <Text style={[styles.ticketOtpLabel, { color: '#7c3aed' }]}>STAGE 2: SERVICE COMPLETION OTP</Text>
+                  <Text style={[styles.ticketOtpValue, { color: '#6d28d9' }]}>{booking?.completionOtp || params.completionOtp}</Text>
+                  <Text style={[styles.ticketOtpHint, { color: '#7c3aed' }]}>Share after event concludes to release partner payout</Text>
+                </View>
+              ) : null}
+
+              {Boolean((booking?.vegPlatesCount || 0) > 0 || (booking?.nonVegPlatesCount || 0) > 0) && (
+                <View style={{ backgroundColor: '#f1f5f9', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12, marginVertical: 6, width: '100%', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#334155' }}>
+                    Catering: 🟢 {booking?.vegPlatesCount || 0} Veg + 🔴 {booking?.nonVegPlatesCount || 0} Non-Veg Plates
+                  </Text>
+                </View>
+              )}
               <Text style={styles.scanInstruction}>
                 Scan at gate security checkpoint for instant access
               </Text>
