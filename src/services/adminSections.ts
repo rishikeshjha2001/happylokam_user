@@ -41,6 +41,8 @@ export interface AdminSectionItem {
   tags?: string[];
   description?: string;
   supportedCelebrations?: string[];
+  celebrationPricing?: Record<string, { baseHallPrice?: number; pricePerPlateVeg?: number; pricePerPlateNonVeg?: number }>;
+  amenitiesPolicy?: any;
   addOnServices?: { id: string; name: string; price: number; description?: string }[];
   section?: {
     id: string;

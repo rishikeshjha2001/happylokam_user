@@ -47,6 +47,12 @@ import {
   LogIn,
   Utensils,
   CalendarDays,
+  Car,
+  Wind,
+  Zap,
+  Music,
+  Bed,
+  XCircle,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -109,6 +115,8 @@ export default function ItemDetailScreen() {
     pricePerPlateNonVeg?: string;
     supportedCelebrations?: string;
     addOnServices?: string;
+    celebrationPricing?: string;
+    amenitiesPolicy?: string;
   }>();
 
   const [item, setItem] = useState<AdminSectionItem | any>(null);
@@ -218,10 +226,17 @@ export default function ItemDetailScreen() {
           if (fetched.availableTimes && fetched.availableTimes.length > 0) {
             setSelectedTime(fetched.availableTimes[0]);
           }
-          if (fetched.minGuests) {
-            setGuestCount(Math.max(Number(fetched.minGuests), 10));
-          } else if (fetched.capacity) {
-            setGuestCount(Math.min(fetched.capacity, 200));
+          const defaultMin = Math.max(Number(fetched.minGuests) || (fetched.capacity ? Math.min(Number(fetched.capacity), 50) : 50), 10);
+          setGuestCount(defaultMin);
+          setPlatesCount(defaultMin);
+          const hasNonVeg = Boolean(fetched.pricePerPlateNonVeg && Number(fetched.pricePerPlateNonVeg) > 0);
+          if (hasNonVeg) {
+            const vegShare = Math.round(defaultMin * 0.6);
+            setVegPlatesCount(vegShare);
+            setNonVegPlatesCount(defaultMin - vegShare);
+          } else {
+            setVegPlatesCount(defaultMin);
+            setNonVegPlatesCount(0);
           }
           if (fetched.supportedCelebrations && fetched.supportedCelebrations.length > 0) {
             setSelectedCelebration(fetched.supportedCelebrations[0]);
@@ -242,6 +257,24 @@ export default function ItemDetailScreen() {
       if (params.addOnServices) {
         try {
           parsedAddOns = JSON.parse(params.addOnServices);
+        } catch {}
+      }
+
+      let parsedCelebPricing: any = undefined;
+      if (params.celebrationPricing) {
+        try {
+          parsedCelebPricing = typeof params.celebrationPricing === 'string'
+            ? JSON.parse(params.celebrationPricing)
+            : params.celebrationPricing;
+        } catch {}
+      }
+
+      let parsedAmenitiesPolicy: any = undefined;
+      if (params.amenitiesPolicy) {
+        try {
+          parsedAmenitiesPolicy = typeof params.amenitiesPolicy === 'string'
+            ? JSON.parse(params.amenitiesPolicy)
+            : params.amenitiesPolicy;
         } catch {}
       }
 
@@ -271,13 +304,24 @@ export default function ItemDetailScreen() {
         pricePerPlateNonVeg: params.pricePerPlateNonVeg ? parseFloat(params.pricePerPlateNonVeg) : undefined,
         baseHallPrice: params.baseHallPrice ? parseFloat(params.baseHallPrice) : undefined,
         supportedCelebrations: parsedSupportedCelebrations.length > 0 ? parsedSupportedCelebrations : undefined,
+        celebrationPricing: parsedCelebPricing,
+        amenitiesPolicy: parsedAmenitiesPolicy,
         addOnServices: parsedAddOns.length > 0 ? parsedAddOns : undefined,
       };
       setItem(fallbackItem);
       setSelectedDate(defaultTomorrow);
       setSelectedTime(fallbackItem.availableTimes[0]);
-      if (fallbackItem.minGuests) {
-        setGuestCount(fallbackItem.minGuests);
+      const defaultFallbackMin = Math.max(Number(fallbackItem.minGuests) || 50, 10);
+      setGuestCount(defaultFallbackMin);
+      setPlatesCount(defaultFallbackMin);
+      const hasNonVegFallback = Boolean(fallbackItem.pricePerPlateNonVeg && Number(fallbackItem.pricePerPlateNonVeg) > 0);
+      if (hasNonVegFallback) {
+        const vegShare = Math.round(defaultFallbackMin * 0.6);
+        setVegPlatesCount(vegShare);
+        setNonVegPlatesCount(defaultFallbackMin - vegShare);
+      } else {
+        setVegPlatesCount(defaultFallbackMin);
+        setNonVegPlatesCount(0);
       }
       if (parsedSupportedCelebrations.length > 0) {
         setSelectedCelebration(parsedSupportedCelebrations[0]);
@@ -399,11 +443,28 @@ export default function ItemDetailScreen() {
   const hasPerGuest = Boolean(item.pricePerGuest && Number(item.pricePerGuest) > 0);
   const hasBaseHall = Boolean(item.baseHallPrice && Number(item.baseHallPrice) > 0);
 
-  const vegPlateRate = item.pricePerPlateVeg ? Number(item.pricePerPlateVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 450));
-  const nonVegPlateRate = item.pricePerPlateNonVeg ? Number(item.pricePerPlateNonVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) + 150 : (isPerPerson ? basePriceNum + 150 : 650));
+  // Celebration-specific dynamic rates check:
+  // If partner uploaded custom rates for this celebration (e.g. WEDDING, BIRTHDAY, OFFICE_EVENTS), dynamically override!
+  const activeCelebOverride = item.celebrationPricing?.[selectedCelebration];
+
+  const defaultVegRate = item.pricePerPlateVeg ? Number(item.pricePerPlateVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) : (isPerPerson ? basePriceNum : 450));
+  const defaultNonVegRate = item.pricePerPlateNonVeg ? Number(item.pricePerPlateNonVeg) : (item.pricePerPlate ? Number(item.pricePerPlate) + 150 : (isPerPerson ? basePriceNum + 150 : 650));
+  const defaultHallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasDefaultPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
+
+  const vegPlateRate = (activeCelebOverride?.pricePerPlateVeg !== undefined && Number(activeCelebOverride.pricePerPlateVeg) > 0)
+    ? Number(activeCelebOverride.pricePerPlateVeg)
+    : defaultVegRate;
+
+  const nonVegPlateRate = (activeCelebOverride?.pricePerPlateNonVeg !== undefined && Number(activeCelebOverride.pricePerPlateNonVeg) > 0)
+    ? Number(activeCelebOverride.pricePerPlateNonVeg)
+    : defaultNonVegRate;
+
+  const hallRate = (activeCelebOverride?.baseHallPrice !== undefined && Number(activeCelebOverride.baseHallPrice) > 0)
+    ? Number(activeCelebOverride.baseHallPrice)
+    : defaultHallRate;
+
   const plateRate = vegPlateRate;
   const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
-  const hallRate = item.baseHallPrice ? Number(item.baseHallPrice) : (!hasDefaultPerPlate && !hasPerGuest && !isPerPerson ? basePriceNum : 0);
 
   const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 50;
   const maxGuestsAllowed = item.maxGuests ? Number(item.maxGuests) : (item.capacity ? Number(item.capacity) : 1000);
@@ -1032,6 +1093,7 @@ export default function ItemDetailScreen() {
                       icon: '🎉',
                     };
                     const isSelected = selectedCelebration === celebId;
+                    const celebCustomPrice = item.celebrationPricing?.[celebId];
                     return (
                       <TouchableOpacity
                         key={celebId}
@@ -1042,11 +1104,29 @@ export default function ItemDetailScreen() {
                         <Text style={[styles.celebChipText, isSelected && styles.celebChipTextSelected]}>
                           {celebObj.label}
                         </Text>
+                        {celebCustomPrice?.pricePerPlateVeg ? (
+                          <View style={[styles.celebPriceTag, isSelected && styles.celebPriceTagSelected]}>
+                            <Text style={[styles.celebPriceTagText, isSelected && styles.celebPriceTagTextSelected]}>
+                              ₹{celebCustomPrice.pricePerPlateVeg}/plt
+                            </Text>
+                          </View>
+                        ) : null}
                         {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} style={{ marginLeft: 6 }} />}
                       </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
+                {activeCelebOverride && (activeCelebOverride.pricePerPlateVeg || activeCelebOverride.baseHallPrice) ? (
+                  <View style={styles.activeCelebRateNotice}>
+                    <Sparkles size={14} color="#e11d48" />
+                    <Text style={styles.activeCelebRateNoticeText}>
+                      Custom {selectedCelebration.replace(/_/g, ' ')} pricing applied:
+                      {activeCelebOverride.baseHallPrice ? ` Hall Base ₹${Number(activeCelebOverride.baseHallPrice).toLocaleString('en-IN')}` : ''}
+                      {activeCelebOverride.pricePerPlateVeg ? ` • Veg ₹${activeCelebOverride.pricePerPlateVeg}/plt` : ''}
+                      {activeCelebOverride.pricePerPlateNonVeg ? ` • Non-Veg ₹${activeCelebOverride.pricePerPlateNonVeg}/plt` : ''}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               {/* Interactive Celebration Date Picker */}
@@ -1495,6 +1575,182 @@ export default function ItemDetailScreen() {
               </View>
             </TouchableOpacity>
           )}
+
+          {/* ============================================================== */}
+          {/* VENUE AMENITIES & PARKING HIGHLIGHTS (USER VIEW)               */}
+          {/* ============================================================== */}
+          {(() => {
+            const p = item.amenitiesPolicy || {};
+            const cars = p.parkingCapacityCars !== undefined ? p.parkingCapacityCars : (item.capacity ? Math.round(Number(item.capacity) * 0.25) : 80);
+            const bikes = p.parkingCapacityBikes !== undefined ? p.parkingCapacityBikes : (item.capacity ? Math.round(Number(item.capacity) * 0.5) : 150);
+            const hasValet = p.valetAvailable ?? true;
+            const hasAc = p.centralAc !== false;
+            const hasDg = p.powerBackup !== false;
+            const bridal = p.bridalRoomsCount !== undefined ? p.bridalRoomsCount : 2;
+            const guestR = p.guestRoomsCount !== undefined ? p.guestRoomsCount : 4;
+            const djCutoff = p.djCutoffTime || '10:30 PM';
+            const djPol = p.djPolicy || 'VENUE_DJ_ONLY';
+            const catPol = p.cateringPolicy || 'BOTH_AVAILABLE';
+            const alcPol = p.alcoholPolicy || 'PERMITTED_WITH_LICENSE';
+            const outDec = p.outsideDecoratorAllowed !== false;
+            const cctv = p.cctvSecurity !== false;
+
+            return (
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Car size={18} color="#e11d48" />
+                    <Text style={styles.sectionTitle}>Venue Amenities & Parking</Text>
+                  </View>
+                  <View style={styles.verifiedBadge}>
+                    <ShieldCheck size={12} color="#059669" />
+                    <Text style={styles.verifiedBadgeText}>Partner Verified</Text>
+                  </View>
+                </View>
+
+                {/* 2-column Amenities & Parking Grid */}
+                <View style={styles.amenitiesGrid}>
+                  {/* Car Parking */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#eff6ff' }]}>
+                      <Car size={18} color="#2563eb" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{cars}+ Cars</Text>
+                      <Text style={styles.amenityCardLabel}>Car Parking</Text>
+                    </View>
+                  </View>
+
+                  {/* Two-Wheeler Parking */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#ecfeff' }]}>
+                      <Car size={18} color="#0891b2" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{bikes}+ Bikes</Text>
+                      <Text style={styles.amenityCardLabel}>2-Wheeler Parking</Text>
+                    </View>
+                  </View>
+
+                  {/* Valet Parking */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: hasValet ? '#ecfdf5' : '#f1f5f9' }]}>
+                      <CheckCircle2 size={18} color={hasValet ? '#059669' : '#64748b'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{hasValet ? 'Available' : 'Self Parking'}</Text>
+                      <Text style={styles.amenityCardLabel}>Valet Parking</Text>
+                    </View>
+                  </View>
+
+                  {/* Central AC */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#f0f9ff' }]}>
+                      <Wind size={18} color="#0284c7" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{hasAc ? 'Central AC' : 'Standard'}</Text>
+                      <Text style={styles.amenityCardLabel}>Air Conditioning</Text>
+                    </View>
+                  </View>
+
+                  {/* Power Backup */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#fffbeb' }]}>
+                      <Zap size={18} color="#d97706" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{hasDg ? '100% DG' : 'Standard'}</Text>
+                      <Text style={styles.amenityCardLabel}>Power Backup</Text>
+                    </View>
+                  </View>
+
+                  {/* Bridal Dressing Rooms */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#fff1f2' }]}>
+                      <Bed size={18} color="#e11d48" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{bridal} Rooms</Text>
+                      <Text style={styles.amenityCardLabel}>Bridal / Green AC</Text>
+                    </View>
+                  </View>
+
+                  {/* Guest Stay Rooms */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#f5f3ff' }]}>
+                      <Bed size={18} color="#7c3aed" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{guestR} Rooms</Text>
+                      <Text style={styles.amenityCardLabel}>Guest Stay Rooms</Text>
+                    </View>
+                  </View>
+
+                  {/* DJ & Sound Cutoff */}
+                  <View style={styles.amenityCard}>
+                    <View style={[styles.amenityIconCircle, { backgroundColor: '#fdf2f8' }]}>
+                      <Music size={18} color="#db2777" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.amenityCardVal}>{djCutoff}</Text>
+                      <Text style={styles.amenityCardLabel}>DJ Music Curfew</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Venue Policies & Inclusions Card */}
+                <View style={styles.policiesCard}>
+                  <Text style={styles.policiesCardTitle}>Venue Policies & Permissions</Text>
+
+                  {/* Catering Policy */}
+                  <View style={styles.policyRow}>
+                    <Utensils size={15} color="#475569" />
+                    <Text style={styles.policyKey}>Catering Policy:</Text>
+                    <Text style={styles.policyVal}>
+                      {catPol === 'IN_HOUSE_ONLY' ? 'In-House Catering Only' : catPol === 'OUTSIDE_ALLOWED' ? 'Outside Catering Allowed' : 'In-House & Outside Both Allowed'}
+                    </Text>
+                  </View>
+
+                  {/* DJ Policy */}
+                  <View style={styles.policyRow}>
+                    <Music size={15} color="#475569" />
+                    <Text style={styles.policyKey}>DJ & Sound:</Text>
+                    <Text style={styles.policyVal}>
+                      {djPol === 'VENUE_DJ_ONLY' ? 'In-House DJ Setup' : djPol === 'OUTSIDE_ALLOWED' ? 'Outside DJ Allowed' : 'Music Not Permitted'}
+                    </Text>
+                  </View>
+
+                  {/* Outside Decorators */}
+                  <View style={styles.policyRow}>
+                    <Sparkles size={15} color="#475569" />
+                    <Text style={styles.policyKey}>Outside Decorators:</Text>
+                    <Text style={[styles.policyVal, { color: outDec ? '#15803d' : '#b91c1c' }]}>
+                      {outDec ? 'Allowed with prior notice' : 'Venue Decorators Only'}
+                    </Text>
+                  </View>
+
+                  {/* Alcohol Policy */}
+                  <View style={styles.policyRow}>
+                    <Clock size={15} color="#475569" />
+                    <Text style={styles.policyKey}>Bar & Alcohol:</Text>
+                    <Text style={styles.policyVal}>
+                      {alcPol === 'PERMITTED_WITH_LICENSE' ? 'Permitted (Govt License Required)' : alcPol === 'BYOB_ALLOWED' ? 'BYOB Permitted' : 'Strictly Not Permitted'}
+                    </Text>
+                  </View>
+
+                  {/* CCTV & Security */}
+                  <View style={styles.policyRow}>
+                    <ShieldCheck size={15} color="#475569" />
+                    <Text style={styles.policyKey}>Security & Safety:</Text>
+                    <Text style={styles.policyVal}>
+                      {cctv ? '24/7 Monitored CCTV & Security Guards' : 'Standard Security'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })()}
 
           {/* Features Included */}
           {item.features && item.features.length > 0 && (
@@ -2090,27 +2346,121 @@ const styles = StyleSheet.create({
   },
   amenityCard: {
     width: (width - 50) / 2,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  amenityIcon: {
-    fontSize: 22,
+  amenityIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  amenityTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+  amenityCardVal: {
+    fontSize: 13,
+    fontWeight: '800',
     color: '#0f172a',
   },
-  amenityDesc: {
+  amenityCardLabel: {
     fontSize: 10,
+    fontWeight: '600',
     color: '#64748b',
-    marginTop: 2,
+    marginTop: 1,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  verifiedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065f46',
+  },
+  policiesCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    marginTop: 12,
+  },
+  policiesCardTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#475569',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  policyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  policyKey: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    minWidth: 130,
+  },
+  policyVal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0f172a',
+    flex: 1,
+  },
+  celebPriceTag: {
+    backgroundColor: '#ffe4e6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  celebPriceTagSelected: {
+    backgroundColor: '#ffffff',
+  },
+  celebPriceTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#e11d48',
+  },
+  celebPriceTagTextSelected: {
+    color: '#e11d48',
+  },
+  activeCelebRateNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  activeCelebRateNoticeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9f1239',
+    flex: 1,
+    lineHeight: 16,
   },
   conciergeCard: {
     backgroundColor: '#fff1f2',

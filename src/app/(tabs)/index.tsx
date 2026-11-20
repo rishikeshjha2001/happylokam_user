@@ -392,6 +392,8 @@ export default function HomeTab() {
         pricePerGuest: String(item.pricePerGuest || ''),
         supportedCelebrations: item.supportedCelebrations ? JSON.stringify(item.supportedCelebrations) : undefined,
         addOnServices: item.addOnServices ? JSON.stringify(item.addOnServices) : undefined,
+        celebrationPricing: item.celebrationPricing ? JSON.stringify(item.celebrationPricing) : undefined,
+        amenitiesPolicy: item.amenitiesPolicy ? JSON.stringify(item.amenitiesPolicy) : undefined,
       },
     });
   };
@@ -954,21 +956,7 @@ export default function HomeTab() {
                   <View key={it.id} style={styles.horizontalCard}>
                     <TouchableOpacity
                       activeOpacity={0.9}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/item-detail',
-                          params: {
-                            id: it.id,
-                            title: it.title,
-                            subtitle: it.subtitle,
-                            price: String(it.price),
-                            image: it.image,
-                            type: it.itemType || it.type,
-                            cornerTag: it.cornerTag,
-                            location: it.location,
-                          },
-                        })
-                      }
+                      onPress={() => handleOpenDetail(it)}
                       style={styles.cardImageContainer}
                     >
                       <Image source={{ uri: it.image }} style={styles.cardImage} />
@@ -1001,32 +989,7 @@ export default function HomeTab() {
                     <View style={styles.cardContent}>
                       <TouchableOpacity
                         activeOpacity={0.85}
-                        onPress={() =>
-                          router.push({
-                            pathname: '/item-detail',
-                            params: {
-                              id: it.id,
-                              title: it.title,
-                              subtitle: it.subtitle,
-                              price: String(it.price),
-                              image: it.image,
-                              type: it.itemType || it.type,
-                              cornerTag: it.cornerTag,
-                              location: it.location,
-                              latitude: String(it.latitude || ''),
-                              longitude: String(it.longitude || ''),
-                              mapUrl: it.mapUrl || '',
-                              capacity: String(it.capacity || it.maxGuests || ''),
-                              minGuests: String(it.minGuests || ''),
-                              maxGuests: String(it.maxGuests || it.capacity || ''),
-                              baseHallPrice: String(it.baseHallPrice || ''),
-                              pricePerPlateVeg: String(it.pricePerPlateVeg || it.pricePerPlate || ''),
-                              pricePerPlateNonVeg: String(it.pricePerPlateNonVeg || ''),
-                              supportedCelebrations: it.supportedCelebrations ? JSON.stringify(it.supportedCelebrations) : undefined,
-                              addOnServices: it.addOnServices ? JSON.stringify(it.addOnServices) : undefined,
-                            },
-                          })
-                        }
+                        onPress={() => handleOpenDetail(it)}
                       >
                         <Text style={styles.cardTitle} numberOfLines={1}>
                           {it.title}

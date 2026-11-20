@@ -333,6 +333,8 @@ export default function ExploreTab() {
         pricePerGuest: String(item.pricePerGuest || ''),
         supportedCelebrations: item.supportedCelebrations ? JSON.stringify(item.supportedCelebrations) : undefined,
         addOnServices: item.addOnServices ? JSON.stringify(item.addOnServices) : undefined,
+        celebrationPricing: item.celebrationPricing ? JSON.stringify(item.celebrationPricing) : undefined,
+        amenitiesPolicy: item.amenitiesPolicy ? JSON.stringify(item.amenitiesPolicy) : undefined,
       },
     });
   };

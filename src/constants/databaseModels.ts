@@ -37,6 +37,8 @@ export interface DbVenue {
   minGuests?: number;
   maxGuests?: number;
   supportedCelebrations?: string[];
+  celebrationPricing?: any;
+  amenitiesPolicy?: any;
   addOnServices?: any[];
 }
 
