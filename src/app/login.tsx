@@ -34,7 +34,7 @@ import {
   X,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
-import { API_URL, resetUserPassword } from '../services/api';
+import { API_URL, resetUserPassword, sendAuthOtp, verifyAuthOtp } from '../services/api';
 import CelebrationDialog from '../components/CelebrationDialog';
 
 const { width } = Dimensions.get('window');
@@ -60,9 +60,13 @@ export default function AuthScreen() {
   // Reset Password State
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetTarget, setResetTarget] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
   const [resetNewPw, setResetNewPw] = useState('');
   const [resetConfirmPw, setResetConfirmPw] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
 
   // Dialog State
   const [dialogConfig, setDialogConfig] = useState<{
@@ -119,6 +123,16 @@ export default function AuthScreen() {
       useNativeDriver: false,
     }).start();
   };
+
+  useEffect(() => {
+    let interval: any;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer]);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -684,13 +698,82 @@ export default function AuthScreen() {
             <View style={{ gap: 12 }}>
               <View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>Phone Number or Email</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={{ flex: 1, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a' }}
+                    placeholder="Enter 10-digit phone or email"
+                    placeholderTextColor="#94a3b8"
+                    value={resetTarget}
+                    onChangeText={setResetTarget}
+                    autoCapitalize="none"
+                    editable={!otpSending}
+                  />
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: otpTimer > 0 ? '#94a3b8' : '#0284c7',
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minWidth: 80,
+                    }}
+                    disabled={otpSending || otpTimer > 0}
+                    onPress={async () => {
+                      if (!resetTarget.trim()) {
+                        setDialogConfig({
+                          visible: true,
+                          type: 'warning',
+                          title: 'Target Required',
+                          message: 'Please enter your phone number or email first.',
+                          onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                        });
+                        return;
+                      }
+                      setOtpSending(true);
+                      const res = await sendAuthOtp(resetTarget.trim(), 'RESET_PASSWORD');
+                      setOtpSending(false);
+                      if (res?.success) {
+                        setOtpSent(true);
+                        setOtpTimer(60);
+                        setDialogConfig({
+                          visible: true,
+                          type: 'success',
+                          title: 'OTP Sent! 📲',
+                          message: res.message || '6-digit OTP verification code sent.',
+                          onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                        });
+                      } else {
+                        setDialogConfig({
+                          visible: true,
+                          type: 'danger',
+                          title: 'Could Not Send OTP',
+                          message: res?.error || 'Failed to send OTP code. Please try again.',
+                          onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                        });
+                      }
+                    }}
+                  >
+                    {otpSending ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
+                        {otpTimer > 0 ? `${otpTimer}s` : 'Send OTP'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>6-Digit Verification OTP *</Text>
                 <TextInput
-                  style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a' }}
-                  placeholder="Enter 10-digit phone or email"
+                  style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0f172a', letterSpacing: 2 }}
+                  placeholder="e.g. 123456"
                   placeholderTextColor="#94a3b8"
-                  value={resetTarget}
-                  onChangeText={setResetTarget}
-                  autoCapitalize="none"
+                  value={resetOtp}
+                  onChangeText={setResetOtp}
+                  keyboardType="numeric"
+                  maxLength={6}
                 />
               </View>
 
@@ -732,6 +815,16 @@ export default function AuthScreen() {
                     });
                     return;
                   }
+                  if (!resetOtp.trim()) {
+                    setDialogConfig({
+                      visible: true,
+                      type: 'warning',
+                      title: 'OTP Required',
+                      message: 'Please tap "Send OTP" and enter the 6-digit verification code.',
+                      onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
+                    });
+                    return;
+                  }
                   if (!resetNewPw.trim() || resetNewPw.length < 6) {
                     setDialogConfig({
                       visible: true,
@@ -755,13 +848,16 @@ export default function AuthScreen() {
 
                   try {
                     setResetLoading(true);
-                    const res = await resetUserPassword(resetTarget.trim(), resetNewPw.trim());
+                    const res = await resetUserPassword(resetTarget.trim(), resetNewPw.trim(), resetOtp.trim());
                     if (res?.success) {
                       setShowResetModal(false);
                       setEmail(resetTarget.trim());
                       setPassword(resetNewPw.trim());
                       setResetNewPw('');
                       setResetConfirmPw('');
+                      setResetOtp('');
+                      setOtpSent(false);
+                      setOtpTimer(0);
                       setDialogConfig({
                         visible: true,
                         type: 'success',
@@ -774,7 +870,7 @@ export default function AuthScreen() {
                         visible: true,
                         type: 'danger',
                         title: 'Reset Failed',
-                        message: res?.error || 'Account not found. Please check your phone/email.',
+                        message: res?.error || 'Account not found or invalid OTP code.',
                         onConfirm: () => setDialogConfig((p) => ({ ...p, visible: false })),
                       });
                     }
@@ -794,7 +890,7 @@ export default function AuthScreen() {
                 {resetLoading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700' }}>Save New Password</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700' }}>Verify OTP & Reset Password</Text>
                 )}
               </TouchableOpacity>
             </View>

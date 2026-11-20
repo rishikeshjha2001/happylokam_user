@@ -146,6 +146,7 @@ const STORAGE_KEYS = {
   USER: '@happylokam_room_user',
   TOKEN: 'token',
   LOCATION: '@happylokam_room_location',
+  USER_COORDS: '@happylokam_user_gps_coords',
   FAVORITES: '@happylokam_room_favorites',
   RATINGS: '@happylokam_room_ratings',
   NOTIFICATIONS: '@happylokam_room_notifications',
@@ -326,6 +327,23 @@ export const RoomDatabase = {
       await AsyncStorage.setItem(STORAGE_KEYS.LOCATION, location);
     } catch (e) {
       console.warn('RoomDatabase.saveLocation error:', e);
+    }
+  },
+
+  async getUserCoords(): Promise<{ latitude: number; longitude: number } | null> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.USER_COORDS);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async saveUserCoords(coords: { latitude: number; longitude: number }): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_COORDS, JSON.stringify(coords));
+    } catch (e) {
+      console.warn('RoomDatabase.saveUserCoords error:', e);
     }
   },
   // --- Events DAO ---

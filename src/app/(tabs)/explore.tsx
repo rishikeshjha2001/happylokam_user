@@ -32,6 +32,7 @@ import { DbCategory } from '../../constants/databaseModels';
 import { getVenues, getPackages, getCategories } from '../../services/api';
 import { getAdminCustomSections, getAdminCustomCategories, getAdvanceFilters } from '../../services/adminSections';
 import RoomDatabase from '../../services/roomDatabase';
+import { calculateDistanceKm, formatDistance } from '../../utils/distance';
 import AdvancedFilterModal, {
   FilterState,
   DEFAULT_FILTERS,
@@ -131,6 +132,7 @@ export default function ExploreTab() {
   const [packages, setPackages] = useState<any[]>([]);
   const [adminItems, setAdminItems] = useState<any[]>([]);
   const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   // Advanced Filters State
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -274,6 +276,11 @@ export default function ExploreTab() {
       setLikedIds(favs.map((f: any) => f.id));
     }).catch(() => {});
 
+    // Load saved user GPS coordinates for authentic distance calculation
+    RoomDatabase.getUserCoords().then((coords) => {
+      if (coords) setUserCoords(coords);
+    }).catch(() => {});
+
     // Listen to live OTA admin uploads
     const unsubOta = OtaSync.subscribe(() => {
       loadData();
@@ -308,6 +315,9 @@ export default function ExploreTab() {
         title: item.title || item.name || '',
         subtitle: item.subtitle || '',
         location: item.location || item.city || '',
+        latitude: String(item.latitude || ''),
+        longitude: String(item.longitude || ''),
+        mapUrl: item.mapUrl || '',
         price: String(item.price || ''),
         image: item.image || item.imageUrl || '',
         itemType: item.itemType || (item.type?.toLowerCase().includes('ticket') ? 'TICKET' : 'BOOKING'),
@@ -522,9 +532,18 @@ export default function ExploreTab() {
       if (filters.sortBy === 'price_low') return parsePrice(a.price) - parsePrice(b.price);
       if (filters.sortBy === 'price_high') return parsePrice(b.price) - parsePrice(a.price);
       if (filters.sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (filters.sortBy === 'distance_near' && userCoords) {
+        const distA = (a.latitude && a.longitude)
+          ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const distB = (b.latitude && b.longitude)
+          ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return distA - distB;
+      }
       return 0; // Default featured
     });
-  }, [venues, packages, adminItems, activeCategory, searchQuery, filters]);
+  }, [venues, packages, adminItems, activeCategory, searchQuery, filters, userCoords]);
 
   const activeFilterCount =
     (activeCategory !== 'All' ? 1 : 0) +
@@ -849,6 +868,11 @@ export default function ExploreTab() {
                           <Text style={styles.itemLocText} numberOfLines={1}>
                             {item.location}
                           </Text>
+                          {userCoords && item.latitude && item.longitude ? (
+                            <Text style={styles.distanceInlineText}>
+                              • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, item.latitude, item.longitude))}
+                            </Text>
+                          ) : null}
                         </View>
                       )}
 
@@ -1389,6 +1413,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     flex: 1,
+  },
+  distanceInlineText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284c7',
+    marginLeft: 4,
   },
   cardCapacityRow: {
     marginBottom: 8,

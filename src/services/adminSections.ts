@@ -13,6 +13,8 @@ export interface AdminSectionItem {
   tag?: string;
   location?: string;
   mapUrl?: string;
+  latitude?: number;
+  longitude?: number;
   pricePerPlate?: number;
   pricePerPlateVeg?: number;
   pricePerPlateNonVeg?: number;

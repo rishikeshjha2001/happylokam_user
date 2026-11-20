@@ -29,6 +29,9 @@ export interface DbVenue {
   image: string;
   type: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
+  mapUrl?: string;
   amenities?: string[];
   capacity?: number;
   minGuests?: number;

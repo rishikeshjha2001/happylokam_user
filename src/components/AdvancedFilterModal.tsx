@@ -22,7 +22,7 @@ import {
 
 export interface FilterState {
   category: string;
-  sortBy: 'featured' | 'price_low' | 'price_high' | 'rating';
+  sortBy: 'featured' | 'price_low' | 'price_high' | 'rating' | 'distance_near';
   priceRange: string;
   minRating: number;
   city: string;
@@ -71,6 +71,7 @@ export default function AdvancedFilterModal({
 
   const SORT_OPTIONS: { id: FilterState['sortBy']; label: string }[] = [
     { id: 'featured', label: '🔥 Featured & Trending' },
+    { id: 'distance_near', label: '📍 Nearest First / By GPS Distance' },
     { id: 'rating', label: '⭐ Highest Rated First' },
     { id: 'price_low', label: '💰 Price: Low to High' },
     { id: 'price_high', label: '👑 Luxury: High to Low' },

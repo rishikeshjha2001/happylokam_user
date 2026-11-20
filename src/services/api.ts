@@ -305,9 +305,37 @@ export const changeUserPassword = async (currentPassword: string, newPassword: s
 };
 
 // 7d. Reset User Password (via phone or email)
-export const resetUserPassword = async (phoneOrEmail: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+export const sendAuthOtp = async (
+  phoneOrEmail: string,
+  purpose = 'RESET_PASSWORD'
+): Promise<{ success: boolean; message?: string; otp?: string; error?: string }> => {
   try {
-    const res = await apiClient.post('/auth/reset-password', { phoneOrEmail, newPassword });
+    const res = await apiClient.post('/auth/send-otp', { phoneOrEmail, purpose });
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to send OTP' };
+  }
+};
+
+export const verifyAuthOtp = async (
+  phoneOrEmail: string,
+  otp: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await apiClient.post('/auth/verify-otp', { phoneOrEmail, otp });
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Invalid or expired OTP' };
+  }
+};
+
+export const resetUserPassword = async (
+  phoneOrEmail: string,
+  newPassword: string,
+  otp?: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await apiClient.post('/auth/reset-password', { phoneOrEmail, newPassword, otp });
     return res;
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to reset password' };

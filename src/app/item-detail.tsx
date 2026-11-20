@@ -56,6 +56,7 @@ import PaymentModal from '../components/PaymentModal';
 import CelebrationDatePickerModal from '../components/CelebrationDatePickerModal';
 import RazorpayCheckout from 'react-native-razorpay';
 import MLRecommendation from '../services/mlRecommendationEngine';
+import { getGoogleMapsNavigationUrl } from '../utils/distance';
 
 const { width } = Dimensions.get('window');
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
@@ -468,12 +469,24 @@ export default function ItemDetailScreen() {
     setActiveImageIndex(slide);
   };
 
-  const mapDirectionUrl = item.mapUrl || item.googleMapsUrl || item.directionUrl;
-  const hasMapDirection = Boolean(mapDirectionUrl && typeof mapDirectionUrl === 'string' && mapDirectionUrl.trim().length > 0);
+  const navigationUrl = getGoogleMapsNavigationUrl({
+    latitude: item.latitude ? parseFloat(String(item.latitude)) : undefined,
+    longitude: item.longitude ? parseFloat(String(item.longitude)) : undefined,
+    address: item.location || item.city,
+    title: item.title,
+    mapUrl: item.mapUrl || item.googleMapsUrl || item.directionUrl,
+  });
 
-  const handleOpenGoogleMaps = () => {
-    if (mapDirectionUrl) {
-      Linking.openURL(mapDirectionUrl);
+  const handleOpenGoogleMaps = async () => {
+    try {
+      const supported = await Linking.canOpenURL(navigationUrl);
+      if (supported) {
+        await Linking.openURL(navigationUrl);
+      } else {
+        await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((item.title || '') + ' ' + (item.location || ''))}`);
+      }
+    } catch {
+      Linking.openURL(navigationUrl).catch(() => {});
     }
   };
 
@@ -905,16 +918,14 @@ export default function ItemDetailScreen() {
                 <Text style={styles.locationCardSub}>Prime central celebration hub • Verified GPS coordinates</Text>
               </View>
             </View>
-            {hasMapDirection && (
-              <TouchableOpacity
-                style={styles.mapsBtn}
-                onPress={handleOpenGoogleMaps}
-                activeOpacity={0.85}
-              >
-                <Navigation size={15} color="#ffffff" />
-                <Text style={styles.mapsBtnText}>See Location on Google Maps</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.mapsBtn}
+              onPress={handleOpenGoogleMaps}
+              activeOpacity={0.85}
+            >
+              <Navigation size={15} color="#ffffff" />
+              <Text style={styles.mapsBtnText}>📍 Navigate on Google Maps</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Celebration Specialist Concierge Box */}
@@ -1080,6 +1091,8 @@ export default function ItemDetailScreen() {
                     const d = new Date();
                     d.setDate(d.getDate() + idx + 1);
                     const isoDate = d.toISOString().split('T')[0];
+                    const isBlackedOut = Array.isArray(item?.blackoutDates) && item.blackoutDates.includes(isoDate);
+                    if (isBlackedOut) return null;
                     const label = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
                     const isSelected = selectedDate === isoDate;
                     return (

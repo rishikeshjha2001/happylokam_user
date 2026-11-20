@@ -56,6 +56,7 @@ import Svg, { Defs, LinearGradient as SvgGradient, RadialGradient, Stop, Rect } 
 import { getHeroSlides, getVenues, getPackages, getUserWallet } from '../../services/api';
 import { DbHeroSlide, DbVenue, DbPackage, DB_HERO_SLIDES } from '../../constants/databaseModels';
 import RoomDatabase from '../../services/roomDatabase';
+import { calculateDistanceKm, formatDistance } from '../../utils/distance';
 import SwipeTabContainer from '../../components/SwipeTabContainer';
 import {
   AdminCustomSection,
@@ -136,6 +137,7 @@ export default function HomeTab() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [detectingGps, setDetectingGps] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [homeFilters, setHomeFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
@@ -167,6 +169,9 @@ export default function HomeTab() {
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      setUserCoords(coords);
+      await RoomDatabase.saveUserCoords(coords);
       const [address] = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
@@ -193,7 +198,7 @@ export default function HomeTab() {
 
   const loadData = async () => {
     try {
-      const [heroData, venueData, pkgData, session, customSecs, customCats, savedLoc, favs, serverWallet] = await Promise.all([
+      const [heroData, venueData, pkgData, session, customSecs, customCats, savedLoc, favs, serverWallet, savedCoords] = await Promise.all([
         getHeroSlides(),
         getVenues(),
         getPackages(),
@@ -203,7 +208,12 @@ export default function HomeTab() {
         RoomDatabase.getLocation(),
         RoomDatabase.getFavorites(),
         getUserWallet().catch(() => ({ walletBalance: 0 })),
+        RoomDatabase.getUserCoords(),
       ]);
+
+      if (savedCoords) {
+        setUserCoords(savedCoords);
+      }
 
       if (favs && Array.isArray(favs)) {
         setLikedIds(favs.map((f: any) => f.id));
@@ -1003,6 +1013,9 @@ export default function HomeTab() {
                               type: it.itemType || it.type,
                               cornerTag: it.cornerTag,
                               location: it.location,
+                              latitude: String(it.latitude || ''),
+                              longitude: String(it.longitude || ''),
+                              mapUrl: it.mapUrl || '',
                               capacity: String(it.capacity || it.maxGuests || ''),
                               minGuests: String(it.minGuests || ''),
                               maxGuests: String(it.maxGuests || it.capacity || ''),
@@ -1024,6 +1037,11 @@ export default function HomeTab() {
                             <Text style={styles.locationText} numberOfLines={1}>
                               {it.location}
                             </Text>
+                            {userCoords && it.latitude && it.longitude ? (
+                              <Text style={styles.distanceInlineText}>
+                                • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, it.latitude, it.longitude))}
+                              </Text>
+                            ) : null}
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1164,6 +1182,11 @@ export default function HomeTab() {
                         <Text style={styles.locationText} numberOfLines={1}>
                           {venue.location}
                         </Text>
+                        {userCoords && venue.latitude && venue.longitude ? (
+                          <Text style={styles.distanceInlineText}>
+                            • {formatDistance(calculateDistanceKm(userCoords.latitude, userCoords.longitude, venue.latitude, venue.longitude))}
+                          </Text>
+                        ) : null}
                       </View>
 
                       {/* Capacity Badge */}
@@ -2197,6 +2220,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     flex: 1,
+  },
+  distanceInlineText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284c7',
+    marginLeft: 4,
   },
   cardCapacityRow: {
     marginBottom: 6,
