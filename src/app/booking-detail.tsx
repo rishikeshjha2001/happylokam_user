@@ -251,7 +251,9 @@ export default function BookingDetailScreen() {
                       ? '#d97706'
                       : (booking?.status || params.status || 'CONFIRMED').toUpperCase() === 'CANCELLED'
                         ? '#ef4444'
-                        : '#16a34a'
+                        : (booking?.status || params.status || 'CONFIRMED').toUpperCase() === 'CHECKED_IN'
+                          ? '#2563eb'
+                          : '#16a34a'
                   }
                 ]}>
                   {(booking?.status || params.status || 'CONFIRMED').toUpperCase()}

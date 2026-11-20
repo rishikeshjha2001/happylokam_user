@@ -54,7 +54,7 @@ export interface RoomBooking {
   category: string;
   date: string;
   amount: number;
-  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED';
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'CHECKED_IN';
   tierType?: string;
   tierName?: string;
   ticketsCount?: number;

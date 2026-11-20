@@ -79,7 +79,9 @@ export default function BookingsTab() {
 
         const resolveStatus = (st: string) => {
           const upper = String(st || '').toUpperCase();
-          if (upper === 'CONFIRMED' || upper === 'COMPLETED' || upper === 'PAID') return 'CONFIRMED';
+          if (upper === 'CHECKED_IN') return 'CHECKED_IN';
+          if (upper === 'COMPLETED') return 'COMPLETED';
+          if (upper === 'CONFIRMED' || upper === 'PAID') return 'CONFIRMED';
           if (upper === 'PENDING') return 'PENDING';
           return 'CANCELLED';
         };
@@ -311,19 +313,28 @@ export default function BookingsTab() {
                   </View>
                   <View style={[
                     styles.confirmedBadge,
+                    booking.status === 'CHECKED_IN' && { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
+                    booking.status === 'COMPLETED' && { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' },
                     booking.status === 'PENDING' && { backgroundColor: '#fef3c7', borderColor: '#fde68a' },
                     booking.status === 'CANCELLED' && { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
                   ]}>
                     <ShieldCheck size={12} color={
+                      booking.status === 'CHECKED_IN' ? '#2563eb' :
+                      booking.status === 'COMPLETED' ? '#16a34a' :
                       booking.status === 'PENDING' ? '#d97706' :
                       booking.status === 'CANCELLED' ? '#ef4444' : '#15803d'
                     } />
                     <Text style={[
                       styles.confirmedText,
+                      booking.status === 'CHECKED_IN' && { color: '#2563eb' },
+                      booking.status === 'COMPLETED' && { color: '#16a34a' },
                       booking.status === 'PENDING' && { color: '#d97706' },
                       booking.status === 'CANCELLED' && { color: '#ef4444' },
                     ]}>
-                      {booking.status === 'PENDING' ? 'Pending' : booking.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed'}
+                      {booking.status === 'CHECKED_IN' ? 'Checked In' :
+                       booking.status === 'COMPLETED' ? 'Completed' :
+                       booking.status === 'PENDING' ? 'Pending' :
+                       booking.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed'}
                     </Text>
                   </View>
                 </View>
