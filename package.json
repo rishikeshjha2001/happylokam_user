@@ -1,6 +1,6 @@
 {
   "name": "happylokam",
-  "version": "14.0.13",
+  "version": "14.0.18",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
