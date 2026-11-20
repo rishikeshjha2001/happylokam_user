@@ -25,7 +25,7 @@ export default function RootLayout() {
       try {
         // Removes legacy test bookings, wallet activity and cached feeds from
         // prior app versions while preserving the signed-in user account.
-        await RoomDatabase.migrateOperationalCache('2026-11-03-clean-reset-v2');
+        await RoomDatabase.migrateOperationalCache('2026-11-20-clean-reset-v3');
         // Start automatic silent cloud sync (Instagram style background updates)
         OtaSync.startAutoSync();
         // Download compatible OTA code in the background. It becomes active on
