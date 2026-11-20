@@ -14,6 +14,8 @@ export interface AdminSectionItem {
   location?: string;
   mapUrl?: string;
   pricePerPlate?: number;
+  pricePerPlateVeg?: number;
+  pricePerPlateNonVeg?: number;
   pricePerGuest?: number;
   baseHallPrice?: number;
   minGuests?: number;
@@ -36,6 +38,8 @@ export interface AdminSectionItem {
   image: string;
   tags?: string[];
   description?: string;
+  supportedCelebrations?: string[];
+  addOnServices?: { id: string; name: string; price: number; description?: string }[];
   section?: {
     id: string;
     title: string;
@@ -182,6 +186,8 @@ export async function bookSectionItem(
     userEmail?: string;
     notes?: string;
     walletDiscount?: number;
+    celebrationType?: string;
+    selectedAddOns?: any[];
   }
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {

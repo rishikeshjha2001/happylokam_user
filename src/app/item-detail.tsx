@@ -49,6 +49,7 @@ import {
   CalendarDays,
 } from 'lucide-react-native';
 import RoomDatabase from '../services/roomDatabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAdminSectionItemById, AdminSectionItem, bookSectionItem } from '../services/adminSections';
 import { createRazorpayOrder, verifyRazorpayPayment, getUserWallet } from '../services/api';
 import PaymentModal from '../components/PaymentModal';
@@ -58,6 +59,17 @@ import MLRecommendation from '../services/mlRecommendationEngine';
 
 const { width } = Dimensions.get('window');
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
+
+export const CELEBRATION_OPTIONS = [
+  { id: 'WEDDING', label: '💍 Wedding & Ring Ceremony', icon: '💍' },
+  { id: 'BIRTHDAY', label: '🎂 Birthday & Milestone Party', icon: '🎂' },
+  { id: 'OFFICE_EVENTS', label: '🏢 Corporate & Office Events', icon: '🏢' },
+  { id: 'ANNIVERSARY', label: '🥂 Anniversary & Romance', icon: '🥂' },
+  { id: 'COCKTAIL_PARTY', label: '🎶 Cocktail & Social Night', icon: '🎶' },
+  { id: 'FESTIVE', label: '🌸 Festive & Religious Puja', icon: '🌸' },
+  { id: 'REUNION', label: '🎓 Farewell & Alumni Reunion', icon: '🎓' },
+  { id: 'BABY_SHOWER', label: '👶 Baby Shower & Naming', icon: '👶' },
+];
 
 function formatSelectedDateHuman(dateStr: string): string {
   if (!dateStr) return 'Date not chosen';
@@ -88,6 +100,14 @@ export default function ItemDetailScreen() {
     location?: string;
     cornerTag?: string;
     description?: string;
+    capacity?: string;
+    minGuests?: string;
+    maxGuests?: string;
+    baseHallPrice?: string;
+    pricePerPlateVeg?: string;
+    pricePerPlateNonVeg?: string;
+    supportedCelebrations?: string;
+    addOnServices?: string;
   }>();
 
   const [item, setItem] = useState<AdminSectionItem | any>(null);
@@ -103,6 +123,8 @@ export default function ItemDetailScreen() {
   const [nonVegPlatesCount, setNonVegPlatesCount] = useState(40);
   const [bookingDays, setBookingDays] = useState(1);
   const [customPlatesEnabled, setCustomPlatesEnabled] = useState(false);
+  const [selectedCelebration, setSelectedCelebration] = useState<string>('WEDDING');
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   // Celebration Date Picker Modal State
   const [calendarModalVisible, setCalendarModalVisible] = useState(false);
@@ -200,9 +222,26 @@ export default function ItemDetailScreen() {
           } else if (fetched.capacity) {
             setGuestCount(Math.min(fetched.capacity, 200));
           }
+          if (fetched.supportedCelebrations && fetched.supportedCelebrations.length > 0) {
+            setSelectedCelebration(fetched.supportedCelebrations[0]);
+          }
           setLoading(false);
           return;
         }
+      }
+
+      let parsedSupportedCelebrations: string[] = [];
+      if (params.supportedCelebrations) {
+        try {
+          parsedSupportedCelebrations = JSON.parse(params.supportedCelebrations);
+        } catch {}
+      }
+
+      let parsedAddOns: any[] = [];
+      if (params.addOnServices) {
+        try {
+          parsedAddOns = JSON.parse(params.addOnServices);
+        } catch {}
       }
 
       // Fallback from navigation query params
@@ -224,11 +263,24 @@ export default function ItemDetailScreen() {
         ],
         availableDates: [defaultTomorrow],
         availableTimes: ['10:00 AM - 02:00 PM', '04:00 PM - 08:00 PM', '07:00 PM - 11:30 PM'],
-        capacity: 350,
+        capacity: params.capacity ? parseInt(params.capacity, 10) : 350,
+        minGuests: params.minGuests ? parseInt(params.minGuests, 10) : 50,
+        maxGuests: params.maxGuests ? parseInt(params.maxGuests, 10) : 500,
+        pricePerPlateVeg: params.pricePerPlateVeg ? parseFloat(params.pricePerPlateVeg) : undefined,
+        pricePerPlateNonVeg: params.pricePerPlateNonVeg ? parseFloat(params.pricePerPlateNonVeg) : undefined,
+        baseHallPrice: params.baseHallPrice ? parseFloat(params.baseHallPrice) : undefined,
+        supportedCelebrations: parsedSupportedCelebrations.length > 0 ? parsedSupportedCelebrations : undefined,
+        addOnServices: parsedAddOns.length > 0 ? parsedAddOns : undefined,
       };
       setItem(fallbackItem);
       setSelectedDate(defaultTomorrow);
       setSelectedTime(fallbackItem.availableTimes[0]);
+      if (fallbackItem.minGuests) {
+        setGuestCount(fallbackItem.minGuests);
+      }
+      if (parsedSupportedCelebrations.length > 0) {
+        setSelectedCelebration(parsedSupportedCelebrations[0]);
+      }
     } catch (e) {
       console.warn('ItemDetail load error:', e);
     } finally {
@@ -355,6 +407,26 @@ export default function ItemDetailScreen() {
   const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 50;
   const maxGuestsAllowed = item.maxGuests ? Number(item.maxGuests) : (item.capacity ? Number(item.capacity) : 1000);
 
+  // Supported Celebrations & Add-on Services
+  const supportedCelebrationsList: string[] =
+    item.supportedCelebrations && Array.isArray(item.supportedCelebrations) && item.supportedCelebrations.length > 0
+      ? item.supportedCelebrations
+      : ['WEDDING', 'BIRTHDAY', 'OFFICE_EVENTS', 'ANNIVERSARY', 'COCKTAIL_PARTY', 'FESTIVE'];
+
+  const availableAddonsList: { id: string; name: string; price: number; description?: string }[] =
+    item.addOnServices && Array.isArray(item.addOnServices) && item.addOnServices.length > 0
+      ? item.addOnServices
+      : [
+          { id: 'add_dj', name: 'DJ & Sound System Setup', price: 12000, description: 'Dual JBL subs + wireless mics' },
+          { id: 'add_decor', name: 'Grand Floral Stage & Entrance Decor', price: 25000, description: 'Fresh floral entrance + ambient lights' },
+          { id: 'add_drone', name: '4K Drone & Candid Photography', price: 18000, description: 'Full day coverage with reel cuts' },
+          { id: 'add_av', name: '4K Projector & AV Screen Setup', price: 5000, description: 'High lumen projector for videos & slides' },
+        ];
+
+  const addOnsSubtotal = availableAddonsList
+    .filter((a) => selectedAddons.includes(a.id))
+    .reduce((sum, a) => sum + Number(a.price), 0);
+
   // Subtotal calculation
   const totalPlatesCount = vegPlatesCount + nonVegPlatesCount;
   const hallSubtotal = hallRate * bookingDays;
@@ -366,10 +438,10 @@ export default function ItemDetailScreen() {
   const calculatedBase = isTicket
     ? basePriceNum
     : (hasPerPlate || hasPerGuest || hasBaseHall
-        ? hallSubtotal + platesSubtotal + guestSubtotal
+        ? hallSubtotal + platesSubtotal + guestSubtotal + addOnsSubtotal
         : (isPerPerson
-            ? basePriceNum * guestCount * bookingDays
-            : basePriceNum * bookingDays));
+            ? basePriceNum * guestCount * bookingDays + addOnsSubtotal
+            : basePriceNum * bookingDays + addOnsSubtotal));
 
   // Razorpay 2% Commission + 18% GST on that 2% Commission
   const razorpayCommission = Math.round(calculatedBase * 0.02 * 100) / 100;
@@ -477,9 +549,11 @@ export default function ItemDetailScreen() {
       const numGuests = guestCount || 1;
       const numPlates = hasPerPlate ? totalPlatesCount : 0;
       const numDays = bookingDays || 1;
+      const selectedAddonObjects = availableAddonsList.filter((a) => selectedAddons.includes(a.id));
+      const addonsNote = selectedAddonObjects.length > 0 ? ` • Add-ons: ${selectedAddonObjects.map((a) => a.name).join(', ')}` : '';
       const dynamicNotes = isTicket
         ? 'Mobile Ticket Pass'
-        : `Celebration Booking (${numDays} Day${numDays > 1 ? 's' : ''}${hasPerPlate ? ` • ${vegPlatesCount} Veg + ${nonVegPlatesCount} Non-Veg Plates` : ` • ${numGuests} Guests`})`;
+        : `Celebration: ${selectedCelebration} (${numDays} Day${numDays > 1 ? 's' : ''}${hasPerPlate ? ` • ${vegPlatesCount} Veg + ${nonVegPlatesCount} Non-Veg Plates` : ` • ${numGuests} Guests`}${addonsNote})`;
 
       // Call backend bookSectionItem
       const bookingResult = await bookSectionItem(item.id, {
@@ -498,6 +572,8 @@ export default function ItemDetailScreen() {
         userPhone: guestPhone.trim(),
         notes: dynamicNotes,
         walletDiscount,
+        celebrationType: selectedCelebration,
+        selectedAddOns: selectedAddonObjects,
       });
 
       const confirmedServerId = bookingResult?.data?.id || (bookingResult as any)?.id;
@@ -626,6 +702,49 @@ export default function ItemDetailScreen() {
         createdAt: new Date().toISOString(),
       };
       await RoomDatabase.saveBooking(localBooking);
+
+      // Realtime Partner Database Sync
+      try {
+        const PARTNER_BOOKINGS_STORAGE = '@happylokam_partner_bookings_v2';
+        const rawPB = await AsyncStorage.getItem(PARTNER_BOOKINGS_STORAGE);
+        const currentPB = rawPB ? JSON.parse(rawPB) : [];
+        const newPartnerBooking = {
+          id: confirmedServerId || ('hlc_' + Date.now()),
+          userId: 'usr_celebration_guest',
+          customerName: guestName.trim() || 'Celebration Customer',
+          customerPhone: guestPhone.trim() || '+91 8969255561',
+          customerEmail: 'customer@happylokam.com',
+          venueId: item.id,
+          venue: { name: item.title },
+          serviceName: item.title,
+          celebrationType: selectedCelebration,
+          date: selectedDate,
+          bookingDate: selectedDate,
+          bookingDays: numDays,
+          guestCount: numGuests,
+          platesCount: numPlates,
+          vegPlatesCount: hasPerPlate ? vegPlatesCount : 0,
+          nonVegPlatesCount: hasPerPlate ? nonVegPlatesCount : 0,
+          pricePerPlateVeg: vegPlateRate,
+          pricePerPlateNonVeg: nonVegPlateRate,
+          baseHallPrice: hallRate,
+          selectedAddOns: selectedAddonObjects,
+          status: 'CONFIRMED',
+          baseAmount: calculatedBase,
+          platformFee: razorpayCommission,
+          taxAmount: razorpayGst,
+          totalAmount: finalPayable,
+          paymentStatus: 'PAID',
+          ticketId: ticketId,
+          ticketCode: ticketId,
+          checkInOtp: checkInOtp || '8842',
+          createdAt: new Date().toISOString(),
+        };
+        const updatedPB = [newPartnerBooking, ...currentPB.filter((b: any) => b.id !== newPartnerBooking.id)];
+        await AsyncStorage.setItem(PARTNER_BOOKINGS_STORAGE, JSON.stringify(updatedPB));
+      } catch (syncErr) {
+        console.warn('Partner booking sync note:', syncErr);
+      }
 
       if (useWallet && walletDiscount > 0) {
         await RoomDatabase.deductWalletBalance(walletDiscount);
@@ -766,15 +885,13 @@ export default function ItemDetailScreen() {
               <MapPin size={16} color="#64748b" />
               <Text style={styles.metaText}>{item.location || 'Patna, Bihar'}</Text>
             </View>
-            {item.capacity && (
-              <>
-                <View style={styles.metaDivider} />
-                <View style={styles.metaItem}>
-                  <Users size={16} color="#64748b" />
-                  <Text style={styles.metaText}>{item.capacity} Spots</Text>
-                </View>
-              </>
-            )}
+            <View style={styles.metaDivider} />
+            <View style={styles.metaItem}>
+              <Users size={16} color="#2563eb" />
+              <Text style={[styles.metaText, { color: '#1d4ed8', fontWeight: '700' }]}>
+                👥 {minGuestsAllowed} – {maxGuestsAllowed} Guests
+              </Text>
+            </View>
           </View>
 
           {/* Interactive Google Maps Location & Direction Box */}
@@ -887,6 +1004,40 @@ export default function ItemDetailScreen() {
           {/* ============================================================== */}
           {!isTicket && (
             <>
+              {/* Event / Celebration Type Selector ("What are you celebrating?") */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>What are you celebrating? *</Text>
+                  <View style={styles.themePill}>
+                    <Sparkles size={11} color="#e11d48" />
+                    <Text style={styles.themePillText}>Select Theme</Text>
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+                  {supportedCelebrationsList.map((celebId) => {
+                    const celebObj = CELEBRATION_OPTIONS.find((c) => c.id === celebId) || {
+                      id: celebId,
+                      label: celebId.replace(/_/g, ' '),
+                      icon: '🎉',
+                    };
+                    const isSelected = selectedCelebration === celebId;
+                    return (
+                      <TouchableOpacity
+                        key={celebId}
+                        style={[styles.celebChip, isSelected && styles.celebChipSelected]}
+                        onPress={() => setSelectedCelebration(celebId)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.celebChipText, isSelected && styles.celebChipTextSelected]}>
+                          {celebObj.label}
+                        </Text>
+                        {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} style={{ marginLeft: 6 }} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
               {/* Interactive Celebration Date Picker */}
               <View style={styles.sectionBlock}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1218,6 +1369,60 @@ export default function ItemDetailScreen() {
                   </>
                 )}
               </View>
+
+              {/* Optional Custom Add-on Services (DJ, Stage, Drone, AV) */}
+              <View style={styles.sectionBlock}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={18} color="#e11d48" />
+                    <Text style={styles.sectionTitle}>Optional Add-on Services</Text>
+                  </View>
+                  {selectedAddons.length > 0 && (
+                    <Text style={[styles.capacityBadge, { backgroundColor: '#fef2f2', color: '#e11d48', borderColor: '#fecaca' }]}>
+                      {selectedAddons.length} Selected (+₹{addOnsSubtotal.toLocaleString('en-IN')})
+                    </Text>
+                  )}
+                </View>
+
+                {availableAddonsList.map((addon) => {
+                  const isChecked = selectedAddons.includes(addon.id);
+                  return (
+                    <TouchableOpacity
+                      key={addon.id}
+                      style={[
+                        styles.togglePlatesCard,
+                        isChecked && styles.togglePlatesCardActive,
+                        { marginBottom: 8 },
+                      ]}
+                      onPress={() => {
+                        if (isChecked) {
+                          setSelectedAddons(selectedAddons.filter((id) => id !== addon.id));
+                        } else {
+                          setSelectedAddons([...selectedAddons, addon.id]);
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                        <View style={[styles.toggleCheckbox, isChecked && styles.toggleCheckboxActive]}>
+                          {isChecked && <Check size={14} color="#ffffff" strokeWidth={3} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={styles.togglePlatesTitle}>{addon.name}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '800', color: isChecked ? '#e11d48' : '#0f172a' }}>
+                              +₹{addon.price.toLocaleString('en-IN')}
+                            </Text>
+                          </View>
+                          {addon.description ? (
+                            <Text style={styles.togglePlatesSub}>{addon.description}</Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </>
           )}
 
@@ -1344,6 +1549,18 @@ export default function ItemDetailScreen() {
                 <Text style={styles.breakdownLabel}>Event Schedule</Text>
                 <Text style={styles.breakdownValHighlight}>
                   {formatSelectedDateHuman(selectedDate)} • {bookingDays} Day{bookingDays === 1 ? '' : 's'}
+                </Text>
+              </View>
+            )}
+
+            {/* Selected Add-on Services breakdown */}
+            {selectedAddons.length > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={[styles.breakdownLabel, { color: '#e11d48', fontWeight: '700' }]}>
+                  ✨ Add-on Services ({selectedAddons.length})
+                </Text>
+                <Text style={[styles.breakdownVal, { color: '#e11d48', fontWeight: '800' }]}>
+                  ₹{addOnsSubtotal.toLocaleString('en-IN')}
                 </Text>
               </View>
             )}
@@ -2008,6 +2225,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionSubtitle: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  themePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fff1f2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  themePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#e11d48',
+  },
+  celebChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  celebChipSelected: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
+  },
+  celebChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  celebChipTextSelected: {
+    color: '#ffffff',
+  },
   chipsScroll: {
     flexDirection: 'row',
   },

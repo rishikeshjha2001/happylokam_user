@@ -314,6 +314,15 @@ export default function ExploreTab() {
         cornerTag: item.cornerTag || item.tag || '',
         rating: String(item.rating || 4.9),
         description: item.description || '',
+        capacity: String(item.capacity || item.maxGuests || ''),
+        minGuests: String(item.minGuests || ''),
+        maxGuests: String(item.maxGuests || item.capacity || ''),
+        pricePerPlateVeg: String(item.pricePerPlateVeg || item.pricePerPlate || ''),
+        pricePerPlateNonVeg: String(item.pricePerPlateNonVeg || ''),
+        baseHallPrice: String(item.baseHallPrice || ''),
+        pricePerGuest: String(item.pricePerGuest || ''),
+        supportedCelebrations: item.supportedCelebrations ? JSON.stringify(item.supportedCelebrations) : undefined,
+        addOnServices: item.addOnServices ? JSON.stringify(item.addOnServices) : undefined,
       },
     });
   };
@@ -463,6 +472,51 @@ export default function ExploreTab() {
         if (itemTags.length > 0 && !hasAnyAmenity) return false;
       }
 
+      // 7. Celebration / Occasion Type Filter
+      if (filters.celebrationType && filters.celebrationType !== 'all') {
+        const targetCeleb = filters.celebrationType.toLowerCase();
+        const supported = (item.supportedCelebrations || []).map((c: string) => String(c).toLowerCase());
+        const itemText = `${item.title || ''} ${item.name || ''} ${item.type || ''} ${(item.tags || []).join(' ')} ${item.description || ''}`.toLowerCase();
+
+        let matchesCeleb = supported.includes(targetCeleb);
+        if (!matchesCeleb) {
+          if (targetCeleb.includes('wedding')) {
+            matchesCeleb = itemText.includes('wedding') || itemText.includes('mandap') || itemText.includes('vivah') || itemText.includes('bridal');
+          } else if (targetCeleb.includes('birthday')) {
+            matchesCeleb = itemText.includes('birthday') || itemText.includes('party') || itemText.includes('balloon');
+          } else if (targetCeleb.includes('office') || targetCeleb.includes('corporate')) {
+            matchesCeleb = itemText.includes('corporate') || itemText.includes('office') || itemText.includes('conference');
+          } else if (targetCeleb.includes('cocktail') || targetCeleb.includes('party')) {
+            matchesCeleb = itemText.includes('cocktail') || itemText.includes('dj') || itemText.includes('night') || itemText.includes('club');
+          } else if (targetCeleb.includes('festive')) {
+            matchesCeleb = itemText.includes('festive') || itemText.includes('puja') || itemText.includes('havan') || itemText.includes('dandiya');
+          } else if (targetCeleb.includes('reunion')) {
+            matchesCeleb = itemText.includes('reunion') || itemText.includes('farewell') || itemText.includes('alumni');
+          } else if (targetCeleb.includes('anniversary')) {
+            matchesCeleb = itemText.includes('anniversary') || itemText.includes('romance');
+          }
+        }
+        if (!matchesCeleb) return false;
+      }
+
+      // 8. Per-Person / Catering Budget Filter
+      if (filters.perPersonBudget && filters.perPersonBudget !== 'all') {
+        const plateRate = item.pricePerPlateVeg || item.pricePerPlate || parsePrice(item.price);
+        if (filters.perPersonBudget === 'under_500' && plateRate > 500) return false;
+        if (filters.perPersonBudget === '500_1000' && (plateRate < 500 || plateRate > 1000)) return false;
+        if (filters.perPersonBudget === '1000_2000' && (plateRate < 1000 || plateRate > 2000)) return false;
+        if (filters.perPersonBudget === 'above_2000' && plateRate < 2000) return false;
+      }
+
+      // 9. Capacity Filter
+      if (filters.capacity && filters.capacity !== 'all') {
+        const cap = item.capacity || item.maxGuests || 200;
+        if (filters.capacity === 'small' && cap > 100) return false;
+        if (filters.capacity === 'medium' && (cap < 100 || cap > 300)) return false;
+        if (filters.capacity === 'large' && (cap < 300 || cap > 800)) return false;
+        if (filters.capacity === 'mega' && cap < 800) return false;
+      }
+
       return true;
     }).sort((a, b) => {
       if (filters.sortBy === 'price_low') return parsePrice(a.price) - parsePrice(b.price);
@@ -474,6 +528,14 @@ export default function ExploreTab() {
 
   const activeFilterCount =
     (activeCategory !== 'All' ? 1 : 0) +
+    (filters.sortBy !== 'featured' ? 1 : 0) +
+    (filters.priceRange !== 'all' ? 1 : 0) +
+    (filters.minRating > 0 ? 1 : 0) +
+    (filters.city !== 'All' ? 1 : 0) +
+    (filters.capacity !== 'all' ? 1 : 0) +
+    (filters.celebrationType && filters.celebrationType !== 'all' ? 1 : 0) +
+    (filters.perPersonBudget && filters.perPersonBudget !== 'all' ? 1 : 0) +
+    filters.amenities.length;
     (filters.sortBy !== 'featured' ? 1 : 0) +
     (filters.priceRange !== 'all' ? 1 : 0) +
     (filters.minRating > 0 ? 1 : 0) +
@@ -789,6 +851,41 @@ export default function ExploreTab() {
                           </Text>
                         </View>
                       )}
+
+                      {/* Capacity Badge in Item Bar */}
+                      {(item.capacity || item.maxGuests) ? (
+                        <View style={styles.cardCapacityRow}>
+                          <View style={styles.cardCapacityBadge}>
+                            <User size={11} color="#2563eb" style={{ marginRight: 4 }} />
+                            <Text style={styles.cardCapacityText}>
+                              {item.minGuests
+                                ? `${item.minGuests} – ${item.capacity || item.maxGuests} Guests`
+                                : `Up to ${item.capacity || item.maxGuests} Guests`}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
+
+                      {/* Celebration Types Pills */}
+                      {item.supportedCelebrations && item.supportedCelebrations.length > 0 ? (
+                        <View style={styles.cardCelebRow}>
+                          {item.supportedCelebrations.slice(0, 3).map((celeb: string) => {
+                            const label =
+                              celeb === 'WEDDING' ? '💍 Wedding' :
+                              celeb === 'BIRTHDAY' ? '🎂 Birthday' :
+                              celeb === 'OFFICE_EVENTS' ? '🏢 Corporate' :
+                              celeb === 'ANNIVERSARY' ? '🥂 Anniversary' :
+                              celeb === 'COCKTAIL_PARTY' ? '🎶 Party' :
+                              celeb === 'FESTIVE' ? '🌸 Festive' :
+                              celeb === 'REUNION' ? '🎓 Reunion' : '🎉 Event';
+                            return (
+                              <View key={celeb} style={styles.cardCelebBadge}>
+                                <Text style={styles.cardCelebText}>{label}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      ) : null}
 
                       {/* Dual Action Buttons: Details + Book Now */}
                       <View style={styles.cardActionRow}>
@@ -1292,6 +1389,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     flex: 1,
+  },
+  cardCapacityRow: {
+    marginBottom: 8,
+  },
+  cardCapacityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  cardCapacityText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1d4ed8',
+  },
+  cardCelebRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 10,
+  },
+  cardCelebBadge: {
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cardCelebText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
   },
   trendingRow: {
     gap: 8,

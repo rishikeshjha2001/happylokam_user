@@ -48,6 +48,7 @@ import {
   Compass,
   QrCode,
   Building2,
+  Users,
 } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -372,6 +373,15 @@ export default function HomeTab() {
         cornerTag: item.cornerTag || item.tag || '',
         rating: String(item.rating || 4.9),
         description: item.description || '',
+        capacity: String(item.capacity || item.maxGuests || ''),
+        minGuests: String(item.minGuests || ''),
+        maxGuests: String(item.maxGuests || item.capacity || ''),
+        pricePerPlateVeg: String(item.pricePerPlateVeg || item.pricePerPlate || ''),
+        pricePerPlateNonVeg: String(item.pricePerPlateNonVeg || ''),
+        baseHallPrice: String(item.baseHallPrice || ''),
+        pricePerGuest: String(item.pricePerGuest || ''),
+        supportedCelebrations: item.supportedCelebrations ? JSON.stringify(item.supportedCelebrations) : undefined,
+        addOnServices: item.addOnServices ? JSON.stringify(item.addOnServices) : undefined,
       },
     });
   };
@@ -993,6 +1003,14 @@ export default function HomeTab() {
                               type: it.itemType || it.type,
                               cornerTag: it.cornerTag,
                               location: it.location,
+                              capacity: String(it.capacity || it.maxGuests || ''),
+                              minGuests: String(it.minGuests || ''),
+                              maxGuests: String(it.maxGuests || it.capacity || ''),
+                              baseHallPrice: String(it.baseHallPrice || ''),
+                              pricePerPlateVeg: String(it.pricePerPlateVeg || it.pricePerPlate || ''),
+                              pricePerPlateNonVeg: String(it.pricePerPlateNonVeg || ''),
+                              supportedCelebrations: it.supportedCelebrations ? JSON.stringify(it.supportedCelebrations) : undefined,
+                              addOnServices: it.addOnServices ? JSON.stringify(it.addOnServices) : undefined,
                             },
                           })
                         }
@@ -1009,6 +1027,41 @@ export default function HomeTab() {
                           </View>
                         )}
                       </TouchableOpacity>
+
+                      {/* Capacity Badge in Items Bar */}
+                      {(it.capacity || it.maxGuests) ? (
+                        <View style={styles.cardCapacityRow}>
+                          <View style={styles.cardCapacityBadge}>
+                            <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
+                            <Text style={styles.cardCapacityText}>
+                              {it.minGuests
+                                ? `${it.minGuests} – ${it.capacity || it.maxGuests} Guests`
+                                : `Up to ${it.capacity || it.maxGuests} Guests`}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
+
+                      {/* Celebration Types Pills */}
+                      {it.supportedCelebrations && it.supportedCelebrations.length > 0 ? (
+                        <View style={styles.cardCelebRow}>
+                          {it.supportedCelebrations.slice(0, 3).map((celeb: string) => {
+                            const label =
+                              celeb === 'WEDDING' ? '💍 Wedding' :
+                              celeb === 'BIRTHDAY' ? '🎂 Birthday' :
+                              celeb === 'OFFICE_EVENTS' ? '🏢 Corporate' :
+                              celeb === 'ANNIVERSARY' ? '🥂 Anniversary' :
+                              celeb === 'COCKTAIL_PARTY' ? '🎶 Party' :
+                              celeb === 'FESTIVE' ? '🌸 Festive' :
+                              celeb === 'REUNION' ? '🎓 Reunion' : '🎉 Event';
+                            return (
+                              <View key={celeb} style={styles.cardCelebBadge}>
+                                <Text style={styles.cardCelebText}>{label}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      ) : null}
 
                       <View style={styles.cardFooter}>
                         <View style={[styles.typePill, { backgroundColor: it.itemType === 'TICKET' ? '#fef3c7' : '#e0e7ff' }]}>
@@ -1112,6 +1165,20 @@ export default function HomeTab() {
                           {venue.location}
                         </Text>
                       </View>
+
+                      {/* Capacity Badge */}
+                      {(venue.capacity || (venue as any).maxGuests) ? (
+                        <View style={styles.cardCapacityRow}>
+                          <View style={styles.cardCapacityBadge}>
+                            <Users size={11} color="#2563eb" style={{ marginRight: 4 }} />
+                            <Text style={styles.cardCapacityText}>
+                              {(venue as any).minGuests
+                                ? `${(venue as any).minGuests} – ${venue.capacity || (venue as any).maxGuests} Guests`
+                                : `Up to ${venue.capacity || (venue as any).maxGuests} Guests`}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
 
                       <View style={styles.cardFooter}>
                         <View style={styles.typePill}>
@@ -2130,6 +2197,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     flex: 1,
+  },
+  cardCapacityRow: {
+    marginBottom: 6,
+  },
+  cardCapacityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  cardCapacityText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1d4ed8',
+  },
+  cardCelebRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  cardCelebBadge: {
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cardCelebText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
   },
   tagsText: {
     fontSize: 11,

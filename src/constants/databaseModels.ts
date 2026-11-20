@@ -30,6 +30,11 @@ export interface DbVenue {
   type: string;
   city?: string;
   amenities?: string[];
+  capacity?: number;
+  minGuests?: number;
+  maxGuests?: number;
+  supportedCelebrations?: string[];
+  addOnServices?: any[];
 }
 
 export interface DbPackage {

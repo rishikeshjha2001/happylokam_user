@@ -28,6 +28,8 @@ export interface FilterState {
   city: string;
   capacity: string;
   amenities: string[];
+  celebrationType?: string;
+  perPersonBudget?: string;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -38,6 +40,8 @@ export const DEFAULT_FILTERS: FilterState = {
   city: 'All',
   capacity: 'all',
   amenities: [],
+  celebrationType: 'all',
+  perPersonBudget: 'all',
 };
 
 interface AdvancedFilterModalProps {
@@ -70,6 +74,25 @@ export default function AdvancedFilterModal({
     { id: 'rating', label: '⭐ Highest Rated First' },
     { id: 'price_low', label: '💰 Price: Low to High' },
     { id: 'price_high', label: '👑 Luxury: High to Low' },
+  ];
+
+  const CELEBRATION_FILTER_OPTIONS = [
+    { id: 'all', label: 'All Celebrations' },
+    { id: 'WEDDING', label: '💍 Wedding' },
+    { id: 'BIRTHDAY', label: '🎂 Birthday' },
+    { id: 'OFFICE_EVENTS', label: '🏢 Corporate & Office' },
+    { id: 'ANNIVERSARY', label: '🥂 Anniversary' },
+    { id: 'COCKTAIL_PARTY', label: '🎶 Cocktail & Party' },
+    { id: 'FESTIVE', label: '🌸 Festive / Religious' },
+    { id: 'REUNION', label: '🎓 Farewell & Reunion' },
+  ];
+
+  const PER_PERSON_OPTIONS = [
+    { id: 'all', label: 'All Plate Rates' },
+    { id: 'under_500', label: '< ₹500 / Plate' },
+    { id: '500_1000', label: '₹500 - ₹1,000 / Plate' },
+    { id: '1000_2000', label: '₹1,000 - ₹2,000 / Plate' },
+    { id: 'above_2000', label: '₹2,000+ Luxe / Plate' },
   ];
 
   const BUDGET_OPTIONS = [
@@ -208,6 +231,50 @@ export default function AdvancedFilterModal({
                   >
                     <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>
                       {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Celebration / Occasion Type Filter */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.groupTitle}>CELEBRATION / OCCASION TYPE</Text>
+            <View style={styles.optionsWrap}>
+              {CELEBRATION_FILTER_OPTIONS.map((c) => {
+                const isSelected = (localFilters.celebrationType || 'all') === c.id;
+                return (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[styles.pillOption, isSelected && styles.pillOptionActive]}
+                    onPress={() => setLocalFilters({ ...localFilters, celebrationType: c.id })}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>
+                      {c.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Per Person / Catering Budget Filter */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.groupTitle}>PER-PERSON / CATERING BUDGET</Text>
+            <View style={styles.optionsWrap}>
+              {PER_PERSON_OPTIONS.map((p) => {
+                const isSelected = (localFilters.perPersonBudget || 'all') === p.id;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.pillOption, isSelected && styles.pillOptionActive]}
+                    onPress={() => setLocalFilters({ ...localFilters, perPersonBudget: p.id })}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>
+                      {p.label}
                     </Text>
                   </TouchableOpacity>
                 );
