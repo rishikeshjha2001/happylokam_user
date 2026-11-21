@@ -211,10 +211,21 @@ export default function BookingDetailScreen() {
               ) : null}
 
               {(booking?.completionOtp || params.completionOtp) ? (
-                <View style={[styles.ticketOtpBadge, { backgroundColor: '#f5f3ff', borderColor: '#a78bfa' }]}>
-                  <Text style={[styles.ticketOtpLabel, { color: '#7c3aed' }]}>STAGE 2: SERVICE COMPLETION OTP</Text>
-                  <Text style={[styles.ticketOtpValue, { color: '#6d28d9' }]}>{booking?.completionOtp || params.completionOtp}</Text>
-                  <Text style={[styles.ticketOtpHint, { color: '#7c3aed' }]}>Share after event concludes to release partner payout</Text>
+                <View style={[styles.ticketOtpBadge, { backgroundColor: '#faf5ff', borderColor: '#8b5cf6', borderWidth: 2, borderRadius: 16, padding: 14, marginVertical: 10 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
+                    <Sparkles size={16} color="#7c3aed" />
+                    <Text style={[styles.ticketOtpLabel, { color: '#6d28d9', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }]}>
+                      🎉 CELEBRATION COMPLETION OTP
+                    </Text>
+                  </View>
+                  <View style={{ backgroundColor: '#ffffff', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12, alignSelf: 'center', marginVertical: 6, borderWidth: 1, borderColor: '#ddd6fe' }}>
+                    <Text style={[styles.ticketOtpValue, { color: '#5b21b6', fontSize: 28, letterSpacing: 8, fontWeight: '900' }]}>
+                      {booking?.completionOtp || params.completionOtp}
+                    </Text>
+                  </View>
+                  <Text style={[styles.ticketOtpHint, { color: '#6d28d9', textAlign: 'center', fontWeight: '600', fontSize: 11 }]}>
+                    Share with the venue manager ONLY after your celebration concludes satisfactorily.
+                  </Text>
                 </View>
               ) : null}
 

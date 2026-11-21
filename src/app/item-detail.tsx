@@ -68,14 +68,20 @@ const { width } = Dimensions.get('window');
 const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_SjBHhCXWmZhVK6';
 
 export const CELEBRATION_OPTIONS = [
-  { id: 'WEDDING', label: '💍 Wedding & Ring Ceremony', icon: '💍' },
-  { id: 'BIRTHDAY', label: '🎂 Birthday & Milestone Party', icon: '🎂' },
+  { id: 'BACHELOR_PARTY', label: '🕺 Bachelor / Bachelorette Party', icon: '🕺' },
+  { id: 'KITTY_PARTY', label: '🐱 Kitty Party', icon: '🐱' },
+  { id: 'POOL_PARTY', label: '🏊 Pool Party', icon: '🏊' },
+  { id: 'HALDI_SANGEET', label: '💛 Haldi & Sangeet', icon: '💛' },
+  { id: 'WEDDING', label: '💍 Wedding & Reception', icon: '💍' },
+  { id: 'BIRTHDAY', label: '🎂 Birthday Party', icon: '🎂' },
+  { id: 'ANNIVERSARY', label: '🥂 Anniversary Celebration', icon: '🥂' },
+  { id: 'ROMANTIC_DATE', label: '🌹 Romantic Date / Proposal', icon: '🌹' },
+  { id: 'BABY_SHOWER', label: '👶 Baby Shower & Godh Bharai', icon: '👶' },
+  { id: 'NAMING_CEREMONY', label: '🪔 Naming Ceremony', icon: '🪔' },
   { id: 'OFFICE_EVENTS', label: '🏢 Corporate & Office Events', icon: '🏢' },
-  { id: 'ANNIVERSARY', label: '🥂 Anniversary & Romance', icon: '🥂' },
-  { id: 'COCKTAIL_PARTY', label: '🎶 Cocktail & Social Night', icon: '🎶' },
-  { id: 'FESTIVE', label: '🌸 Festive & Religious Puja', icon: '🌸' },
-  { id: 'REUNION', label: '🎓 Farewell & Alumni Reunion', icon: '🎓' },
-  { id: 'BABY_SHOWER', label: '👶 Baby Shower & Naming', icon: '👶' },
+  { id: 'COCKTAIL_PARTY', label: '🍸 Cocktail & DJ Night', icon: '🍸' },
+  { id: 'FESTIVE', label: '🌸 Festive Puja / Katha', icon: '🌸' },
+  { id: 'REUNION', label: '🎓 Reunion & Farewell', icon: '🎓' },
 ];
 
 function formatSelectedDateHuman(dateStr: string): string {
@@ -466,18 +472,24 @@ export default function ItemDetailScreen() {
   const plateRate = vegPlateRate;
   const guestRate = item.pricePerGuest ? Number(item.pricePerGuest) : 0;
 
-  const minGuestsAllowed = item.minGuests ? Number(item.minGuests) : 50;
+  // No minimum guest barrier on users - maxGuests is the venue capacity limit
+  const minGuestsAllowed = 1;
   const maxGuestsAllowed = item.maxGuests ? Number(item.maxGuests) : (item.capacity ? Number(item.capacity) : 1000);
 
   // Supported Celebrations & Add-on Services
   const supportedCelebrationsList: string[] =
     item.supportedCelebrations && Array.isArray(item.supportedCelebrations) && item.supportedCelebrations.length > 0
       ? item.supportedCelebrations
-      : ['WEDDING', 'BIRTHDAY', 'OFFICE_EVENTS', 'ANNIVERSARY', 'COCKTAIL_PARTY', 'FESTIVE'];
+      : ['WEDDING', 'BIRTHDAY', 'OFFICE_EVENTS', 'ANNIVERSARY', 'COCKTAIL_PARTY', 'FESTIVE', 'BACHELOR_PARTY', 'KITTY_PARTY'];
+
+  const allAddons = [
+    ...(item.addOnServices && Array.isArray(item.addOnServices) ? item.addOnServices : []),
+    ...(item.customServices && Array.isArray(item.customServices) ? item.customServices : []),
+  ];
 
   const availableAddonsList: { id: string; name: string; price: number; description?: string }[] =
-    item.addOnServices && Array.isArray(item.addOnServices) && item.addOnServices.length > 0
-      ? item.addOnServices
+    allAddons.length > 0
+      ? allAddons
       : [
           { id: 'add_dj', name: 'DJ & Sound System Setup', price: 12000, description: 'Dual JBL subs + wireless mics' },
           { id: 'add_decor', name: 'Grand Floral Stage & Entrance Decor', price: 25000, description: 'Fresh floral entrance + ambient lights' },

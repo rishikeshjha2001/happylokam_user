@@ -52,13 +52,21 @@ const BASE_CATEGORY_FILTERS = [
   'Wedding Offers',
   'Birthdays',
   'Birthday Themes',
+  'Haldi & Sangeet',
+  'Anniversary',
+  'Bachelor Party',
+  'Kitty Party',
+  'Pool Party',
+  'Cocktail Night',
+  'Office Events',
+  'Baby Shower',
+  'Festive Puja',
+  'Reunion',
   'DJ & Sound',
   'Bridal Makeup',
   'Catering',
-  'Baby Shower',
   'Engagements',
   'Choreography',
-  'Office Events',
   'Decor',
   'Pandit',
   'Venues',
@@ -74,13 +82,21 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   'Wedding Offers': '🏷️',
   Birthdays: '🎂',
   'Birthday Themes': '🎈',
+  'Haldi & Sangeet': '💛',
+  Anniversary: '💑',
+  'Bachelor Party': '🎉',
+  'Kitty Party': '☕',
+  'Pool Party': '🏊‍♂️',
+  'Cocktail Night': '🍸',
+  'Office Events': '💼',
+  'Baby Shower': '👶',
+  'Festive Puja': '🪔',
+  Reunion: '🤝',
   'DJ & Sound': '🎵',
   'Bridal Makeup': '💄',
   Catering: '🍛',
-  'Baby Shower': '👶',
   Engagements: '💍',
   Choreography: '💃',
-  'Office Events': '💼',
   Decor: '🌸',
   Pandit: '🪔',
   Venues: '🏰',
@@ -382,22 +398,41 @@ export default function ExploreTab() {
         const itemTags = (item.tags || []).map((t: string) => String(t).toLowerCase()).join(' ');
         const itemTitle = (item.title || item.name || '').toLowerCase();
         const itemSection = (item.sectionTitle || '').toLowerCase();
+        const celebList = Array.isArray(item.supportedCelebrations)
+          ? item.supportedCelebrations.map((c: string) => String(c).toLowerCase().replace(/_/g, ' ')).join(' ')
+          : '';
 
         let matchesCat = false;
         if (catKey.includes('wedding') || catKey.includes('mandap')) {
-          matchesCat = itemType.includes('wedding') || itemType.includes('venue') || itemType.includes('palace') || itemType.includes('decor') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala') || itemTitle.includes('palace') || itemTags.includes('hall') || itemSection.includes('wedding');
+          matchesCat = itemType.includes('wedding') || itemType.includes('venue') || itemType.includes('palace') || itemType.includes('decor') || itemTags.includes('wedding') || itemTitle.includes('wedding') || itemTitle.includes('mandap') || itemTags.includes('varmala') || itemTitle.includes('palace') || itemTags.includes('hall') || itemSection.includes('wedding') || celebList.includes('wedding');
         } else if (catKey.includes('birthday') || catKey.includes('fiesta')) {
-          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('party') || itemTags.includes('party') || itemTitle.includes('fiesta') || itemTags.includes('balloon') || itemType.includes('dj') || itemSection.includes('birthday');
+          matchesCat = itemType.includes('birthday') || itemTags.includes('birthday') || itemTitle.includes('birthday') || itemTitle.includes('party') || itemTags.includes('party') || itemTitle.includes('fiesta') || itemTags.includes('balloon') || itemType.includes('dj') || itemSection.includes('birthday') || celebList.includes('birthday');
+        } else if (catKey.includes('haldi') || catKey.includes('sangeet')) {
+          matchesCat = itemType.includes('haldi') || itemType.includes('sangeet') || itemTags.includes('haldi') || itemTags.includes('sangeet') || itemTitle.includes('haldi') || itemTitle.includes('sangeet') || celebList.includes('haldi') || celebList.includes('sangeet');
+        } else if (catKey.includes('anniversary')) {
+          matchesCat = itemType.includes('anniversary') || itemTags.includes('anniversary') || itemTitle.includes('anniversary') || celebList.includes('anniversary');
+        } else if (catKey.includes('bachelor')) {
+          matchesCat = itemType.includes('bachelor') || itemTags.includes('bachelor') || itemTitle.includes('bachelor') || celebList.includes('bachelor');
+        } else if (catKey.includes('kitty')) {
+          matchesCat = itemType.includes('kitty') || itemTags.includes('kitty') || itemTitle.includes('kitty') || celebList.includes('kitty');
+        } else if (catKey.includes('pool')) {
+          matchesCat = itemType.includes('pool') || itemTags.includes('pool') || itemTitle.includes('pool') || celebList.includes('pool');
+        } else if (catKey.includes('cocktail')) {
+          matchesCat = itemType.includes('cocktail') || itemTags.includes('cocktail') || itemTitle.includes('cocktail') || celebList.includes('cocktail');
+        } else if (catKey.includes('puja') || catKey.includes('katha') || catKey.includes('festive')) {
+          matchesCat = itemType.includes('puja') || itemTags.includes('puja') || itemTitle.includes('puja') || itemTags.includes('pandit') || celebList.includes('puja') || celebList.includes('festive');
+        } else if (catKey.includes('reunion') || catKey.includes('farewell')) {
+          matchesCat = itemType.includes('reunion') || itemTags.includes('reunion') || itemTitle.includes('reunion') || celebList.includes('reunion');
         } else if (catKey.includes('offer') || catKey.includes('deal')) {
           matchesCat = Boolean(item.badge || item.cornerTag || item.discount || item.tag || itemType.includes('offer') || itemTitle.includes('deal') || itemTags.includes('offer') || itemTags.includes('deal') || itemSection.includes('offer'));
         } else if (catKey.includes('loksafari') || catKey.includes('safari')) {
           matchesCat = itemType.includes('safari') || itemType.includes('resort') || itemTags.includes('safari') || itemTags.includes('pool') || itemTitle.includes('safari') || itemTitle.includes('resort') || itemTitle.includes('farmstay') || itemSection.includes('safari');
         } else if (catKey.includes('baby')) {
-          matchesCat = itemType.includes('baby') || itemTags.includes('baby') || itemTitle.includes('baby') || itemTitle.includes('shower') || itemTags.includes('cradle');
+          matchesCat = itemType.includes('baby') || itemTags.includes('baby') || itemTitle.includes('baby') || itemTitle.includes('shower') || itemTags.includes('cradle') || celebList.includes('baby');
         } else if (catKey.includes('engagement') || catKey.includes('roka')) {
           matchesCat = itemType.includes('roka') || itemType.includes('engagement') || itemTitle.includes('engagement') || itemTitle.includes('roka') || itemTags.includes('sangeet') || itemTags.includes('ring');
         } else if (catKey.includes('corporate') || catKey.includes('office')) {
-          matchesCat = itemType.includes('corporate') || itemType.includes('conference') || itemTitle.includes('corporate') || itemTags.includes('meeting') || itemType.includes('venue');
+          matchesCat = itemType.includes('corporate') || itemType.includes('conference') || itemTitle.includes('corporate') || itemTags.includes('meeting') || itemType.includes('venue') || celebList.includes('corporate') || celebList.includes('office');
         } else if (catKey.includes('package')) {
           matchesCat = itemType.includes('package') || itemTags.includes('package') || itemTitle.includes('package') || itemSection.includes('package');
         } else if (catKey.includes('decor')) {
@@ -419,7 +454,7 @@ export default function ExploreTab() {
         } else if (catKey.includes('theme')) {
           matchesCat = itemType.includes('theme') || itemTags.includes('theme') || itemTitle.includes('theme') || itemTitle.includes('setup') || itemTitle.includes('decor') || itemType.includes('venue') || itemSection.includes('theme');
         } else {
-          matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey) || itemSection.includes(catKey);
+          matchesCat = itemType.includes(catKey) || itemTags.includes(catKey) || itemTitle.includes(catKey) || itemSection.includes(catKey) || celebList.includes(catKey);
         }
 
         if (!matchesCat) return false;
@@ -447,6 +482,7 @@ export default function ExploreTab() {
           ...(item.tags || []),
           ...(item.features || []),
           ...(item.amenities || []),
+          ...(Array.isArray(item.supportedCelebrations) ? item.supportedCelebrations : []),
         ]
           .filter(Boolean)
           .join(' ')
