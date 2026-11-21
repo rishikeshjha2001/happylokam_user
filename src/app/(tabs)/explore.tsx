@@ -526,19 +526,31 @@ export default function ExploreTab() {
         const supported = (item.supportedCelebrations || []).map((c: string) => String(c).toLowerCase());
         const itemText = `${item.title || ''} ${item.name || ''} ${item.type || ''} ${(item.tags || []).join(' ')} ${item.description || ''}`.toLowerCase();
 
-        let matchesCeleb = supported.includes(targetCeleb);
+        let matchesCeleb = supported.includes(targetCeleb) || supported.some((s: string) => s.includes(targetCeleb) || targetCeleb.includes(s));
         if (!matchesCeleb) {
           if (targetCeleb.includes('wedding')) {
             matchesCeleb = itemText.includes('wedding') || itemText.includes('mandap') || itemText.includes('vivah') || itemText.includes('bridal');
           } else if (targetCeleb.includes('birthday')) {
             matchesCeleb = itemText.includes('birthday') || itemText.includes('party') || itemText.includes('balloon');
+          } else if (targetCeleb.includes('haldi') || targetCeleb.includes('sangeet')) {
+            matchesCeleb = itemText.includes('haldi') || itemText.includes('sangeet') || itemText.includes('mehendi');
+          } else if (targetCeleb.includes('bachelor')) {
+            matchesCeleb = itemText.includes('bachelor') || itemText.includes('bachelorette') || itemText.includes('night') || itemText.includes('party');
+          } else if (targetCeleb.includes('kitty')) {
+            matchesCeleb = itemText.includes('kitty') || itemText.includes('cafe') || itemText.includes('lounge');
+          } else if (targetCeleb.includes('pool')) {
+            matchesCeleb = itemText.includes('pool') || itemText.includes('villa') || itemText.includes('resort');
+          } else if (targetCeleb.includes('romantic') || targetCeleb.includes('date')) {
+            matchesCeleb = itemText.includes('romantic') || itemText.includes('date') || itemText.includes('proposal') || itemText.includes('couple');
+          } else if (targetCeleb.includes('baby') || targetCeleb.includes('naming')) {
+            matchesCeleb = itemText.includes('baby') || itemText.includes('shower') || itemText.includes('naming') || itemText.includes('cradle');
           } else if (targetCeleb.includes('office') || targetCeleb.includes('corporate')) {
             matchesCeleb = itemText.includes('corporate') || itemText.includes('office') || itemText.includes('conference');
           } else if (targetCeleb.includes('cocktail') || targetCeleb.includes('party')) {
             matchesCeleb = itemText.includes('cocktail') || itemText.includes('dj') || itemText.includes('night') || itemText.includes('club');
-          } else if (targetCeleb.includes('festive')) {
-            matchesCeleb = itemText.includes('festive') || itemText.includes('puja') || itemText.includes('havan') || itemText.includes('dandiya');
-          } else if (targetCeleb.includes('reunion')) {
+          } else if (targetCeleb.includes('festive') || targetCeleb.includes('puja')) {
+            matchesCeleb = itemText.includes('festive') || itemText.includes('puja') || itemText.includes('havan') || itemText.includes('katha') || itemText.includes('dandiya');
+          } else if (targetCeleb.includes('reunion') || targetCeleb.includes('farewell')) {
             matchesCeleb = itemText.includes('reunion') || itemText.includes('farewell') || itemText.includes('alumni');
           } else if (targetCeleb.includes('anniversary')) {
             matchesCeleb = itemText.includes('anniversary') || itemText.includes('romance');

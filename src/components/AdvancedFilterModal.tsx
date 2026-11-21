@@ -79,13 +79,20 @@ export default function AdvancedFilterModal({
 
   const CELEBRATION_FILTER_OPTIONS = [
     { id: 'all', label: 'All Celebrations' },
-    { id: 'WEDDING', label: '💍 Wedding' },
-    { id: 'BIRTHDAY', label: '🎂 Birthday' },
+    { id: 'BACHELOR_PARTY', label: '🎉 Bachelor / Bachelorette' },
+    { id: 'KITTY_PARTY', label: '☕ Kitty Party' },
+    { id: 'POOL_PARTY', label: '🏊‍♂️ Pool Party' },
+    { id: 'HALDI_SANGEET', label: '💛 Haldi & Sangeet' },
+    { id: 'WEDDING', label: '💍 Wedding & Reception' },
+    { id: 'BIRTHDAY', label: '🎂 Birthday Party' },
+    { id: 'ANNIVERSARY', label: '💑 Anniversary' },
+    { id: 'ROMANTIC_DATE', label: '🌹 Romantic Date / Proposal' },
+    { id: 'BABY_SHOWER', label: '👶 Baby Shower' },
+    { id: 'NAMING_CEREMONY', label: '🍼 Naming Ceremony' },
     { id: 'OFFICE_EVENTS', label: '🏢 Corporate & Office' },
-    { id: 'ANNIVERSARY', label: '🥂 Anniversary' },
-    { id: 'COCKTAIL_PARTY', label: '🎶 Cocktail & Party' },
-    { id: 'FESTIVE', label: '🌸 Festive / Religious' },
-    { id: 'REUNION', label: '🎓 Farewell & Reunion' },
+    { id: 'COCKTAIL_PARTY', label: '🍸 Cocktail & DJ Night' },
+    { id: 'FESTIVE', label: '🪔 Festive Puja / Katha' },
+    { id: 'REUNION', label: '🤝 Reunion & Farewell' },
   ];
 
   const PER_PERSON_OPTIONS = [

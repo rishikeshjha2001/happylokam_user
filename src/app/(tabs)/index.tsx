@@ -453,7 +453,8 @@ export default function HomeTab() {
       const id = it.id || it.title;
       if (!seen.has(id)) {
         seen.add(id);
-        const text = `${it.title || it.name || ''} ${it.location || it.city || ''} ${it.type || ''} ${(it.tags || []).join(' ')}`.toLowerCase();
+        const celebStr = Array.isArray(it.supportedCelebrations) ? it.supportedCelebrations.join(' ') : '';
+        const text = `${it.title || it.name || ''} ${it.location || it.city || ''} ${it.type || ''} ${(it.tags || []).join(' ')} ${celebStr}`.toLowerCase();
         if (text.includes(q)) {
           results.push(it);
         }
@@ -804,9 +805,16 @@ export default function HomeTab() {
                 { label: '✨ All Categories', query: '', category: 'All' },
                 { label: '👑 Wedding Mandaps', query: 'wedding', category: 'Weddings' },
                 { label: '🎂 Birthday Themes', query: 'birthday', category: 'Birthdays' },
+                { label: '💛 Haldi & Sangeet', query: 'haldi', category: 'Haldi & Sangeet' },
+                { label: '💑 Anniversary', query: 'anniversary', category: 'Anniversary' },
+                { label: '🎉 Bachelor Party', query: 'bachelor', category: 'Bachelor Party' },
+                { label: '☕ Kitty Party', query: 'kitty', category: 'Kitty Party' },
+                { label: '🏊‍♂️ Pool Party', query: 'pool', category: 'Pool Party' },
+                { label: '🍸 Cocktail Night', query: 'cocktail', category: 'Cocktail Night' },
+                { label: '🪔 Festive Puja', query: 'puja', category: 'Festive Puja' },
+                { label: '🤝 Reunion', query: 'reunion', category: 'Reunion' },
                 { label: '🔥 Vedic Pandit', query: 'pandit', category: 'Pandit' },
                 { label: '🍽️ Catering Feasts', query: 'catering', category: 'Catering' },
-                { label: '🎨 Haldi & Decor', query: 'decor', category: 'Decor' },
                 { label: '🏰 Luxury Venues', query: 'venue', category: 'Venues' },
                 { label: '📸 Photo Shoots', query: 'shoot', category: 'Photography' },
               ].map((chip) => {
